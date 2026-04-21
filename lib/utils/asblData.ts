@@ -48,14 +48,21 @@ function generateUnits(): Unit[] {
 export const ASBL_LOFT_DATA = {
   project: {
     name: 'ASBL LOFT',
-    location: 'Financial District, Hyderabad',
-    type: '3BHK Luxury Residences',
+    location: 'Financial District, Gachibowli, Hyderabad',
+    type: '3BHK Exclusive Residences',
     handover: '2026-12-01',
+    launched: '2023-08-01',
     rera: 'P02400006761',
     buildingPermit: '057423/ZOA/R1/U6/HMDA/21102022',
-    totalUnits: 893,
-    soldUnits: 665,
+    towerCount: 2,
+    floors: 'G+45',
+    totalUnits: 894,
+    soldUnits: 666,
     availableUnits: 228,
+    clubhouseSqft: 55000,
+    developer: 'Ashoka Builders India Pvt. Ltd.',
+    salesEmail: 'sales@asbl.in',
+    mortgagePartner: 'Bajaj Housing Finance Ltd.',
   },
 
   pricing: {

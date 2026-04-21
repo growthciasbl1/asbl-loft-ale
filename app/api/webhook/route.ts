@@ -7,6 +7,19 @@ export const dynamic = 'force-dynamic';
 const CRM_INGEST_URL =
   process.env.CRM_INGEST_URL || 'https://asbl-crm-api.vercel.app/api/ingest/website';
 
+interface WebTrackerPayload {
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_content?: string;
+  utm_term?: string;
+  first_page_visited?: string;
+  last_page_visited?: string;
+  total_page_views?: number;
+  referrer_url?: string;
+  time_spent_minutes?: number;
+}
+
 async function pushToCrm(payload: Record<string, unknown>, timeoutMs = 12000) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -40,6 +53,16 @@ export async function POST(req: NextRequest) {
 
     const referer = req.headers.get('referer') || '';
     const ua = req.headers.get('user-agent') || '';
+    const tracker: WebTrackerPayload = (body.webTracker && typeof body.webTracker === 'object')
+      ? body.webTracker as WebTrackerPayload
+      : {};
+
+    // UTMs: form-supplied beats tracker-supplied beats empty
+    const utmSource = body.utmSource ?? tracker.utm_source ?? null;
+    const utmCampaign = body.utmCampaign ?? tracker.utm_campaign ?? null;
+    const utmMedium = body.utmMedium ?? tracker.utm_medium ?? null;
+    const utmContent = tracker.utm_content ?? null;
+    const utmTerm = tracker.utm_term ?? null;
 
     // 1) Persist lead in Mongo (no-op if MONGODB_URI missing)
     const leadId = await insertLead({
@@ -49,15 +72,16 @@ export async function POST(req: NextRequest) {
       reason: body.reason ?? body.query ?? undefined,
       initialQuery: body.initialQuery,
       currentQuery: body.query,
-      utmSource: body.utmSource,
-      utmCampaign: body.utmCampaign,
-      utmMedium: body.utmMedium,
+      utmSource: utmSource ?? undefined,
+      utmCampaign: utmCampaign ?? undefined,
+      utmMedium: utmMedium ?? undefined,
       pinnedUnitIds: Array.isArray(body.pinnedUnitIds) ? body.pinnedUnitIds : undefined,
       conversationId: body.conversationId,
     });
 
-    // 2) Push to Zoho CRM ingest endpoint
-    const crmPayload = {
+    // 2) Push to Zoho CRM ingest — tracker fields mirror the payload shape the
+    //    ASBL web-tracker would auto-inject elsewhere, so Zoho fields line up.
+    const crmPayload: Record<string, unknown> = {
       source: 'asbl-loft-ale',
       name: body.name,
       phone: body.phone,
@@ -65,9 +89,17 @@ export async function POST(req: NextRequest) {
       project: 'ASBL Loft',
       reason: body.reason ?? body.query ?? 'Chat lead',
       query: body.query ?? null,
-      utm_source: body.utmSource ?? null,
-      utm_campaign: body.utmCampaign ?? null,
-      utm_medium: body.utmMedium ?? null,
+      preferred_channel: body.preferredChannel ?? 'whatsapp',
+      utm_source: utmSource,
+      utm_campaign: utmCampaign,
+      utm_medium: utmMedium,
+      utm_content: utmContent,
+      utm_term: utmTerm,
+      first_page_visited: tracker.first_page_visited ?? null,
+      last_page_visited: tracker.last_page_visited ?? null,
+      total_page_views: tracker.total_page_views ?? null,
+      referrer_url: tracker.referrer_url ?? referer ?? null,
+      time_spent_minutes: tracker.time_spent_minutes ?? null,
       pinned_units: body.pinnedUnitIds ?? [],
       referer,
       user_agent: ua,

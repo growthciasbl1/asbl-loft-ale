@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useChatStore } from '@/lib/store/chatStore';
 import ChannelToggle, { Channel } from './ChannelToggle';
 import { track } from '@/lib/analytics/tracker';
+import { readWebTracker } from '@/lib/analytics/leadTracking';
 
 interface Props {
   children: React.ReactNode;
@@ -32,7 +33,13 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
       await fetch('/api/webhook', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, phone, query: reason, preferredChannel: channel }),
+        body: JSON.stringify({
+          name,
+          phone,
+          query: reason,
+          preferredChannel: channel,
+          webTracker: readWebTracker(),
+        }),
       });
     } catch {
       // non-blocking

@@ -1,108 +1,116 @@
 'use client';
 
-import { TileShell } from './common';
+import { TileShell, TileIcon } from './common';
 
 export default function YieldTile() {
   return (
     <TileShell
-      eyebrow="Indicative · not guaranteed"
-      title="Rental yield · 1,695 East"
-      sub="Against ₹2.07 Cr all-in · 11 active FD 3BHK comps"
+      eyebrow="Rental yield · realistic"
+      title="₹75K – ₹85K/month · ~5% gross"
+      sub="FD 3BHKs today · plus ASBL's ₹50/sqft rental offer till Dec 2026"
+      icon={
+        <TileIcon>
+          <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--plum)" strokeWidth={1.5}>
+            <path d="M3 17l6-6 4 4 8-8" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M14 7h7v7" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </TileIcon>
+      }
       footer={
         <>
-          Rental comps from Magicbricks + NoBroker, Q1 2026. Capital appreciation is tracked
-          separately.
+          Open-market comps drawn from Magicbricks + NoBroker · Q1 2026 · ASBL&apos;s guaranteed
+          component is a separate direct payment.
         </>
       }
-      askMore={{ label: 'Run the levered IRR calculator', query: 'Open the levered finance calculator' }}
+      askMore={{
+        label: 'See the rental offer in detail',
+        query: 'Tell me about the rental offer',
+      }}
       relatedAsks={[
         { label: 'Tenant demographics', query: 'Who rents in Financial District?' },
-        { label: 'Price trends', query: 'Show me FD 3BHK price trends last 3 years' },
+        { label: 'Why FD not Gachibowli', query: 'Why FD and not Gachibowli or Kokapet?' },
         { label: 'Unit plans', query: 'Show me the 3BHK unit floor plans' },
       ]}
     >
-      <div style={{ padding: 26 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div
           style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
-            gap: 14,
-            marginBottom: 18,
+            gap: 12,
           }}
         >
-          {[
-            { label: 'Monthly rent (comps)', num: '₹45k', unit: '–₹60k', sub: '11 active listings' },
-            { label: 'Gross annual yield', num: '2.6', unit: '–3.5%', sub: 'Against all-in price' },
-          ].map((c) => (
+          <div style={{ padding: 14, background: 'var(--cream)', borderRadius: 10 }}>
             <div
-              key={c.label}
-              style={{ padding: 16, background: 'var(--paper)', borderRadius: 10 }}
+              style={{
+                fontSize: 10.5,
+                textTransform: 'uppercase',
+                letterSpacing: '0.12em',
+                color: 'var(--mid-gray)',
+                fontWeight: 500,
+              }}
             >
-              <div
-                style={{
-                  fontSize: 11,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.12em',
-                  color: 'var(--mute)',
-                  marginBottom: 6,
-                }}
-              >
-                {c.label}
-              </div>
-              <div className="display" style={{ fontSize: 26, lineHeight: 1 }}>
-                {c.num}
-                <span
-                  style={{
-                    fontFamily: 'Instrument Sans, sans-serif',
-                    fontSize: 13,
-                    color: 'var(--mute)',
-                    fontWeight: 400,
-                    marginLeft: 4,
-                  }}
-                >
-                  {c.unit}
-                </span>
-              </div>
-              <div style={{ fontSize: 11.5, color: 'var(--mute)', marginTop: 8 }}>{c.sub}</div>
+              Monthly rent (open market)
             </div>
-          ))}
+            <div className="serif" style={{ fontSize: 22, marginTop: 4, fontWeight: 500 }}>
+              ₹75K <span style={{ fontSize: 13, color: 'var(--mid-gray)' }}>–</span> ₹85K
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--mid-gray)', marginTop: 4 }}>
+              FD 3BHK comps, both sizes
+            </div>
+          </div>
+          <div style={{ padding: 14, background: 'var(--plum-pale)', borderRadius: 10 }}>
+            <div
+              style={{
+                fontSize: 10.5,
+                textTransform: 'uppercase',
+                letterSpacing: '0.12em',
+                color: 'var(--plum-dark)',
+                fontWeight: 500,
+              }}
+            >
+              ASBL rental offer
+            </div>
+            <div
+              className="serif"
+              style={{ fontSize: 22, marginTop: 4, fontWeight: 500, color: 'var(--plum-dark)' }}
+            >
+              ₹50/sqft <span style={{ fontSize: 13 }}>/mo</span>
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--plum-dark)', marginTop: 4 }}>
+              Till 31 Dec 2026 · direct from ASBL
+            </div>
+          </div>
         </div>
 
         <div
           style={{
-            height: 6,
-            background: 'var(--paper-2)',
-            borderRadius: 100,
-            overflow: 'hidden',
-            marginBottom: 6,
-            position: 'relative',
+            padding: 14,
+            background: 'var(--cream)',
+            borderRadius: 10,
           }}
         >
           <div
             style={{
-              position: 'absolute',
-              left: '23%',
-              width: '32%',
-              top: 0,
-              bottom: 0,
-              background: 'linear-gradient(to right, var(--sienna), var(--sienna-dark))',
-              borderRadius: 100,
+              fontSize: 10.5,
+              textTransform: 'uppercase',
+              letterSpacing: '0.12em',
+              color: 'var(--mid-gray)',
+              fontWeight: 500,
+              marginBottom: 6,
             }}
-          />
-        </div>
-        <div
-          className="mono"
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            fontSize: 10.5,
-            color: 'var(--mute)',
-          }}
-        >
-          <span>1%</span>
-          <span>2.5%</span>
-          <span>4%</span>
-          <span>5.5%</span>
+          >
+            Gross yield (on ₹1.94 Cr base, 1,695 sqft)
+          </div>
+          <div
+            className="serif"
+            style={{ fontSize: 26, fontWeight: 500, color: 'var(--charcoal)' }}
+          >
+            ~5.0% – 5.3% <span style={{ fontSize: 13, color: 'var(--mid-gray)' }}>per annum</span>
+          </div>
+          <div style={{ fontSize: 11.5, color: 'var(--mid-gray)', marginTop: 4 }}>
+            Before appreciation. The ₹50/sqft offer alone pays ~₹84,750/mo on 1,695 sqft.
+          </div>
         </div>
       </div>
     </TileShell>

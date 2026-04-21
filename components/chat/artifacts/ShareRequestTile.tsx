@@ -5,6 +5,7 @@ import { TileShell, TileIcon } from './common';
 import { useChatStore } from '@/lib/store/chatStore';
 import ChannelToggle, { Channel } from '../ChannelToggle';
 import { track } from '@/lib/analytics/tracker';
+import { readWebTracker } from '@/lib/analytics/leadTracking';
 
 interface Props {
   subject?: string;
@@ -43,6 +44,7 @@ export default function ShareRequestTile({ subject, originalQuery, preferredChan
           reason: `Share request · ${displaySubject}`,
           query: originalQuery,
           preferredChannel: channel,
+          webTracker: readWebTracker(),
         }),
       });
     } catch {
@@ -87,10 +89,7 @@ export default function ShareRequestTile({ subject, originalQuery, preferredChan
               { label: 'Pricing', query: 'What is the pricing for ASBL Loft?' },
               { label: 'Floor plans', query: 'Tell me about the floor plans' },
             ]
-          : [
-              { label: "I'd rather see it here", query: 'Just show me the floor plan inline' },
-              { label: 'Someone should call me', query: 'Please have someone call me' },
-            ]
+          : [{ label: 'Someone should call me', query: 'Please have someone call me' }]
       }
     >
       {done ? (

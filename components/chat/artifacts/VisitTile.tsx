@@ -5,6 +5,7 @@ import { TileShell } from './common';
 import { useChatStore } from '@/lib/store/chatStore';
 import ChannelToggle, { Channel } from '../ChannelToggle';
 import { track } from '@/lib/analytics/tracker';
+import { readWebTracker } from '@/lib/analytics/leadTracking';
 
 const SLOTS = [
   { day: 'Sat', date: 'Nov 23', time: '10:00', sub: 'Experience centre' },
@@ -62,6 +63,7 @@ export default function VisitTile({ intro = 'default' }: VisitTileProps) {
           phone,
           query: `Visit booking · ${slot.day} ${slot.date} ${slot.time} · ${slot.sub}`,
           preferredChannel: channel,
+          webTracker: readWebTracker(),
         }),
       });
     } catch {

@@ -1,9 +1,11 @@
 export type ArtifactKind =
   | 'price'
   | 'yield'
+  | 'rental_offer'
   | 'amenity'
   | 'trends'
   | 'why_fd'
+  | 'project_comparison'
   | 'commute'
   | 'unit_plans'
   | 'master_plan'
@@ -213,6 +215,16 @@ export function routeQuery(q: string): RouterResult {
     };
   }
 
+  // Trends (price trajectory, appreciation, YoY, GCC, TDR) — run BEFORE price
+  // so "price trend" / "price trajectory" resolve to trends, not a generic breakdown.
+  if (/trend|trajectory|appreciation|history|growth|last.*year|past.*year|moved\s*over|₹\/sqft|price\s*trend|yoy|year\s*on\s*year|gcc|tdr|how\s*much.*grown|how\s*much.*gone\s*up/i.test(q)) {
+    return {
+      text: `<p>FD is up <strong>~14.2% YoY</strong> and <strong>~33% in 2.5 years</strong> — fastest-appreciating micro-market in Hyderabad. District median today is <strong>₹11,200/sqft</strong>. The GCC boom and TDR-led land scarcity are the two structural drivers.</p>`,
+      artifact: 'trends',
+      artifactLabel: 'FD 3BHK price trajectory',
+    };
+  }
+
   if (/price|cost|breakdown|all\s*in|gst|stamp|registration|ticket/.test(ql)) {
     return {
       text: `<p>Full breakdown for <strong>1,695 sqft East-facing</strong> — the most common config. Stamp duty and registration are extra.</p>`,
@@ -221,11 +233,20 @@ export function routeQuery(q: string): RouterResult {
     };
   }
 
+  // Rental offer — headline, ₹85K/mo guaranteed on ₹10L booking till Dec 2026
+  if (/rental\s*offer|guaranteed\s*rent|rent\s*offer|85k|85,000|assured\s*rent|rental\s*scheme|10l.*book|book.*10l|10\s*lakh.*book/i.test(q)) {
+    return {
+      text: `<p>Here&apos;s the headline: book at just <strong>₹10 L</strong> and earn a guaranteed <strong>₹50/sqft/month</strong> till 31 December 2026. For a 1,695 sqft East, that&apos;s <strong>~₹84,750/mo</strong>; for 1,870 sqft it&apos;s ~₹93,500/mo.</p>`,
+      artifact: 'rental_offer',
+      artifactLabel: 'Rental offer · ₹85K/mo till Dec 2026',
+    };
+  }
+
   if (/yield|rent|roi|return|cash\s*flow|rental\s*income/.test(ql)) {
     return {
-      text: `<p>FD 3BHKs lease for <strong>₹45,000 – ₹60,000/mo</strong>. Against ₹2.07 Cr all-in, that&apos;s a <strong>~2.6 – 3.5% gross yield</strong> — before appreciation.</p>`,
-      artifact: 'yield',
-      artifactLabel: 'Rental yield · indicative',
+      text: `<p>FD 3BHKs lease in the <strong>₹75,000 – ₹85,000/mo</strong> range. At ₹1.94 Cr base for 1,695 sqft, that&apos;s roughly <strong>5% gross yield</strong> — and our <strong>₹50/sqft rental guarantee till Dec 2026</strong> locks ~₹85K/mo on top of whatever the open market pays. Book with just ₹10 L.</p>`,
+      artifact: 'rental_offer',
+      artifactLabel: 'Rental yield · with rental offer',
     };
   }
 
@@ -237,11 +258,12 @@ export function routeQuery(q: string): RouterResult {
     };
   }
 
-  if (/trend|appreciation|history|growth|last.*year|past.*year|moved\s*over|₹\/sqft|price\s*trend/.test(ql)) {
+  // Project comparison — "vs other projects in FD", head-to-head tables
+  if (/compare.*project|other\s*project|vs\s*(other|another|any)|projects?\s*in\s*fd|other.*3bhk|head[-\s]?to[-\s]?head|shortlist|better\s*than.*project|competitor|alternatives/.test(ql)) {
     return {
-      text: `<p>FD 3BHK average <strong>₹/sqft</strong> over 10 quarters. District median has climbed ~26%; Loft tracks below.</p>`,
-      artifact: 'trends',
-      artifactLabel: 'Price trends · FD 3BHK',
+      text: `<p>Here&apos;s Loft vs the three FD 3BHK projects buyers usually shortlist against us. Same radius, same spec, very different economics — especially with the rental offer on top.</p>`,
+      artifact: 'project_comparison',
+      artifactLabel: 'ASBL Loft vs competition',
     };
   }
 

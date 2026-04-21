@@ -1,83 +1,104 @@
 'use client';
 
-import { TileShell } from './common';
+import { TileShell, TileIcon } from './common';
 
 const ROUTES = [
-  ['Hitech City / Raheja IT Park', '18 min', '7.2 km'],
-  ['Nanakramguda ORR exit', '4 min', '1.8 km'],
-  ['Gachibowli DLF', '12 min', '5.1 km'],
-  ['RGI Airport', '32 min', '28 km'],
-  ['Kokapet commercial', '9 min', '4.0 km'],
+  { name: 'Google Phase 2 Campus', min: 5, km: '1.8 km' },
+  { name: 'Apple Development Centre', min: 5, km: '2.1 km' },
+  { name: 'Amazon India HQ', min: 5, km: '2.4 km' },
+  { name: 'Waverock SEZ', min: 5, km: '2.5 km' },
+  { name: 'Accenture Corporate Office', min: 10, km: '4.2 km' },
+  { name: 'Microsoft India', min: 10, km: '4.5 km' },
+  { name: 'Infosys Campus', min: 15, km: '6.8 km' },
+  { name: 'TCS Deccan Park', min: 15, km: '7.0 km' },
+  { name: 'DLF Cyber City', min: 15, km: '6.4 km' },
+  { name: 'Google Main Campus', min: 20, km: '9.2 km' },
+  { name: 'Rajiv Gandhi Airport', min: 35, km: '28 km' },
 ];
 
 export default function CommuteTile() {
   return (
     <TileShell
-      title="Typical drive times"
-      sub="Midweek, 9am departure · Google Distance Matrix"
-      askMore={{ label: 'Tenant catchment detail', query: 'Who lives in Financial District — professional demographics?' }}
+      eyebrow="Connectivity"
+      title="5 minutes to Google, Apple, Amazon, Waverock"
+      sub="Every major employer in the FD–Gachibowli tech belt is within a 15-minute drive."
+      icon={
+        <TileIcon>
+          <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--plum)" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s7-7.5 7-12a7 7 0 10-14 0c0 4.5 7 12 7 12z" />
+            <circle cx={12} cy={10} r={2.5} />
+          </svg>
+        </TileIcon>
+      }
+      footer={<>Midweek, 9 am departure · Google Distance Matrix · ±3 min variance.</>}
+      askMore={{
+        label: 'Who actually rents in FD?',
+        query: 'Who rents in Financial District — professional demographics?',
+      }}
       relatedAsks={[
-        { label: 'Schools nearby', query: 'What schools are in 12 minutes?' },
-        { label: 'Amenities inside', query: 'What amenities does Loft have?' },
+        { label: 'Schools in 12 min', query: 'What schools are within 12 minutes?' },
+        { label: 'Hospitals nearby', query: 'What hospitals are nearby?' },
+        { label: 'Why FD not Kokapet', query: 'Why FD instead of Kokapet?' },
       ]}
     >
-      <div style={{ padding: 26 }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5 }}>
-          <tbody>
-            {ROUTES.map((r) => (
-              <tr key={r[0]}>
-                <td
-                  style={{
-                    padding: '12px 0',
-                    borderBottom: '1px solid var(--paper-2)',
-                    color: 'var(--ink)',
-                  }}
-                >
-                  {r[0]}
-                </td>
-                <td
-                  className="mono"
-                  style={{
-                    padding: '12px 0',
-                    borderBottom: '1px solid var(--paper-2)',
-                    textAlign: 'right',
-                    fontWeight: 500,
-                    color: 'var(--sienna-dark)',
-                  }}
-                >
-                  {r[1]}
-                </td>
-                <td
-                  className="mono"
-                  style={{
-                    padding: '12px 0 12px 16px',
-                    borderBottom: '1px solid var(--paper-2)',
-                    textAlign: 'right',
-                    fontSize: 11.5,
-                    color: 'var(--mute)',
-                  }}
-                >
-                  {r[2]}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5 }}>
+        <tbody>
+          {ROUTES.map((r) => (
+            <tr key={r.name}>
+              <td
+                style={{
+                  padding: '11px 0',
+                  borderBottom: '1px solid var(--border)',
+                  color: 'var(--charcoal)',
+                }}
+              >
+                {r.name}
+              </td>
+              <td
+                className="mono"
+                style={{
+                  padding: '11px 0',
+                  borderBottom: '1px solid var(--border)',
+                  textAlign: 'right',
+                  fontWeight: 500,
+                  color: 'var(--plum-dark)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {r.min} min
+              </td>
+              <td
+                className="mono"
+                style={{
+                  padding: '11px 0 11px 16px',
+                  borderBottom: '1px solid var(--border)',
+                  textAlign: 'right',
+                  fontSize: 11,
+                  color: 'var(--mid-gray)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {r.km}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
-        <div
-          style={{
-            marginTop: 16,
-            padding: 14,
-            background: 'var(--sienna-soft)',
-            borderRadius: 10,
-            fontSize: 13,
-            color: 'var(--ink-2)',
-          }}
-        >
-          <b style={{ color: 'var(--ink)' }}>Sundays gained:</b> if your workplace is Hitech City,
-          Loft saves ~26 minutes round-trip vs Kokapet — that&apos;s{' '}
-          <b style={{ color: 'var(--sienna-dark)' }}>~26 Sundays</b> of commute back every year.
-        </div>
+      <div
+        style={{
+          marginTop: 14,
+          padding: 12,
+          background: 'var(--plum-pale)',
+          borderRadius: 10,
+          fontSize: 12.5,
+          color: 'var(--gray-2)',
+          lineHeight: 1.55,
+        }}
+      >
+        <b style={{ color: 'var(--plum-dark)' }}>Why this is the dream tenant pool:</b>{' '}
+        Google / Apple / Amazon / Microsoft staff sit inside a 10-minute radius. They rent premium
+        3BHKs long-term and pay on time. That&apos;s what keeps yield stable here.
       </div>
     </TileShell>
   );

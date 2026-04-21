@@ -1,109 +1,109 @@
 'use client';
 
-import { TileShell } from './common';
+import { TileShell, TileIcon } from './common';
 
 const SCHOOLS = [
-  { name: 'Delhi Public School', type: 'K–12 · CBSE', distance: '6 min', fees: '₹1.6–2.2L/yr' },
-  { name: 'Oakridge International', type: 'K–12 · IB/CBSE', distance: '8 min', fees: '₹4.5–7L/yr' },
-  { name: 'Chirec International', type: 'K–12 · CBSE/IB', distance: '10 min', fees: '₹2.8–4.2L/yr' },
-  { name: 'The Gaudium School', type: 'K–12 · IB', distance: '12 min', fees: '₹5–8L/yr' },
-  { name: 'Meridian School', type: 'K–12 · CBSE', distance: '9 min', fees: '₹1.4–1.9L/yr' },
-  { name: 'Glendale Academy', type: 'K–12 · CBSE/IB', distance: '7 min', fees: '₹2.2–3.5L/yr' },
+  { name: 'Keystone International School', type: 'K–12 · IB', min: 5 },
+  { name: "The Future Kid's School", type: 'Pre-K – K', min: 5 },
+  { name: 'Global Edge School', type: 'K–12 · CBSE', min: 10 },
+  { name: 'Oakridge International School', type: 'K–12 · IB/CBSE', min: 10 },
+  { name: 'Delhi Public School', type: 'K–12 · CBSE', min: 10 },
+  { name: 'The Gaudium School', type: 'K–12 · IB', min: 10 },
+  { name: 'Phoenix Greens International', type: 'K–12', min: 15 },
+  { name: 'Rockwell International', type: 'K–12', min: 15 },
 ];
 
-const COLLEGES = [
-  { name: 'ISB Hyderabad', distance: '9 min' },
-  { name: 'IIT Hyderabad', distance: '20 min' },
-  { name: 'IIIT Hyderabad', distance: '18 min' },
-  { name: 'University of Hyderabad', distance: '25 min' },
+const HOSPITALS = [
+  { name: 'Continental Hospitals', min: 5 },
+  { name: 'Apollo Hospitals', min: 5 },
+  { name: 'Star Hospitals', min: 5 },
+  { name: 'Care Hospitals', min: 15 },
+  { name: 'AIG Hospitals', min: 15 },
 ];
 
 export default function SchoolsTile() {
   return (
     <TileShell
-      eyebrow="12-minute school radius"
-      title="Six schools. Twelve minutes."
-      sub="Every K–12 option a family typically shortlists — with honest fee brackets."
-      footer={<>Commute times are midweek 8am departure · distances via Google Maps.</>}
+      eyebrow="Schools + healthcare"
+      title="Eight schools. Five at 10 minutes or less."
+      sub="Plus Continental, Apollo and Star Hospitals all 5 min away."
+      icon={
+        <TileIcon>
+          <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--plum)" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 3l10 5-10 5L2 8l10-5z" />
+            <path d="M6 10v5c0 1.5 3 3 6 3s6-1.5 6-3v-5" />
+          </svg>
+        </TileIcon>
+      }
+      footer={<>Distances are typical midweek drives · verified via Google Distance Matrix.</>}
       askMore={{
-        label: 'Connect me with families already living here',
-        query: 'Connect me with 3 families inside Loft — by school preference',
+        label: 'Connect me with a family who lives here',
+        query: 'Connect me with a family who already lives in ASBL Loft',
       }}
       relatedAsks={[
-        { label: 'Family amenities', query: 'Show me family-friendly amenities' },
-        { label: 'Floor plans', query: 'Show me the 1870 floor plan for a family' },
-        { label: 'Book a Saturday tour', query: 'Book a Saturday family tour slot' },
+        { label: 'Amenities', query: 'What amenities does ASBL Loft offer?' },
+        { label: 'Commute to offices', query: "What's the commute to Hitech City?" },
+        { label: 'Book a tour', query: 'Book a weekend site visit' },
       ]}
     >
-      <div style={{ padding: '20px 26px' }}>
-        <div
-          style={{
-            fontSize: 10.5,
-            textTransform: 'uppercase',
-            letterSpacing: '0.12em',
-            color: 'var(--mute)',
-            fontWeight: 500,
-            marginBottom: 10,
-          }}
-        >
-          K–12
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-          {SCHOOLS.map((s) => (
-            <div
-              key={s.name}
-              style={{
-                padding: 14,
-                background: 'var(--paper)',
-                borderRadius: 10,
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                <div style={{ fontWeight: 500, fontSize: 13 }}>{s.name}</div>
-                <span
-                  className="mono"
-                  style={{
-                    fontSize: 11,
-                    color: 'var(--sienna-dark)',
-                    fontWeight: 600,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {s.distance}
-                </span>
-              </div>
-              <div style={{ fontSize: 11.5, color: 'var(--mute)', marginTop: 4 }}>{s.type}</div>
-              <div
+      <div
+        style={{
+          fontSize: 9.5,
+          textTransform: 'uppercase',
+          letterSpacing: '0.13em',
+          color: 'var(--mid-gray)',
+          fontWeight: 500,
+          marginBottom: 10,
+        }}
+      >
+        K–12 schools
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8 }}>
+        {SCHOOLS.map((s) => (
+          <div
+            key={s.name}
+            style={{
+              padding: '10px 12px',
+              background: 'var(--cream)',
+              border: '1px solid var(--border)',
+              borderRadius: 10,
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'baseline' }}>
+              <span style={{ fontWeight: 500, fontSize: 12.5, color: 'var(--charcoal)' }}>{s.name}</span>
+              <span
                 className="mono"
-                style={{ fontSize: 11, color: 'var(--ink-2)', marginTop: 6, fontWeight: 500 }}
+                style={{ fontSize: 11, color: 'var(--plum-dark)', fontWeight: 600, whiteSpace: 'nowrap' }}
               >
-                {s.fees}
-              </div>
+                {s.min} min
+              </span>
             </div>
-          ))}
-        </div>
+            <div style={{ fontSize: 10.5, color: 'var(--mid-gray)', marginTop: 3 }}>{s.type}</div>
+          </div>
+        ))}
       </div>
 
-      <div style={{ padding: '16px 26px', borderTop: '1px solid var(--paper-2)' }}>
+      <div style={{ marginTop: 16 }}>
         <div
           style={{
-            fontSize: 10.5,
+            fontSize: 9.5,
             textTransform: 'uppercase',
-            letterSpacing: '0.12em',
-            color: 'var(--mute)',
+            letterSpacing: '0.13em',
+            color: 'var(--mid-gray)',
             fontWeight: 500,
             marginBottom: 10,
           }}
         >
-          Higher ed · same radius
+          Hospitals
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {COLLEGES.map((c) => (
+          {HOSPITALS.map((h) => (
             <div
-              key={c.name}
+              key={h.name}
               style={{
-                padding: '8px 14px',
-                background: 'var(--paper)',
+                padding: '7px 12px',
+                background: 'var(--cream)',
+                border: '1px solid var(--border)',
                 borderRadius: 100,
                 fontSize: 12,
                 display: 'inline-flex',
@@ -111,9 +111,9 @@ export default function SchoolsTile() {
                 gap: 8,
               }}
             >
-              <span style={{ fontWeight: 500 }}>{c.name}</span>
-              <span className="mono" style={{ color: 'var(--sienna-dark)', fontSize: 11 }}>
-                {c.distance}
+              <span style={{ color: 'var(--charcoal)', fontWeight: 500 }}>{h.name}</span>
+              <span className="mono" style={{ color: 'var(--plum-dark)', fontSize: 11 }}>
+                {h.min} min
               </span>
             </div>
           ))}

@@ -23,6 +23,8 @@ import PlansTile from './artifacts/PlansTile';
 import SchoolsTile from './artifacts/SchoolsTile';
 import VisitTile from './artifacts/VisitTile';
 import ShareRequestTile from './artifacts/ShareRequestTile';
+import RentalOfferTile from './artifacts/RentalOfferTile';
+import ProjectComparisonTile from './artifacts/ProjectComparisonTile';
 import LeadGate from './LeadGate';
 import { AskContext, useAsk } from './AskContext';
 import { track } from '@/lib/analytics/tracker';
@@ -51,12 +53,16 @@ function renderArtifact(m: Message) {
       return <PriceTile />;
     case 'yield':
       return <YieldTile />;
+    case 'rental_offer':
+      return <RentalOfferTile />;
     case 'amenity':
       return <AmenityTile />;
     case 'trends':
       return <TrendsTile />;
     case 'why_fd':
       return <WhyFdTile />;
+    case 'project_comparison':
+      return <ProjectComparisonTile />;
     case 'commute':
       return <CommuteTile />;
     case 'unit_plans':
@@ -91,11 +97,11 @@ function renderArtifact(m: Message) {
 }
 
 const DEFAULT_CHIPS: { label: string; query: string }[] = [
+  { label: 'Rental offer', query: 'Tell me about the rental offer' },
   { label: 'Floor plans', query: 'Tell me about the floor plans' },
   { label: 'Pricing', query: 'What is the pricing for ASBL Loft?' },
   { label: 'Amenities', query: 'What amenities does ASBL Loft offer?' },
   { label: 'Location', query: 'Where is ASBL Loft and what is nearby?' },
-  { label: 'Rental offer', query: 'Tell me about the rental offer' },
   { label: 'Book a site visit', query: 'Book a weekend site visit' },
 ];
 

@@ -40,6 +40,7 @@ export default function ChannelToggle({ value, onChange }: Props) {
       >
         <Pill
           active={value === 'whatsapp'}
+          ariaLabel="Contact me via WhatsApp"
           onClick={() => {
             track('click', 'channel_select', { channel: 'whatsapp' });
             onChange('whatsapp');
@@ -52,6 +53,7 @@ export default function ChannelToggle({ value, onChange }: Props) {
         </Pill>
         <Pill
           active={value === 'call'}
+          ariaLabel="Request a phone call back"
           onClick={() => {
             track('click', 'channel_select', { channel: 'call' });
             onChange('call');
@@ -71,14 +73,18 @@ function Pill({
   active,
   onClick,
   children,
+  ariaLabel,
 }: {
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
+  ariaLabel: string;
 }) {
   return (
     <button
       type="button"
+      aria-label={ariaLabel}
+      aria-pressed={active}
       onClick={onClick}
       style={{
         display: 'inline-flex',

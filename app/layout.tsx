@@ -17,6 +17,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap"
         />
+        {/* ASBL web tracker — captures UTMs, referrer, pages, time-spent in localStorage.
+            Forms then read `asbl_track` and forward to our /api/webhook → Zoho CRM. */}
+        <script src="https://asbl-crm-api.vercel.app/tracker.js" defer />
       </head>
       <body>{children}</body>
     </html>

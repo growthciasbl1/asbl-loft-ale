@@ -17,12 +17,14 @@ export const ARTIFACT_INTENT: Record<ArtifactKind, IntentLevel> = {
   finance: 'medium',
   affordability: 'medium',
   yield: 'medium',
+  rental_offer: 'low', // marketing tile — open to all, CTA routes to share_request
   share_request: 'low', // the tile IS the form
   visit: 'low',
   master_plan: 'low',
   urban_corridors: 'low',
   trends: 'low',
   why_fd: 'low',
+  project_comparison: 'low',
   commute: 'low',
   amenity: 'low',
   schools: 'low',
