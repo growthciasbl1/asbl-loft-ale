@@ -57,7 +57,7 @@ export default function MasterPlanTile() {
         }}
       >
         <BrandImage
-          src="/asbl/master-plan.png"
+          src={['/asbl/master-plan.webp', '/asbl/master-plan.png', '/asbl/master-plan.jpg']}
           alt="ASBL Loft master plan"
           fallback={<SitePlanSvg />}
           bg="#0b0b0f"

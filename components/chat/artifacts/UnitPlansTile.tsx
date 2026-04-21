@@ -12,31 +12,46 @@ interface PlanMeta {
   label: string;
   sub: string;
   size: 1695 | 1870;
-  imagePath: string;
   pending?: boolean;
 }
 
-const PLANS: PlanMeta[] = [
+interface PlanMetaWithCandidates extends Omit<PlanMeta, 'imagePath'> {
+  imagePaths: string[];
+}
+
+const PLANS: PlanMetaWithCandidates[] = [
   {
     id: '1695-east',
     label: '1,695 sqft · East',
     sub: 'Units 3, 4, 7, 8 · east-facing on every floor, both towers',
     size: 1695,
-    imagePath: '/asbl/unit-plan-1695-east.png',
+    imagePaths: [
+      '/asbl/unit-plan-1695-east.webp',
+      '/asbl/unit-plan-1695-east.png',
+      '/asbl/unit-plan-1695-east.jpg',
+    ],
   },
   {
     id: '1695-west',
     label: '1,695 sqft · West',
     sub: 'Units 5, 6 · west-facing, extended outdoor living',
     size: 1695,
-    imagePath: '/asbl/unit-plan-1695-west.png',
+    imagePaths: [
+      '/asbl/unit-plan-1695-west.webp',
+      '/asbl/unit-plan-1695-west.png',
+      '/asbl/unit-plan-1695-west.jpg',
+    ],
   },
   {
     id: '1870',
     label: '1,870 sqft',
-    sub: "Plan image arriving soon · dimensions listed below",
+    sub: 'Plan image arriving soon · dimensions listed below',
     size: 1870,
-    imagePath: '/asbl/unit-plan-1870.png',
+    imagePaths: [
+      '/asbl/unit-plan-1870.webp',
+      '/asbl/unit-plan-1870.png',
+      '/asbl/unit-plan-1870.jpg',
+    ],
     pending: true,
   },
 ];
@@ -112,7 +127,7 @@ export default function UnitPlansTile() {
       {/* Brand image */}
       <div style={{ padding: '20px 26px', background: '#0b0b0f' }}>
         <BrandImage
-          src={plan.imagePath}
+          src={plan.imagePaths}
           alt={`3BHK ${plan.label} floor plan`}
           bg="#0b0b0f"
           fallback={<PlanPending plan={plan} />}

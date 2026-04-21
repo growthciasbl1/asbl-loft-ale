@@ -3,7 +3,8 @@
 import { useState } from 'react';
 
 interface Props {
-  src: string;
+  /** Primary image URL, or array of candidates tried in order. */
+  src: string | string[];
   alt: string;
   fallback: React.ReactNode;
   bg?: string;
@@ -12,21 +13,18 @@ interface Props {
 }
 
 /**
- * Shows `src` if it loads; otherwise renders `fallback` (an SVG schematic).
- * Lets us ship a brand PNG whenever it's dropped into public/asbl/ without
- * breaking the product if it's missing.
+ * Loads the first `src` that succeeds. If all candidates 404/error, renders the SVG `fallback`.
+ * Means we can ship tiles with multiple possible filenames (png / webp / brochure page) and
+ * pick up whichever the content team dropped in `public/asbl/`.
  */
-export default function BrandImage({
-  src,
-  alt,
-  fallback,
-  bg = 'var(--paper-2)',
-  aspectRatio,
-  maxWidth,
-}: Props) {
-  const [error, setError] = useState(false);
+export default function BrandImage({ src, alt, fallback, bg = 'var(--paper-2)', aspectRatio, maxWidth }: Props) {
+  const candidates = Array.isArray(src) ? src : [src];
+  const [attempt, setAttempt] = useState(0);
+  const [fullyFailed, setFullyFailed] = useState(false);
 
-  if (error) return <>{fallback}</>;
+  if (fullyFailed) return <>{fallback}</>;
+
+  const current = candidates[attempt];
 
   return (
     <div
@@ -41,9 +39,15 @@ export default function BrandImage({
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={src}
+        src={current}
         alt={alt}
-        onError={() => setError(true)}
+        onError={() => {
+          if (attempt + 1 < candidates.length) {
+            setAttempt(attempt + 1);
+          } else {
+            setFullyFailed(true);
+          }
+        }}
         style={{
           width: '100%',
           height: aspectRatio ? '100%' : 'auto',
