@@ -1,6 +1,7 @@
 'use client';
 
 import { useAsk } from '../AskContext';
+import { track } from '@/lib/analytics/tracker';
 
 interface Props {
   eyebrow?: string;
@@ -86,7 +87,14 @@ export function TileShell({ eyebrow, title, sub, icon, children, footer, askMore
             <button
               type="button"
               key={r.label}
-              onClick={() => ask(r.query)}
+              onClick={() => {
+                track('click', 'tile_related_click', {
+                  tile: title,
+                  label: r.label,
+                  query: r.query,
+                });
+                ask(r.query);
+              }}
               className="chip-followup"
             >
               {r.label}
@@ -114,7 +122,14 @@ export function TileShell({ eyebrow, title, sub, icon, children, footer, askMore
           {askMore && (
             <button
               type="button"
-              onClick={() => ask(askMore.query)}
+              onClick={() => {
+                track('click', 'tile_ask_more_click', {
+                  tile: title,
+                  label: askMore.label,
+                  query: askMore.query,
+                });
+                ask(askMore.query);
+              }}
               style={{
                 fontSize: 11.5,
                 fontWeight: 500,

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { TileShell } from './common';
 import { useChatStore } from '@/lib/store/chatStore';
 import ChannelToggle, { Channel } from '../ChannelToggle';
+import { track } from '@/lib/analytics/tracker';
 
 const SLOTS = [
   { day: 'Sat', date: 'Nov 23', time: '10:00', sub: 'Experience centre' },
@@ -47,6 +48,11 @@ export default function VisitTile({ intro = 'default' }: VisitTileProps) {
     e.preventDefault();
     if (!slot || !name.trim() || !phone.trim()) return;
 
+    track('submit', 'visit_booking', {
+      slot: `${slot.day} ${slot.date} ${slot.time}`,
+      kind: slot.sub,
+      channel,
+    });
     try {
       await fetch('/api/webhook', {
         method: 'POST',
@@ -63,6 +69,7 @@ export default function VisitTile({ intro = 'default' }: VisitTileProps) {
     }
     setLead({ name, phone, source: 'visit_booking' });
     setDone(true);
+    track('view', 'lead_success', { form: 'visit_booking', channel });
   };
 
   return (

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Lightbox from './Lightbox';
+import { track } from '@/lib/analytics/tracker';
 
 export interface PlanSlide {
   key: string;
@@ -111,7 +112,10 @@ export default function FloorPlanCarousel({ slides, autoPlayMs = 3000 }: Props) 
                   background: '#fff',
                   cursor: 'zoom-in',
                 }}
-                onClick={() => setLightbox(true)}
+                onClick={() => {
+                  track('click', 'carousel_image_zoom', { plan: s.key, via: 'image' });
+                  setLightbox(true);
+                }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -148,6 +152,7 @@ export default function FloorPlanCarousel({ slides, autoPlayMs = 3000 }: Props) 
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
+                    track('click', 'carousel_image_zoom', { plan: s.key, via: 'button' });
                     setLightbox(true);
                   }}
                   style={{
@@ -189,7 +194,13 @@ export default function FloorPlanCarousel({ slides, autoPlayMs = 3000 }: Props) 
           ].map((a, i) => (
             <button
               key={i}
-              onClick={() => go(active + a.dir)}
+              onClick={() => {
+                track('click', 'carousel_nav', {
+                  direction: a.dir === -1 ? 'prev' : 'next',
+                  via: 'arrow',
+                });
+                go(active + a.dir);
+              }}
               aria-label={a.dir === -1 ? 'Previous' : 'Next'}
               style={{
                 width: 28,
@@ -233,7 +244,10 @@ export default function FloorPlanCarousel({ slides, autoPlayMs = 3000 }: Props) 
         {slides.map((s, i) => (
           <button
             key={s.key}
-            onClick={() => go(i)}
+            onClick={() => {
+              track('click', 'carousel_nav', { target: s.key, via: 'dot' });
+              go(i);
+            }}
             aria-label={`Go to ${s.label}`}
             style={{
               width: 6,

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useChatStore } from '@/lib/store/chatStore';
 import ChannelToggle, { Channel } from './ChannelToggle';
+import { track } from '@/lib/analytics/tracker';
 
 interface Props {
   children: React.ReactNode;
@@ -25,6 +26,7 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
     e.preventDefault();
     if (!phone.trim() || !name.trim()) return;
     setSubmitting(true);
+    track('submit', 'lead_submit', { form: 'lead_gate', reason, channel });
 
     try {
       await fetch('/api/webhook', {
@@ -38,6 +40,7 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
 
     setLead({ name, phone, source: reason });
     setSubmitting(false);
+    track('view', 'lead_success', { form: 'lead_gate', reason, channel });
   };
 
   return (

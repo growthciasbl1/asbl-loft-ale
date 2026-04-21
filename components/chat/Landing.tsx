@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { campaignFromParams } from '@/lib/utils/campaigns';
 import { useChatStore } from '@/lib/store/chatStore';
 import ReraWidget from './ReraWidget';
+import { track } from '@/lib/analytics/tracker';
 
 /* ── Colour tokens (mirror globals.css for typed use) ────────── */
 const COLOR = {
@@ -92,6 +93,7 @@ export default function Landing() {
 
   useEffect(() => {
     setCampaign(campaign.key);
+    track('view', 'landing_view', { campaign: campaign.key });
     if (!campaign.prefilledQuery) {
       taRef.current?.focus();
       return;
@@ -119,9 +121,10 @@ export default function Landing() {
     el.style.height = Math.min(el.scrollHeight, 100) + 'px';
   };
 
-  const go = (q?: string) => {
+  const go = (q?: string, source: 'search' | 'chip' | 'header_cta' = 'search') => {
     const query = (q ?? value).trim();
     if (!query) return;
+    track('submit', 'landing_search_submit', { query, source, campaign: campaign.key });
     const qs = new URLSearchParams();
     qs.set('q', query);
     if (campaign.key !== 'default') qs.set('utm_campaign', campaign.campaign);
@@ -154,7 +157,10 @@ export default function Landing() {
           <img src="/assets/logo.webp" alt="ASBL Loft" style={{ height: 44, display: 'block' }} />
         </Link>
         <button
-          onClick={() => go('Book a site visit this weekend')}
+          onClick={() => {
+            track('click', 'header_book_site_visit', { from: 'landing' });
+            go('Book a site visit this weekend', 'header_cta');
+          }}
           style={{
             background: COLOR.plum,
             color: '#fff',
@@ -456,6 +462,7 @@ export default function Landing() {
               label={c.label}
               icon={c.icon}
               onClick={() => {
+                track('click', 'landing_chip_click', { label: c.label, query: c.query });
                 setValue(c.query);
                 autoGrow();
                 taRef.current?.focus();

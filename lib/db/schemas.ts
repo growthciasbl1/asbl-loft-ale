@@ -70,9 +70,25 @@ export interface ConversationDoc {
   updatedAt: Date;
 }
 
+export interface EventDoc {
+  _id?: ObjectId;
+  sessionId: string;
+  type: 'view' | 'read' | 'click' | 'submit' | 'focus' | 'error' | 'system';
+  name: string;
+  props?: Record<string, unknown>;
+  path?: string;
+  referer?: string;
+  utmCampaign?: string | null;
+  userAgent?: string;
+  ip?: string;
+  clientAt: Date;
+  serverAt: Date;
+}
+
 export const COLLECTIONS = {
   units: 'units',
   media: 'media',
   leads: 'leads',
   conversations: 'conversations',
+  events: 'events',
 } as const;

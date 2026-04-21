@@ -25,6 +25,8 @@ import VisitTile from './artifacts/VisitTile';
 import ShareRequestTile from './artifacts/ShareRequestTile';
 import LeadGate from './LeadGate';
 import { AskContext, useAsk } from './AskContext';
+import { track } from '@/lib/analytics/tracker';
+import { useTrackView } from '@/lib/analytics/useTrackView';
 
 type MessageRole = 'user' | 'bot';
 
@@ -111,6 +113,8 @@ export default function ChatView() {
 
   useEffect(() => {
     setCampaign(campaign.key);
+    track('view', 'chat_view', { campaign: campaign.key, initialQuery: initialQ || null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [campaign.key, setCampaign]);
 
   useEffect(() => {
@@ -132,6 +136,7 @@ export default function ChatView() {
   const submit = async (q: string) => {
     const text = q.trim();
     if (!text) return;
+    track('submit', 'message_send', { query: text, campaign: campaign.key });
     const userMsg: Message = { id: `u-${Date.now()}`, role: 'user', text };
     setMessages((m) => [...m, userMsg]);
     setTyping(true);
@@ -176,6 +181,11 @@ export default function ChatView() {
       preferredChannel: result.preferredChannel,
     };
     setMessages((m) => [...m, botMsg]);
+    track('view', 'bot_response', {
+      query: text,
+      artifact: result.artifact,
+      label: result.artifactLabel,
+    });
   };
 
   const autoGrow = () => {
@@ -211,10 +221,20 @@ export default function ChatView() {
           <img src="/assets/logo.webp" alt="ASBL Loft" style={{ height: 44, display: 'block' }} />
         </Link>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <Link href="/" className="btn-outline">
+          <Link
+            href="/"
+            className="btn-outline"
+            onClick={() => track('click', 'header_new_chat', { from: 'chat' })}
+          >
             New Chat
           </Link>
-          <button onClick={() => submit('Book a site visit')} className="btn-plum">
+          <button
+            onClick={() => {
+              track('click', 'header_book_site_visit', { from: 'chat' });
+              submit('Book a site visit');
+            }}
+            className="btn-plum"
+          >
             Book Site Visit
           </button>
         </div>
@@ -374,8 +394,16 @@ function UserBubble({ text }: { text: string }) {
 }
 
 function BotMessage({ m }: { m: Message }) {
+  const ref = useTrackView(
+    `tile:${m.artifact ?? 'none'}`,
+    { artifact: m.artifact, label: m.artifactLabel, unitId: m.unitId },
+  );
   return (
-    <div className="animate-msg-in" style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+    <div
+      ref={ref}
+      className="animate-msg-in"
+      style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}
+    >
       {/* Avatar */}
       <div
         style={{
@@ -456,7 +484,15 @@ function DefaultChips() {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 14 }}>
       {DEFAULT_CHIPS.map((c) => (
-        <button key={c.label} type="button" onClick={() => ask(c.query)} className="chip-followup">
+        <button
+          key={c.label}
+          type="button"
+          onClick={() => {
+            track('click', 'default_chip_click', { label: c.label, query: c.query });
+            ask(c.query);
+          }}
+          className="chip-followup"
+        >
           {c.label}
         </button>
       ))}

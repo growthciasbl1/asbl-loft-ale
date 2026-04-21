@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { TileShell, TileIcon } from './common';
 import { useChatStore } from '@/lib/store/chatStore';
 import ChannelToggle, { Channel } from '../ChannelToggle';
+import { track } from '@/lib/analytics/tracker';
 
 interface Props {
   subject?: string;
@@ -26,6 +27,12 @@ export default function ShareRequestTile({ subject, originalQuery, preferredChan
     e.preventDefault();
     if (!name.trim() || !phone.trim()) return;
     setSubmitting(true);
+    track('submit', 'lead_submit', {
+      form: 'share_request',
+      subject: displaySubject,
+      channel,
+      originalQuery,
+    });
     try {
       await fetch('/api/webhook', {
         method: 'POST',
@@ -44,6 +51,7 @@ export default function ShareRequestTile({ subject, originalQuery, preferredChan
     setLead({ name, phone, source: 'share_request' });
     setSubmitting(false);
     setDone(true);
+    track('view', 'lead_success', { form: 'share_request', channel });
   };
 
   const subHeading = done

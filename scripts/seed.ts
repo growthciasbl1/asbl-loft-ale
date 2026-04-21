@@ -77,6 +77,14 @@ async function main() {
   await convCol.createIndex({ updatedAt: -1 });
   console.log('✓ conversations indexes ensured');
 
+  // Events indexes
+  const eventsCol = db.collection('events');
+  await eventsCol.createIndex({ sessionId: 1, serverAt: -1 });
+  await eventsCol.createIndex({ type: 1, name: 1, serverAt: -1 });
+  await eventsCol.createIndex({ utmCampaign: 1, serverAt: -1 });
+  await eventsCol.createIndex({ serverAt: -1 });
+  console.log('✓ events indexes ensured');
+
   await client.close();
   console.log('\n✨ Seed complete.');
 }
