@@ -121,12 +121,12 @@ export function routeQuery(q: string): RouterResult {
     };
   }
 
-  // Model flat — only at Spectra since all FD projects are under construction
+  // Model flat — none at Loft (all FD projects under construction). Pivot to site visit.
   if (/model\s*(flat|apartment|unit|home|house)|show\s*flat|sample\s*flat|experience\s*centre|experience\s*center/.test(ql)) {
     return {
-      text: `<p>Loft is under construction — the <strong>model flat is at ASBL Spectra</strong>, which uses the same finish spec. Pick a slot and we&apos;ll line up the walk-through.</p>`,
+      text: `<p>There&apos;s no model flat at Loft yet — it&apos;s still under construction. The model flat with our finish spec sits at <strong>ASBL Spectra</strong>. The <strong>Loft site visit</strong> actually tells you more though — you&apos;ll walk the tower itself, check views from your floor band, and get unit-specific answers a sample flat can&apos;t give.</p>`,
       artifact: 'visit',
-      artifactLabel: 'Visit ASBL Spectra model flat',
+      artifactLabel: 'Site visit · Loft',
       visitIntro: 'no_model_flat',
     };
   }

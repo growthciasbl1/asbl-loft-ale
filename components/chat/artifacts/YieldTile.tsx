@@ -18,7 +18,7 @@ export default function YieldTile() {
       relatedAsks={[
         { label: 'Tenant demographics', query: 'Who rents in Financial District?' },
         { label: 'Price trends', query: 'Show me FD 3BHK price trends last 3 years' },
-        { label: 'Live inventory', query: 'Show me available high-yield units' },
+        { label: 'Unit plans', query: 'Show me the 3BHK unit floor plans' },
       ]}
     >
       <div style={{ padding: 26 }}>

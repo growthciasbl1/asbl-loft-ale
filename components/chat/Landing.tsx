@@ -77,12 +77,15 @@ export default function Landing() {
           alt="ASBL Loft"
           style={{ height: 36, width: 'auto', objectFit: 'contain' }}
         />
-        <nav className="flex gap-5" style={{ fontSize: 13, color: 'var(--ink-2)' }}>
+        <nav className="hidden md:flex gap-5" style={{ fontSize: 13, color: 'var(--ink-2)' }}>
           <Link href="/demo" className="py-1.5 hover:border-b hover:border-[var(--ink)]">
             Campaign demo
           </Link>
-          <Link href="/chat?q=show me available units" className="py-1.5 hover:border-b hover:border-[var(--ink)]">
-            Live inventory
+          <Link
+            href="/chat?q=show me the 3BHK unit floor plans"
+            className="py-1.5 hover:border-b hover:border-[var(--ink)]"
+          >
+            Unit plans
           </Link>
         </nav>
       </header>

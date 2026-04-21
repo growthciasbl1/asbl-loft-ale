@@ -30,7 +30,7 @@ export default function PlansTile() {
       relatedAsks={[
         { label: 'Am I eligible?', query: 'Check affordability · 30L salary · 0 existing EMI' },
         { label: 'Cash-on-cash math', query: 'Open the levered finance calculator' },
-        { label: 'Live inventory', query: 'Show me what units are available' },
+        { label: 'Unit plans', query: 'Show me the 3BHK unit floor plans' },
       ]}
     >
       <div style={{ padding: '18px 26px', borderBottom: '1px solid var(--paper-2)' }}>

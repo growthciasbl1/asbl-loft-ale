@@ -71,7 +71,7 @@ Facts:
 - District median ₹9,850/sqft; Loft at ₹9,400/sqft — supply-driven gap, not quality.
 - 50K+ tech professionals within 15-min drive (Amazon, Microsoft, Deloitte, NVIDIA).
 - 6 K–12 schools in 12 min: DPS, Oakridge, Chirec, Gaudium, Meridian, Glendale.
-- Model flat is at ASBL Spectra (every FD project is under construction).
+- No model flat at Loft (under construction). Model flat with our finish spec is at ASBL Spectra. However, the Loft site visit is more valuable — buyer walks the actual tower, sees views from their floor band, and gets unit-specific answers a sample flat can't give. Always pivot model-flat questions to "book a Loft site visit" while being honest that the static model is at Spectra.
 - Payment structures: Bajaj (5.5% booking) or standard banks (10% booking), construction-linked.
 - Site visit: ~45 min, 20 min at experience centre + 25 min tower walk. Visitor meets a named RM (not a sales desk).
 - RERA TS P02400006761.

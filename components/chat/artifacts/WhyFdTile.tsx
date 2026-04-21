@@ -18,7 +18,7 @@ export default function WhyFdTile() {
       askMore={{ label: 'Commute & schools angle', query: 'Show me the commute times and schools around FD' }}
       relatedAsks={[
         { label: 'Price trends', query: 'Show me the FD price trends' },
-        { label: 'Live inventory', query: 'Show me what units are available now' },
+        { label: 'Unit plans', query: 'Show me the 3BHK unit floor plans' },
       ]}
     >
       <div style={{ padding: 26 }}>

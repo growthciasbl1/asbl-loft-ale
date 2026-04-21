@@ -20,9 +20,9 @@ interface VisitTileProps {
 const INTROS = {
   default: null,
   no_model_flat: {
-    title: 'The model flat is at ASBL Spectra — not at Loft (yet).',
+    title: 'No model flat at Loft — but the site visit shows you more.',
     body:
-      "Every 3BHK project in Financial District is under construction — so physical model flats don't exist on-site. Our experience centre is at ASBL Spectra, which uses the same finish spec and fittings as Loft. Want to come see that?",
+      "ASBL Loft is under construction, so there's no model flat here. The model flat with our standard finish spec is at ASBL Spectra. Even better — book a Loft site visit and a named RM will walk you through the actual tower, the view from your floor band, and the room-level details you can't get from a sample unit.",
   },
   live_inventory: {
     title: "We don't publish live inventory in chat.",

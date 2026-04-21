@@ -92,7 +92,7 @@ const DEFAULT_CHIPS: { label: string; query: string }[] = [
   { label: 'Master plan', query: 'Show me the master plan and site landscape' },
   { label: 'Urban corridors', query: 'Show me the urban corridors and location map' },
   { label: 'Model flat', query: 'Can I see the model flat?' },
-  { label: 'Live inventory', query: 'What live inventory do you have?' },
+  { label: 'Book a site visit', query: 'Book a weekend site visit' },
   { label: 'Price breakdown', query: 'Show full price breakdown 1695 East' },
   { label: 'Am I eligible?', query: 'Check affordability · salary 30L' },
   { label: 'Cash-on-cash', query: 'Open the levered finance calculator' },

@@ -14,17 +14,37 @@ interface Props {
 
 /**
  * Loads the first `src` that succeeds. If all candidates 404/error, renders the SVG `fallback`.
- * Means we can ship tiles with multiple possible filenames (png / webp / brochure page) and
- * pick up whichever the content team dropped in `public/asbl/`.
+ * Uses the React-recommended "reset state during render when props change" pattern so that
+ * switching from a missing-image plan (fullyFailed=true) back to a present-image plan
+ * immediately re-tries candidates instead of sticking on the old "coming soon" state.
  */
-export default function BrandImage({ src, alt, fallback, bg = 'var(--paper-2)', aspectRatio, maxWidth }: Props) {
+export default function BrandImage({
+  src,
+  alt,
+  fallback,
+  bg = 'var(--paper-2)',
+  aspectRatio,
+  maxWidth,
+}: Props) {
   const candidates = Array.isArray(src) ? src : [src];
-  const [attempt, setAttempt] = useState(0);
-  const [fullyFailed, setFullyFailed] = useState(false);
+  const key = candidates.join('|');
 
-  if (fullyFailed) return <>{fallback}</>;
+  const [state, setState] = useState<{ key: string; attempt: number; fullyFailed: boolean }>({
+    key,
+    attempt: 0,
+    fullyFailed: false,
+  });
 
-  const current = candidates[attempt];
+  // React-recommended pattern: adjust state during render when the derived key changes.
+  // React will immediately re-render with the updated state, before committing to DOM.
+  if (state.key !== key) {
+    setState({ key, attempt: 0, fullyFailed: false });
+    return null;
+  }
+
+  if (state.fullyFailed) return <>{fallback}</>;
+
+  const current = candidates[state.attempt];
 
   return (
     <div
@@ -39,15 +59,17 @@ export default function BrandImage({ src, alt, fallback, bg = 'var(--paper-2)', 
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
+        key={current}
         src={current}
         alt={alt}
-        onError={() => {
-          if (attempt + 1 < candidates.length) {
-            setAttempt(attempt + 1);
-          } else {
-            setFullyFailed(true);
-          }
-        }}
+        onError={() =>
+          setState((s) => {
+            if (s.attempt + 1 < candidates.length) {
+              return { ...s, attempt: s.attempt + 1 };
+            }
+            return { ...s, fullyFailed: true };
+          })
+        }
         style={{
           width: '100%',
           height: aspectRatio ? '100%' : 'auto',

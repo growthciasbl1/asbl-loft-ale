@@ -59,7 +59,7 @@ export default function AffordabilityTile({ initialSalary = 25, initialExistingE
       relatedAsks={[
         { label: 'Full price breakdown', query: 'Show me the full price breakdown for 1695 East' },
         { label: 'Payment schedule', query: 'Show me Bajaj vs standard payment schedule' },
-        { label: 'Live inventory', query: 'Show me available units in my budget' },
+        { label: 'Unit plans', query: 'Show me the 3BHK unit floor plans' },
       ]}
     >
       <div style={{ padding: '22px 26px', display: 'flex', flexDirection: 'column', gap: 18 }}>
