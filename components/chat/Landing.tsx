@@ -282,6 +282,7 @@ export default function Landing() {
           ].map((c, i) => (
             <div
               key={c.label}
+              className="asbl-info-bar-cell"
               style={{
                 flex: '1 1 180px',
                 padding: '14px 20px',

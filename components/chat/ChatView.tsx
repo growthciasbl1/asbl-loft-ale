@@ -248,12 +248,13 @@ export default function ChatView() {
 
       {/* ─── Bottom input bar ─── */}
       <div
+        className="asbl-bottom-bar"
         style={{
           position: 'fixed',
           left: 0,
           right: 0,
           bottom: 0,
-          padding: '0.7rem 1.5rem 0.85rem',
+          padding: '0.7rem 1rem 0.85rem',
           background: 'rgba(250, 247, 242, 0.97)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',

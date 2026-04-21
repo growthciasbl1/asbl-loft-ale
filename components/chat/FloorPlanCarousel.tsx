@@ -78,6 +78,7 @@ export default function FloorPlanCarousel({ slides, autoPlayMs = 3000 }: Props) 
   return (
     <>
       <div
+        className="asbl-carousel-frame"
         style={{
           position: 'relative',
           overflow: 'hidden',
@@ -103,6 +104,7 @@ export default function FloorPlanCarousel({ slides, autoPlayMs = 3000 }: Props) 
               }}
             >
               <div
+                className="asbl-carousel-image-area"
                 style={{
                   width: '100%',
                   height: 215,

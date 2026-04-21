@@ -28,6 +28,7 @@ export function TileShell({ eyebrow, title, sub, icon, children, footer, askMore
     >
       {/* Card header — topic icon + title */}
       <div
+        className="asbl-tile-head"
         style={{
           padding: '14px 18px',
           borderBottom: '1px solid var(--border)',
@@ -65,11 +66,14 @@ export function TileShell({ eyebrow, title, sub, icon, children, footer, askMore
       </div>
 
       {/* Card body */}
-      <div style={{ padding: '10px 18px 16px' }}>{children}</div>
+      <div className="asbl-tile-body" style={{ padding: '10px 18px 16px' }}>
+        {children}
+      </div>
 
       {/* Related-ask chips (plum follow-ups) */}
       {relatedAsks && relatedAsks.length > 0 && (
         <div
+          className="asbl-tile-followups"
           style={{
             padding: '12px 18px 16px',
             borderTop: '1px solid var(--border)',
@@ -94,6 +98,7 @@ export function TileShell({ eyebrow, title, sub, icon, children, footer, askMore
       {/* Footer / ask-more link */}
       {(footer || askMore) && (
         <div
+          className="asbl-tile-footer"
           style={{
             padding: '12px 18px',
             background: 'var(--beige)',
