@@ -462,7 +462,47 @@ export default function Landing() {
             />
           ))}
         </div>
+
+        {/* Mobile-only RERA footer (desktop shows the floating widget) */}
+        <div
+          className="rera-mobile-footer"
+          style={{
+            marginTop: 28,
+            textAlign: 'center',
+            fontSize: 10,
+            color: COLOR.midGray,
+            letterSpacing: '0.04em',
+            lineHeight: 1.55,
+            maxWidth: 520,
+          }}
+        >
+          <div style={{ fontWeight: 500, color: COLOR.gray2 }}>
+            TG RERA No. <span style={{ color: COLOR.plum }}>P02400006761</span>
+          </div>
+          <div style={{ marginTop: 2 }}>
+            Layout / Building Permission No. 057423/ZOA/R1/U6/HMDA/21102022
+          </div>
+          <a
+            href="https://rera.telangana.gov.in"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: COLOR.midGray, textDecoration: 'underline', fontSize: 10 }}
+          >
+            rera.telangana.gov.in
+          </a>
+        </div>
       </main>
+
+      <style>{`
+        /* Hide the mobile RERA footer on wide screens — the fixed widget handles it there */
+        @media (min-width: 900px) {
+          .rera-mobile-footer { display: none !important; }
+        }
+        /* On mobile, pull the logo slightly tighter so the viewport isn't wasted */
+        @media (max-width: 640px) {
+          header img[alt="ASBL Loft"] { height: 32px !important; }
+        }
+      `}</style>
     </>
   );
 }

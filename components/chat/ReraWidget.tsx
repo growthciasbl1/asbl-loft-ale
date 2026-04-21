@@ -1,10 +1,27 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
 interface Props {
   hidden?: boolean;
 }
 
+/**
+ * Desktop: fixed top-right, 256px wide.
+ * Mobile (< 900px): hidden entirely — page puts a compact RERA line in its own footer instead.
+ */
 export default function ReraWidget({ hidden = false }: Props) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 900);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  if (isMobile) return null;
+
   return (
     <div
       style={{
