@@ -38,6 +38,8 @@ export default function UnitPlansTile() {
       footer={<>Dimensions are carpet · cluster reference is in the image (bottom-left).</>}
       askMore={{ label: 'Send high-res PDF on WhatsApp', query: 'Send me the high-res 1695 floor plan PDF' }}
       relatedAsks={[
+        { label: 'Rental offer', query: 'Tell me about the rental offer' },
+        { label: 'Compare projects', query: 'Compare ASBL Loft with other FD projects' },
         { label: 'Pricing', query: 'What is the pricing for ASBL Loft?' },
         { label: 'Amenities', query: 'What amenities does ASBL Loft offer?' },
         { label: 'Location', query: 'Where is ASBL Loft and what is nearby?' },

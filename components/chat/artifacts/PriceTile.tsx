@@ -16,8 +16,10 @@ export default function PriceTile() {
       }
       askMore={{ label: 'Show payment plans', query: 'Show me the payment plan schedule and first cheque amount' }}
       relatedAsks={[
+        { label: 'Rental offer', query: 'Tell me about the rental offer' },
+        { label: 'Price trend', query: 'How has FD price trend moved?' },
+        { label: 'Compare with other FD projects', query: 'Compare ASBL Loft with other FD projects' },
         { label: 'Can I afford this?', query: 'Check affordability · ₹25L salary' },
-        { label: 'Rental yield math', query: 'What rental yield can I expect on the 1695 East?' },
         { label: 'Floor plan', query: 'Show me the 1695 East floor plan' },
       ]}
     >

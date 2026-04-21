@@ -98,6 +98,8 @@ function renderArtifact(m: Message) {
 
 const DEFAULT_CHIPS: { label: string; query: string }[] = [
   { label: 'Rental offer', query: 'Tell me about the rental offer' },
+  { label: 'Price trend', query: 'How has FD price trend moved?' },
+  { label: 'Compare projects', query: 'Compare ASBL Loft with other FD projects' },
   { label: 'Floor plans', query: 'Tell me about the floor plans' },
   { label: 'Pricing', query: 'What is the pricing for ASBL Loft?' },
   { label: 'Amenities', query: 'What amenities does ASBL Loft offer?' },

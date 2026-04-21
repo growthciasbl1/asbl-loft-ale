@@ -79,6 +79,26 @@ const CHIPS: { label: string; query: string; icon: React.ReactNode }[] = [
       </svg>
     ),
   },
+  {
+    label: 'Price trend',
+    query: 'How has the price trend moved in Financial District?',
+    icon: (
+      <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 17l6-6 4 4 8-8" />
+        <path d="M14 7h7v7" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Compare',
+    query: 'Compare ASBL Loft with other FD projects',
+    icon: (
+      <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round">
+        <rect x={3} y={6} width={8} height={14} />
+        <rect x={13} y={3} width={8} height={17} />
+      </svg>
+    ),
+  },
 ];
 
 export default function Landing() {

@@ -17,7 +17,9 @@ export default function WhyFdTile() {
       sub="Against Gachibowli and Kokapet · axes most 3BHK buyers weigh"
       askMore={{ label: 'Commute & schools angle', query: 'Show me the commute times and schools around FD' }}
       relatedAsks={[
+        { label: 'Compare projects', query: 'Compare ASBL Loft with other FD projects' },
         { label: 'Price trends', query: 'Show me the FD price trends' },
+        { label: 'Rental offer', query: 'Tell me about the rental offer' },
         { label: 'Unit plans', query: 'Show me the 3BHK unit floor plans' },
       ]}
     >

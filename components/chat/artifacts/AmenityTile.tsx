@@ -33,6 +33,9 @@ export default function AmenityTile() {
       sub="9 of 23 · the full grid adapts to your household"
       askMore={{ label: 'Family-curated grid', query: 'Show me amenities curated for a family with kids' }}
       relatedAsks={[
+        { label: 'Rental offer', query: 'Tell me about the rental offer' },
+        { label: 'Price trend', query: 'How has FD price trend moved?' },
+        { label: 'Compare projects', query: 'Compare ASBL Loft with other FD projects' },
         { label: 'Schools nearby', query: 'What schools are within 12 minutes?' },
         { label: 'Commute time', query: 'How long to Hitech City?' },
         { label: 'Book a visit', query: 'Book a weekend tour slot' },
