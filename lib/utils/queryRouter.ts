@@ -30,6 +30,8 @@ export interface RouterResult {
   shareSubject?: string;
   /** For share_request: raw user query for CRM. */
   originalQuery?: string;
+  /** For any lead form: pre-select WhatsApp or Call. */
+  preferredChannel?: 'whatsapp' | 'call';
 }
 
 /**
@@ -76,6 +78,20 @@ function parseExistingEmi(q: string): number | undefined {
 
 export function routeQuery(q: string): RouterResult {
   const ql = q.toLowerCase().trim();
+
+  // Call-back intent — explicit "call me" / "someone call" / "phone me" / "callback".
+  if (
+    /\b(call\s*me|call\s*back|callback|someone\s*(call|phone)|please\s*call|give\s*me\s*a\s*call|i\s*want\s*a\s*call|ring\s*me|get\s*on\s*(a\s*)?call|phone\s*me)\b/i.test(q)
+  ) {
+    return {
+      text: `<p>Sure — drop your name and number and a named RM will call you within 30 minutes (9 am–8 pm). No auto-dialers, no call centres.</p>`,
+      artifact: 'share_request',
+      artifactLabel: 'Request a call',
+      shareSubject: 'a call-back from the Loft team',
+      originalQuery: q,
+      preferredChannel: 'call',
+    };
+  }
 
   // Share intent (send me / WhatsApp me / share PDF) — ALWAYS capture lead first.
   // Runs before every other rule so "Send me the floor plan PDF" doesn't leak to unit_plans.

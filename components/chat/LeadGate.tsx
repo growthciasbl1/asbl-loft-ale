@@ -2,18 +2,21 @@
 
 import { useState } from 'react';
 import { useChatStore } from '@/lib/store/chatStore';
+import ChannelToggle, { Channel } from './ChannelToggle';
 
 interface Props {
   children: React.ReactNode;
   reason: string;
   preview?: React.ReactNode;
+  preferredChannel?: Channel;
 }
 
-export default function LeadGate({ children, reason, preview }: Props) {
+export default function LeadGate({ children, reason, preview, preferredChannel = 'whatsapp' }: Props) {
   const lead = useChatStore((s) => s.lead);
   const setLead = useChatStore((s) => s.setLead);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [channel, setChannel] = useState<Channel>(preferredChannel);
   const [submitting, setSubmitting] = useState(false);
 
   if (lead?.phone) return <>{children}</>;
@@ -27,10 +30,10 @@ export default function LeadGate({ children, reason, preview }: Props) {
       await fetch('/api/webhook', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, phone, query: reason }),
+        body: JSON.stringify({ name, phone, query: reason, preferredChannel: channel }),
       });
-    } catch (err) {
-      // Non-blocking
+    } catch {
+      // non-blocking
     }
 
     setLead({ name, phone, source: reason });
@@ -39,68 +42,104 @@ export default function LeadGate({ children, reason, preview }: Props) {
 
   return (
     <div
-      className="rounded-2xl overflow-hidden"
-      style={{ background: 'white', border: '1px solid var(--hairline)', boxShadow: 'var(--shadow-sm)' }}
+      style={{
+        background: '#fff',
+        border: '1px solid var(--border)',
+        borderRadius: 16,
+        overflow: 'hidden',
+        boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
+      }}
     >
       {preview && (
-        <div className="relative">
-          <div style={{ filter: 'blur(6px)', pointerEvents: 'none', userSelect: 'none' }}>{preview}</div>
+        <div style={{ position: 'relative' }}>
+          <div style={{ filter: 'blur(6px)', pointerEvents: 'none', userSelect: 'none' }}>
+            {preview}
+          </div>
           <div
-            className="absolute inset-0"
             style={{
+              position: 'absolute',
+              inset: 0,
               background:
-                'linear-gradient(to bottom, transparent 0%, rgba(246, 241, 232, 0.6) 50%, rgba(246, 241, 232, 1) 100%)',
+                'linear-gradient(to bottom, transparent 0%, rgba(250, 247, 242, 0.6) 50%, rgba(250, 247, 242, 1) 100%)',
             }}
           />
         </div>
       )}
-      <div className="p-6 md:p-8">
+      <div style={{ padding: '20px 22px' }}>
         <div
-          className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-4"
-          style={{ background: 'var(--sienna-soft)', color: 'var(--sienna-dark)', fontSize: 11, letterSpacing: '0.1em' }}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '6px 12px',
+            background: 'var(--plum-pale)',
+            color: 'var(--plum-dark)',
+            borderRadius: 100,
+            fontSize: 10.5,
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            fontWeight: 600,
+            marginBottom: 12,
+          }}
         >
-          <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--sienna)' }} />
-          UNLOCK · one-time
+          <span
+            style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--plum)' }}
+          />
+          Unlock · one-time
         </div>
-        <h4 className="display" style={{ fontSize: 22, marginBottom: 8 }}>
+        <h4 className="serif" style={{ fontSize: 20, marginBottom: 6, color: 'var(--charcoal)' }}>
           {reason}
         </h4>
-        <p className="text-sm" style={{ color: 'var(--mute)', marginBottom: 18 }}>
-          Name + WhatsApp so we can send follow-up details, floor plans and the price sheet directly
-          to you. No spam, no pushy calls.
+        <p style={{ fontSize: 13, color: 'var(--mid-gray)', marginBottom: 16 }}>
+          Name + phone so we can follow up. No spam, no pushy dialers.
         </p>
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <input
             type="text"
             placeholder="Full name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
-            className="w-full px-4 py-3 rounded-xl"
-            style={{ background: 'var(--paper)', border: '1px solid var(--hairline)' }}
+            style={{
+              width: '100%',
+              padding: '12px 14px',
+              borderRadius: 10,
+              border: '1px solid var(--border)',
+              background: 'var(--cream)',
+              fontSize: 14,
+            }}
           />
           <input
             type="tel"
-            placeholder="WhatsApp number (+91…)"
+            placeholder="+91 98XXXXXXXX"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             required
-            className="w-full px-4 py-3 rounded-xl"
-            style={{ background: 'var(--paper)', border: '1px solid var(--hairline)' }}
+            style={{
+              width: '100%',
+              padding: '12px 14px',
+              borderRadius: 10,
+              border: '1px solid var(--border)',
+              background: 'var(--cream)',
+              fontSize: 14,
+            }}
           />
+
+          <ChannelToggle value={channel} onChange={setChannel} />
+
           <button
             type="submit"
             disabled={submitting || !phone.trim() || !name.trim()}
-            className="w-full py-3.5 rounded-full font-semibold transition"
-            style={{
-              background: submitting ? 'var(--paper-3)' : 'var(--ink)',
-              color: 'white',
-              cursor: submitting ? 'not-allowed' : 'pointer',
-            }}
+            className="btn-plum"
+            style={{ justifyContent: 'center', padding: '12px 20px', opacity: submitting ? 0.6 : 1 }}
           >
-            {submitting ? 'Unlocking…' : 'Unlock details →'}
+            {submitting
+              ? 'Unlocking…'
+              : channel === 'call'
+                ? 'Request a call →'
+                : 'Unlock on WhatsApp →'}
           </button>
-          <p className="text-xs" style={{ color: 'var(--mute)' }}>
+          <p style={{ fontSize: 10.5, color: 'var(--light-gray)' }}>
             RERA TS P02400006761 · Data stays with ASBL. Opt out anytime.
           </p>
         </form>

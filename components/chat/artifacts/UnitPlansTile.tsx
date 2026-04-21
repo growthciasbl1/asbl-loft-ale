@@ -1,226 +1,110 @@
 'use client';
 
-import { useState } from 'react';
-import { TileShell } from './common';
-import BrandImage from './BrandImage';
+import { TileShell, TileIcon } from './common';
+import FloorPlanCarousel, { PlanSlide } from '../FloorPlanCarousel';
 import { UNIT_LAYOUTS } from '@/lib/utils/asblData';
 
-type PlanId = '1695-east' | '1695-west' | '1870';
-
-interface PlanMeta {
-  id: PlanId;
-  label: string;
-  sub: string;
-  size: 1695 | 1870;
-  pending?: boolean;
-}
-
-interface PlanMetaWithCandidates extends Omit<PlanMeta, 'imagePath'> {
-  imagePaths: string[];
-}
-
-const PLANS: PlanMetaWithCandidates[] = [
+const SLIDES: PlanSlide[] = [
   {
-    id: '1695-east',
-    label: '1,695 sqft · East',
-    sub: 'Units 3, 4, 7, 8 · east-facing on every floor, both towers',
-    size: 1695,
-    imagePaths: [
-      '/asbl/unit-plan-1695-east.webp',
-      '/asbl/unit-plan-1695-east.png',
-      '/asbl/unit-plan-1695-east.jpg',
-    ],
+    key: 'east',
+    img: '/assets/1695_east.webp',
+    label: '1695 sq.ft — East Facing',
+    sub: '3 BHK · Units 3, 4, 7, 8',
   },
   {
-    id: '1695-west',
-    label: '1,695 sqft · West',
-    sub: 'Units 5, 6 · west-facing, extended outdoor living',
-    size: 1695,
-    imagePaths: [
-      '/asbl/unit-plan-1695-west.webp',
-      '/asbl/unit-plan-1695-west.png',
-      '/asbl/unit-plan-1695-west.jpg',
-    ],
-  },
-  {
-    id: '1870',
-    label: '1,870 sqft',
-    sub: 'Plan image arriving soon · dimensions listed below',
-    size: 1870,
-    imagePaths: [
-      '/asbl/unit-plan-1870.webp',
-      '/asbl/unit-plan-1870.png',
-      '/asbl/unit-plan-1870.jpg',
-    ],
-    pending: true,
+    key: 'west',
+    img: '/assets/1695_west.webp',
+    label: '1695 sq.ft — West Facing',
+    sub: '3 BHK · Units 5, 6',
   },
 ];
 
 export default function UnitPlansTile() {
-  const [pick, setPick] = useState<PlanId>('1695-east');
-  const plan = PLANS.find((p) => p.id === pick)!;
-  const layout = UNIT_LAYOUTS[plan.size];
-
   return (
     <TileShell
-      eyebrow="Unit floor plans"
-      title="3BHK · layouts available"
-      sub={`${plan.label} · ${plan.sub}`}
-      footer={<>Dimensions are carpet · cluster reference is built into the image (bottom-left).</>}
-      askMore={{
-        label: 'Send high-res PDF to my WhatsApp',
-        query: `Send me the high-res ${plan.label} floor plan PDF`,
-      }}
+      eyebrow="Unit plans"
+      title="3BHK · East and West layouts"
+      sub="1,695 sq.ft · 1,870 sq.ft image coming soon"
+      icon={
+        <TileIcon>
+          <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--plum)" strokeWidth={1.5}>
+            <rect x={3} y={3} width={7} height={7} />
+            <rect x={14} y={3} width={7} height={7} />
+            <rect x={3} y={14} width={7} height={7} />
+            <rect x={14} y={14} width={7} height={7} />
+          </svg>
+        </TileIcon>
+      }
+      footer={<>Dimensions are carpet · cluster reference is in the image (bottom-left).</>}
+      askMore={{ label: 'Send high-res PDF on WhatsApp', query: 'Send me the high-res 1695 floor plan PDF' }}
       relatedAsks={[
-        { label: 'Master site plan', query: 'Show me the master plan and amenities' },
-        { label: 'Price for this layout', query: `Show price breakdown for ${plan.size} sqft` },
-        { label: 'Can I afford it?', query: 'Check affordability · salary 30L' },
-        { label: 'Book a visit', query: 'Book a weekend site visit' },
+        { label: 'Pricing', query: 'What is the pricing for ASBL Loft?' },
+        { label: 'Amenities', query: 'What amenities does ASBL Loft offer?' },
+        { label: 'Location', query: 'Where is ASBL Loft and what is nearby?' },
       ]}
     >
-      {/* Plan picker */}
-      <div
-        style={{
-          padding: '14px 26px',
-          display: 'flex',
-          gap: 8,
-          flexWrap: 'wrap',
-          background: 'var(--paper)',
-          borderBottom: '1px solid var(--paper-2)',
-        }}
-      >
-        {PLANS.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            onClick={() => setPick(p.id)}
-            style={{
-              padding: '8px 16px',
-              borderRadius: 100,
-              fontSize: 12.5,
-              fontWeight: 500,
-              background: pick === p.id ? 'var(--ink)' : 'white',
-              color: pick === p.id ? 'white' : 'var(--ink-2)',
-              border: '1px solid ' + (pick === p.id ? 'var(--ink)' : 'var(--hairline)'),
-              position: 'relative',
-            }}
-          >
-            {p.label}
-            {p.pending && (
-              <span
-                style={{
-                  marginLeft: 8,
-                  fontSize: 9,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.1em',
-                  color: pick === p.id ? 'var(--sienna-soft)' : 'var(--mute)',
-                  fontWeight: 500,
-                }}
-              >
-                · soon
-              </span>
-            )}
-          </button>
-        ))}
+      <div style={{ margin: '0 -18px' }}>
+        <FloorPlanCarousel slides={SLIDES} />
       </div>
 
-      {/* Brand image */}
-      <div style={{ padding: '20px 26px', background: '#0b0b0f' }}>
-        <BrandImage
-          src={plan.imagePaths}
-          alt={`3BHK ${plan.label} floor plan`}
-          bg="#0b0b0f"
-          fallback={<PlanPending plan={plan} />}
-        />
-      </div>
-
-      {/* Dimensions */}
-      <div style={{ padding: '18px 26px 6px' }}>
+      {/* Room-by-room (collapsed into one strip, concise) */}
+      <div style={{ marginTop: 18 }}>
         <div
           style={{
-            fontSize: 10.5,
+            fontSize: 9,
             textTransform: 'uppercase',
-            letterSpacing: '0.12em',
-            color: 'var(--mute)',
-            fontWeight: 600,
+            letterSpacing: '0.13em',
+            color: 'var(--mid-gray)',
+            fontWeight: 500,
             marginBottom: 10,
           }}
         >
-          Room by room · {plan.size} sqft
+          Room by room · 1,695 sq.ft
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {layout.rooms.map((r) => (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+            gap: 8,
+          }}
+        >
+          {UNIT_LAYOUTS[1695].rooms.map((r) => (
             <div
               key={r.name}
               style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 100px 80px',
-                gap: 12,
-                alignItems: 'baseline',
-                padding: '8px 0',
-                borderBottom: '1px solid var(--paper-2)',
+                background: 'var(--cream)',
+                border: '1px solid var(--border)',
+                borderRadius: 10,
+                padding: '10px 12px',
               }}
             >
-              <div>
-                <div style={{ fontSize: 13 }}>{r.name}</div>
-                {r.note && <div style={{ fontSize: 11, color: 'var(--mute)', marginTop: 1 }}>{r.note}</div>}
-              </div>
-              <div className="mono" style={{ color: 'var(--sienna-dark)', fontSize: 12.5, textAlign: 'right' }}>
+              <div style={{ fontSize: 11, color: 'var(--mid-gray)' }}>{r.name}</div>
+              <div
+                className="serif"
+                style={{ fontSize: 14, color: 'var(--charcoal)', marginTop: 3, fontWeight: 500 }}
+              >
                 {r.ft}
               </div>
-              <div className="mono" style={{ color: 'var(--mute)', fontSize: 11.5, textAlign: 'right' }}>
-                {r.sqft} sqft
+              <div style={{ fontSize: 10, color: 'var(--light-gray)', marginTop: 1 }}>
+                {r.sqft} sq.ft
               </div>
             </div>
           ))}
         </div>
         <div
           style={{
-            marginTop: 14,
+            marginTop: 12,
             padding: 12,
-            background: 'var(--sienna-soft)',
+            background: 'var(--plum-pale)',
             borderRadius: 10,
-            fontSize: 12.5,
-            color: 'var(--ink-2)',
+            fontSize: 12,
+            color: 'var(--gray-2)',
           }}
         >
-          <b style={{ color: 'var(--sienna-dark)' }}>Outdoor:</b> {layout.balcony.label} ·{' '}
-          {layout.balcony.note}
+          <b style={{ color: 'var(--plum-dark)' }}>Outdoor:</b>{' '}
+          {UNIT_LAYOUTS[1695].balcony.label} · {UNIT_LAYOUTS[1695].balcony.note}
         </div>
       </div>
     </TileShell>
-  );
-}
-
-function PlanPending({ plan }: { plan: PlanMeta }) {
-  return (
-    <div
-      style={{
-        padding: '60px 30px',
-        textAlign: 'center',
-        color: '#f5e6d5',
-        background: '#0b0b0f',
-        borderRadius: 10,
-      }}
-    >
-      <div
-        style={{
-          fontSize: 10.5,
-          textTransform: 'uppercase',
-          letterSpacing: '0.16em',
-          color: 'var(--sienna)',
-          fontWeight: 600,
-          marginBottom: 10,
-        }}
-      >
-        Uploading shortly
-      </div>
-      <div className="display" style={{ fontSize: 24, fontWeight: 400 }}>
-        {plan.label} plan image
-      </div>
-      <p style={{ fontSize: 12.5, color: '#8a8278', marginTop: 8, maxWidth: 320, margin: '8px auto 0' }}>
-        Dimensions are listed below in the meantime. Ask for a visit and the RM will share this in high-res.
-      </p>
-    </div>
   );
 }

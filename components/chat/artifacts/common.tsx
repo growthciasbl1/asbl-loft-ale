@@ -2,95 +2,88 @@
 
 import { useAsk } from '../AskContext';
 
-export function TileShell({
-  eyebrow,
-  title,
-  sub,
-  children,
-  footer,
-  askMore,
-  relatedAsks,
-}: {
+interface Props {
   eyebrow?: string;
   title: string;
   sub?: string;
+  icon?: React.ReactNode;
   children: React.ReactNode;
   footer?: React.ReactNode;
   askMore?: { label: string; query: string };
   relatedAsks?: { label: string; query: string }[];
-}) {
+}
+
+export function TileShell({ eyebrow, title, sub, icon, children, footer, askMore, relatedAsks }: Props) {
   const ask = useAsk();
 
   return (
     <div
       style={{
-        background: 'white',
-        border: '1px solid var(--hairline)',
+        background: '#fff',
+        border: '1px solid var(--border)',
         borderRadius: 16,
         overflow: 'hidden',
-        boxShadow: 'var(--shadow-sm)',
+        boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
       }}
     >
-      <div style={{ padding: '22px 26px 16px', borderBottom: '1px solid var(--paper-2)' }}>
-        {eyebrow && (
+      {/* Card header — topic icon + title */}
+      <div
+        style={{
+          padding: '14px 18px',
+          borderBottom: '1px solid var(--border)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+        }}
+      >
+        {icon ?? <DefaultIcon />}
+        <div>
+          {eyebrow && (
+            <div
+              style={{
+                fontSize: 9,
+                textTransform: 'uppercase',
+                letterSpacing: '0.13em',
+                color: 'var(--plum)',
+                fontWeight: 500,
+                marginBottom: 2,
+              }}
+            >
+              {eyebrow}
+            </div>
+          )}
           <div
-            style={{
-              fontSize: 10.5,
-              textTransform: 'uppercase',
-              letterSpacing: '0.18em',
-              color: 'var(--sienna)',
-              fontWeight: 500,
-            }}
+            className="serif"
+            style={{ fontSize: 16, color: 'var(--charcoal)', fontWeight: 500, lineHeight: 1.3 }}
           >
-            {eyebrow}
+            {title}
           </div>
-        )}
-        <div className="display" style={{ fontSize: 26, fontWeight: 400, marginTop: 6, letterSpacing: '-0.01em' }}>
-          {title}
+          {sub && (
+            <div style={{ fontSize: 11.5, color: 'var(--mid-gray)', marginTop: 2 }}>{sub}</div>
+          )}
         </div>
-        {sub && <div style={{ fontSize: 13, color: 'var(--mute)', marginTop: 2 }}>{sub}</div>}
       </div>
-      <div>{children}</div>
 
+      {/* Card body */}
+      <div style={{ padding: '10px 18px 16px' }}>{children}</div>
+
+      {/* Related-ask chips (plum follow-ups) */}
       {relatedAsks && relatedAsks.length > 0 && (
         <div
           style={{
-            padding: '14px 26px',
-            borderTop: '1px solid var(--paper-2)',
-            background: 'white',
+            padding: '12px 18px 16px',
+            borderTop: '1px solid var(--border)',
             display: 'flex',
             flexWrap: 'wrap',
-            gap: 8,
+            gap: 7,
           }}
         >
-          <span
-            style={{
-              fontSize: 10.5,
-              textTransform: 'uppercase',
-              letterSpacing: '0.12em',
-              color: 'var(--mute)',
-              alignSelf: 'center',
-              marginRight: 4,
-            }}
-          >
-            Ask more
-          </span>
           {relatedAsks.map((r) => (
             <button
               type="button"
               key={r.label}
               onClick={() => ask(r.query)}
-              style={{
-                padding: '6px 12px',
-                borderRadius: 100,
-                background: 'var(--paper)',
-                border: '1px solid var(--hairline)',
-                fontSize: 11.5,
-                color: 'var(--ink-2)',
-                fontWeight: 500,
-                transition: 'all 160ms',
-              }}
-              className="hover:bg-[var(--paper-2)] hover:text-[var(--ink)]"
+              className="chip-followup"
             >
               {r.label}
             </button>
@@ -98,12 +91,13 @@ export function TileShell({
         </div>
       )}
 
+      {/* Footer / ask-more link */}
       {(footer || askMore) && (
         <div
           style={{
-            padding: '14px 26px',
-            background: 'var(--paper-2)',
-            borderTop: '1px solid var(--hairline)',
+            padding: '12px 18px',
+            background: 'var(--beige)',
+            borderTop: '1px solid var(--border)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -111,15 +105,15 @@ export function TileShell({
             flexWrap: 'wrap',
           }}
         >
-          <div style={{ fontSize: 11, color: 'var(--mute)', lineHeight: 1.55 }}>{footer}</div>
+          <div style={{ fontSize: 10.5, color: 'var(--mid-gray)', lineHeight: 1.5 }}>{footer}</div>
           {askMore && (
             <button
               type="button"
               onClick={() => ask(askMore.query)}
               style={{
-                fontSize: 12,
+                fontSize: 11.5,
                 fontWeight: 500,
-                color: 'var(--sienna-dark)',
+                color: 'var(--plum-dark)',
                 whiteSpace: 'nowrap',
                 background: 'transparent',
               }}
@@ -130,6 +124,47 @@ export function TileShell({
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function DefaultIcon() {
+  return (
+    <div
+      style={{
+        width: 32,
+        height: 32,
+        borderRadius: 10,
+        background: 'var(--plum-pale)',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+      }}
+    >
+      <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--plum)" strokeWidth={1.5}>
+        <circle cx={12} cy={12} r={9} />
+        <path d="M12 7v5l3 2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </div>
+  );
+}
+
+export function TileIcon({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        width: 32,
+        height: 32,
+        borderRadius: 10,
+        background: 'var(--plum-pale)',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+      }}
+    >
+      {children}
     </div>
   );
 }
@@ -153,24 +188,37 @@ export function TileRow({
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'baseline',
-        padding: '14px 0',
-        borderBottom: '1px solid var(--paper-2)',
-        background: highlight ? 'var(--sienna-soft)' : 'transparent',
-        marginLeft: highlight ? -26 : 0,
-        marginRight: highlight ? -26 : 0,
-        paddingLeft: highlight ? 26 : 0,
-        paddingRight: highlight ? 26 : 0,
+        padding: '12px 0',
+        borderBottom: '1px solid var(--border)',
+        background: highlight ? 'var(--plum-pale)' : 'transparent',
+        marginLeft: highlight ? -18 : 0,
+        marginRight: highlight ? -18 : 0,
+        paddingLeft: highlight ? 18 : 0,
+        paddingRight: highlight ? 18 : 0,
       }}
     >
       <div>
-        <div style={{ fontSize: 14.5, color: 'var(--ink-2)', fontWeight: highlight ? 500 : 400 }}>
+        <div
+          style={{
+            fontSize: 13.5,
+            color: highlight ? 'var(--charcoal)' : 'var(--gray-2)',
+            fontWeight: highlight ? 500 : 400,
+          }}
+        >
           {label}
         </div>
-        {note && <div style={{ fontSize: 11.5, color: 'var(--mute)', marginTop: 2 }}>{note}</div>}
+        {note && <div style={{ fontSize: 11, color: 'var(--mid-gray)', marginTop: 1 }}>{note}</div>}
       </div>
       <div style={{ textAlign: 'right' }}>
         {right ?? (
-          <div className="mono" style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>
+          <div
+            className="serif"
+            style={{
+              fontSize: 14,
+              fontWeight: 500,
+              color: highlight ? 'var(--plum-dark)' : 'var(--charcoal)',
+            }}
+          >
             {value}
           </div>
         )}

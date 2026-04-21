@@ -3,14 +3,81 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { campaignFromParams, CAMPAIGNS } from '@/lib/utils/campaigns';
+import { campaignFromParams } from '@/lib/utils/campaigns';
 import { useChatStore } from '@/lib/store/chatStore';
+import ReraWidget from './ReraWidget';
 
-const SUGGEST = [
-  'Show me available units · east facing · floor 30+',
-  'Price breakdown for 1,695 East',
-  'What amenities does Loft offer?',
-  "What's the commute to Hitech City?",
+/* ── Colour tokens (mirror globals.css for typed use) ────────── */
+const COLOR = {
+  plum: '#8B2F7A',
+  plumDark: '#6f2462',
+  plumPale: '#F6EEF4',
+  plumBorder: 'rgba(139, 47, 122, 0.2)',
+  cream: '#FAF7F2',
+  beige: '#F0EAE0',
+  beige2: '#E8DFCF',
+  charcoal: '#1C1A1A',
+  gray2: '#3A3636',
+  midGray: '#7A7472',
+  lightGray: '#B0ACAA',
+  white: '#FFFFFF',
+  border: 'rgba(28, 26, 26, 0.12)',
+};
+
+/* ── Chip config ─────────────────────────────────────── */
+const CHIPS: { label: string; query: string; icon: React.ReactNode }[] = [
+  {
+    label: 'Plans',
+    query: 'Tell me about the floor plans',
+    icon: (
+      <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.4}>
+        <rect x={3} y={3} width={7} height={7} />
+        <rect x={14} y={3} width={7} height={7} />
+        <rect x={3} y={14} width={7} height={7} />
+        <rect x={14} y={14} width={7} height={7} />
+      </svg>
+    ),
+  },
+  {
+    label: 'Price',
+    query: 'What is the pricing for ASBL Loft?',
+    icon: (
+      <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M6 5h12M6 10h12M15 5c0 5-5 5-9 5 6 1 9 4 9 9" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Amenities',
+    query: 'What amenities does ASBL Loft offer?',
+    icon: (
+      <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round">
+        <circle cx={12} cy={12} r={9} />
+        <path d="M12 7v5l3 2" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Location',
+    query: 'Where is ASBL Loft and what is nearby?',
+    icon: (
+      <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 22s7-7.5 7-12a7 7 0 10-14 0c0 4.5 7 12 7 12z" />
+        <circle cx={12} cy={10} r={2.5} />
+      </svg>
+    ),
+  },
+  {
+    label: 'Rental Offer',
+    query: 'Tell me about the rental offer',
+    icon: (
+      <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round">
+        <line x1={4} y1={7} x2={20} y2={7} />
+        <line x1={4} y1={12} x2={16} y2={12} />
+        <line x1={4} y1={17} x2={12} y2={17} />
+      </svg>
+    ),
+  },
 ];
 
 export default function Landing() {
@@ -20,6 +87,7 @@ export default function Landing() {
 
   const campaign = campaignFromParams(new URLSearchParams(params?.toString() ?? ''));
   const [value, setValue] = useState('');
+  const [focused, setFocused] = useState(false);
   const taRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -48,7 +116,7 @@ export default function Landing() {
     const el = taRef.current;
     if (!el) return;
     el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+    el.style.height = Math.min(el.scrollHeight, 100) + 'px';
   };
 
   const go = (q?: string) => {
@@ -61,88 +129,224 @@ export default function Landing() {
   };
 
   return (
-    <main
-      className="relative flex flex-col min-h-screen"
-      style={{ padding: '28px 24px' }}
-    >
-      <div className="grain" />
-
+    <>
+      {/* ═══ Header ═══ */}
       <header
-        className="flex justify-between items-center mx-auto w-full"
-        style={{ maxWidth: 1120, position: 'relative', zIndex: 2 }}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 64,
+          background: 'rgba(250, 247, 242, 0.97)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderBottom: `1px solid ${COLOR.border}`,
+          zIndex: 100,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 1.75rem',
+        }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="https://www.asblloft-hyderabad.com/images/logo.png"
-          alt="ASBL Loft"
-          style={{ height: 36, width: 'auto', objectFit: 'contain' }}
-        />
-        <nav className="hidden md:flex gap-5" style={{ fontSize: 13, color: 'var(--ink-2)' }}>
-          <Link href="/demo" className="py-1.5 hover:border-b hover:border-[var(--ink)]">
-            Campaign demo
-          </Link>
-          <Link
-            href="/chat?q=show me the 3BHK unit floor plans"
-            className="py-1.5 hover:border-b hover:border-[var(--ink)]"
-          >
-            Unit plans
-          </Link>
-        </nav>
+        <Link href="/" style={{ display: 'flex', alignItems: 'center' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/assets/logo.webp" alt="ASBL Loft" style={{ height: 44, display: 'block' }} />
+        </Link>
+        <button
+          onClick={() => go('Book a site visit this weekend')}
+          style={{
+            background: COLOR.plum,
+            color: '#fff',
+            padding: '9px 20px',
+            borderRadius: 16,
+            fontSize: 11.5,
+            fontWeight: 500,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            border: 'none',
+            cursor: 'pointer',
+            transition: 'background 180ms ease',
+          }}
+          onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = COLOR.plumDark)}
+          onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = COLOR.plum)}
+        >
+          Book Site Visit
+        </button>
       </header>
 
-      <section
-        className="flex-1 flex flex-col justify-center items-center mx-auto w-full"
-        style={{ maxWidth: 720, paddingBottom: '10vh', position: 'relative', zIndex: 2 }}
-      >
-        {campaign.key !== 'default' && (
-          <div
-            className="inline-flex items-center gap-2 animate-msg-in"
-            style={{
-              padding: '6px 14px',
-              background: 'var(--sienna-soft)',
-              borderRadius: 100,
-              fontSize: 12,
-              color: 'var(--sienna-dark)',
-              marginBottom: 28,
-            }}
-          >
-            <span
-              style={{ width: 5, height: 5, background: 'var(--sienna)', borderRadius: '50%' }}
-            />
-            {campaign.pill}
-          </div>
-        )}
+      <ReraWidget hidden={false} />
 
-        <h1
-          className="display"
+      {/* ═══ Landing body ═══ */}
+      <main
+        style={{
+          paddingTop: 64,
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '2rem',
+          background: COLOR.cream,
+        }}
+      >
+        {/* 3a. Center logo */}
+        <div
           style={{
-            fontSize: 'clamp(54px, 10vw, 96px)',
-            fontWeight: 400,
-            lineHeight: 0.95,
-            letterSpacing: '-0.04em',
-            marginBottom: 14,
             textAlign: 'center',
+            marginBottom: 32,
+            animation: 'fadeUp 600ms ease both',
           }}
         >
-          Ask Loft{' '}
-          <em style={{ color: 'var(--sienna)', fontStyle: 'italic', fontWeight: 300 }}>anything.</em>
-        </h1>
-        <p style={{ color: 'var(--ink-2)', fontSize: 15, marginBottom: 42, textAlign: 'center' }}>
-          3BHK residences · Financial District, Hyderabad · Handover Dec 2026
-        </p>
-
-        <div className="w-full animate-msg-in">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/assets/logo.webp"
+            alt="ASBL Loft"
+            style={{ height: 104, display: 'block', margin: '0 auto' }}
+          />
           <div
             style={{
-              background: 'white',
-              border: '1px solid var(--hairline)',
-              borderRadius: 20,
-              padding: '18px 20px',
-              display: 'flex',
-              alignItems: 'flex-end',
-              gap: 12,
-              boxShadow: 'var(--shadow-sm)',
-              transition: 'border-color 200ms, box-shadow 200ms',
+              fontSize: 10,
+              letterSpacing: '0.28em',
+              textTransform: 'uppercase',
+              color: COLOR.midGray,
+              marginTop: 9,
+              fontWeight: 500,
+            }}
+          >
+            Financial District · Hyderabad
+          </div>
+        </div>
+
+        {/* 3b. Property Info Bar */}
+        <div
+          style={{
+            background: '#fff',
+            borderRadius: 14,
+            border: `1px solid ${COLOR.border}`,
+            boxShadow: '0 1px 18px rgba(0,0,0,0.05)',
+            overflow: 'hidden',
+            display: 'flex',
+            flexWrap: 'wrap',
+            maxWidth: 1040,
+            width: '100%',
+            marginBottom: 28,
+            animation: 'fadeUp 600ms 70ms ease both',
+            opacity: 0,
+            animationFillMode: 'forwards',
+          }}
+        >
+          {[
+            {
+              label: 'Configuration',
+              value: '3 BHKs',
+              sub: 'Exclusive · West Facing',
+              valueColor: COLOR.plum,
+              valueFs: 21,
+              serif: true,
+            },
+            {
+              label: 'Floors',
+              value: 'G + 45',
+              sub: 'High-rise Tower',
+              valueColor: COLOR.charcoal,
+              valueFs: 21,
+              serif: true,
+            },
+            {
+              label: '1695 sq. ft',
+              value: '₹ 1.94 Cr',
+              sub: 'All Inclusive + GST',
+              valueColor: COLOR.plum,
+              valueFs: 19,
+              serif: true,
+            },
+            {
+              label: '1870 sq. ft',
+              value: '₹ 2.15 Cr',
+              sub: 'All Inclusive + GST',
+              valueColor: COLOR.plum,
+              valueFs: 19,
+              serif: true,
+            },
+            {
+              label: 'Location',
+              value: 'Financial District',
+              sub: '',
+              valueColor: COLOR.plum,
+              valueFs: 11,
+              serif: false,
+              bg: COLOR.plumPale,
+              upper: true,
+            },
+          ].map((c, i) => (
+            <div
+              key={c.label}
+              style={{
+                flex: '1 1 180px',
+                padding: '14px 20px',
+                borderLeft: i === 0 ? 'none' : `1px solid ${COLOR.border}`,
+                background: c.bg || '#fff',
+                minWidth: 160,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 9,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.13em',
+                  color: COLOR.midGray,
+                  fontWeight: 500,
+                  marginBottom: 8,
+                }}
+              >
+                {c.label}
+              </div>
+              <div
+                style={{
+                  fontFamily: c.serif
+                    ? "'Playfair Display', Georgia, serif"
+                    : "'DM Sans', sans-serif",
+                  fontSize: c.valueFs,
+                  color: c.valueColor,
+                  fontWeight: 500,
+                  textTransform: c.upper ? 'uppercase' : 'none',
+                  letterSpacing: c.upper ? '0.05em' : 'normal',
+                  lineHeight: 1.15,
+                }}
+              >
+                {c.value}
+              </div>
+              {c.sub && (
+                <div
+                  style={{ fontSize: 10, color: COLOR.lightGray, marginTop: 4 }}
+                >
+                  {c.sub}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* 3c. Inline Search Bar */}
+        <div
+          style={{
+            width: '100%',
+            maxWidth: 600,
+            marginBottom: 16,
+            animation: 'fadeUp 600ms 120ms ease both',
+            opacity: 0,
+            animationFillMode: 'forwards',
+          }}
+        >
+          <div
+            style={{
+              background: '#fff',
+              border: `1.5px solid ${focused ? COLOR.plumBorder : COLOR.border}`,
+              borderRadius: 16,
+              padding: '12px 16px 10px',
+              boxShadow: focused ? '0 0 0 3px rgba(139, 47, 122, 0.07)' : 'none',
+              transition: 'border-color 180ms ease, box-shadow 180ms ease',
             }}
           >
             <textarea
@@ -153,86 +357,149 @@ export default function Landing() {
                 setValue(e.target.value);
                 autoGrow();
               }}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
                   go();
                 }
               }}
-              placeholder="Ask about plans, prices, rental yield, amenities, location…"
+              placeholder="Ask about floor plans, pricing, amenities…"
               style={{
-                flex: 1,
-                fontSize: 16,
+                width: '100%',
+                fontSize: 14,
+                fontWeight: 300,
                 resize: 'none',
-                minHeight: 28,
-                maxHeight: 140,
-                lineHeight: 1.4,
-                paddingTop: 4,
+                minHeight: 48,
+                maxHeight: 100,
+                lineHeight: 1.55,
+                color: COLOR.charcoal,
+                fontFamily: "'DM Sans', sans-serif",
+                border: 'none',
+                outline: 'none',
+                background: 'transparent',
+                fontStyle: value ? 'normal' : 'normal',
               }}
             />
-            <button
-              onClick={() => go()}
-              disabled={!value.trim()}
-              aria-label="Send"
+            <div
               style={{
-                width: 36,
-                height: 36,
-                borderRadius: '50%',
-                background: value.trim() ? 'var(--ink)' : 'var(--paper-3)',
-                color: 'white',
                 display: 'flex',
+                justifyContent: 'space-between',
                 alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                transition: 'background 200ms',
-                cursor: value.trim() ? 'pointer' : 'not-allowed',
+                marginTop: 2,
               }}
             >
-              <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M13 6l6 6-6 6" />
-              </svg>
-            </button>
-          </div>
-
-          <div className="flex flex-wrap gap-2 mt-4 justify-center">
-            {SUGGEST.map((s) => (
+              <span style={{ fontSize: 10, color: COLOR.lightGray, fontWeight: 400 }}>
+                ASBL Loft Assistant
+              </span>
               <button
-                key={s}
-                onClick={() => go(s)}
+                onClick={() => go()}
+                disabled={!value.trim()}
+                aria-label="Send"
                 style={{
-                  padding: '7px 14px',
-                  fontSize: 12.5,
-                  borderRadius: 100,
-                  background: 'white',
-                  border: '1px solid var(--hairline)',
-                  color: 'var(--ink-2)',
-                  transition: 'all 200ms',
+                  width: 32,
+                  height: 32,
+                  borderRadius: 9,
+                  background: value.trim() ? COLOR.plum : COLOR.lightGray,
+                  color: '#fff',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: 'none',
+                  cursor: value.trim() ? 'pointer' : 'not-allowed',
+                  transition: 'background 180ms ease',
                 }}
-                className="hover:border-[var(--ink)] hover:text-[var(--ink)]"
+                onMouseEnter={(e) => {
+                  if (value.trim())
+                    (e.currentTarget as HTMLButtonElement).style.background = COLOR.plumDark;
+                }}
+                onMouseLeave={(e) => {
+                  if (value.trim())
+                    (e.currentTarget as HTMLButtonElement).style.background = COLOR.plum;
+                }}
               >
-                {s}
+                <svg
+                  width={16}
+                  height={16}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 19V5M5 12l7-7 7 7" />
+                </svg>
               </button>
-            ))}
+            </div>
           </div>
         </div>
-      </section>
 
-      <footer
-        className="text-center mx-auto w-full flex justify-between items-center flex-wrap gap-2 pt-6"
-        style={{
-          maxWidth: 1120,
-          fontSize: 11,
-          color: 'var(--mute)',
-          borderTop: '1px solid var(--hairline)',
-          position: 'relative',
-          zIndex: 2,
-        }}
-      >
-        <span>228 units remain · Tower A &amp; B</span>
-        <span className="mono" style={{ letterSpacing: '0.05em' }}>
-          TS RERA P02400006761
-        </span>
-      </footer>
-    </main>
+        {/* 3d. Chip Row */}
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 7,
+            justifyContent: 'center',
+            maxWidth: 600,
+            animation: 'fadeUp 600ms 180ms ease both',
+            opacity: 0,
+            animationFillMode: 'forwards',
+          }}
+        >
+          {CHIPS.map((c) => (
+            <ChipButton
+              key={c.label}
+              label={c.label}
+              icon={c.icon}
+              onClick={() => {
+                setValue(c.query);
+                autoGrow();
+                taRef.current?.focus();
+              }}
+            />
+          ))}
+        </div>
+      </main>
+    </>
+  );
+}
+
+function ChipButton({
+  label,
+  icon,
+  onClick,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+}) {
+  const [hover, setHover] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        background: hover ? COLOR.plumPale : '#fff',
+        border: `1px solid ${hover ? COLOR.plumBorder : COLOR.border}`,
+        color: hover ? COLOR.plum : COLOR.midGray,
+        padding: '8px 14px',
+        borderRadius: 20,
+        fontSize: 12,
+        fontFamily: "'DM Sans', sans-serif",
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        cursor: 'pointer',
+        transition: 'all 180ms ease',
+        fontWeight: 400,
+      }}
+    >
+      <span style={{ display: 'inline-flex' }}>{icon}</span>
+      {label}
+    </button>
   );
 }

@@ -77,7 +77,7 @@ Facts:
 - RERA TS P02400006761.
 
 Artifact kinds:
-price, yield, amenity, trends, why_fd, commute, unit_plans, master_plan, urban_corridors, unit_detail (extract unitId A-45E-1870), finance, affordability (extract salaryLakh, existingEmi if given), plans, schools, visit (visitIntro: no_model_flat | live_inventory | default), share_request (ANY send/share/WhatsApp/PDF request — never return a browse artifact in that case), none.
+price, yield, amenity, trends, why_fd, commute, unit_plans, master_plan, urban_corridors, unit_detail (extract unitId A-45E-1870), finance, affordability (extract salaryLakh, existingEmi if given), plans, schools, visit (visitIntro: no_model_flat | live_inventory | default), share_request (ANY send/share/WhatsApp/PDF request, OR when the visitor wants someone to call them — the form lets them pick WhatsApp vs Call on the same step), none.
 
 Always call render_artifact exactly once.`;
 

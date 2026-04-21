@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { TileShell } from './common';
 import { useChatStore } from '@/lib/store/chatStore';
+import ChannelToggle, { Channel } from '../ChannelToggle';
 
 const SLOTS = [
   { day: 'Sat', date: 'Nov 23', time: '10:00', sub: 'Experience centre' },
@@ -35,6 +36,7 @@ export default function VisitTile({ intro = 'default' }: VisitTileProps) {
   const [picked, setPicked] = useState<number | null>(null);
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
+  const [channel, setChannel] = useState<Channel>('whatsapp');
   const [done, setDone] = useState(false);
   const setLead = useChatStore((s) => s.setLead);
   const note = INTROS[intro];
@@ -53,6 +55,7 @@ export default function VisitTile({ intro = 'default' }: VisitTileProps) {
           name,
           phone,
           query: `Visit booking · ${slot.day} ${slot.date} ${slot.time} · ${slot.sub}`,
+          preferredChannel: channel,
         }),
       });
     } catch {
@@ -160,54 +163,49 @@ export default function VisitTile({ intro = 'default' }: VisitTileProps) {
           onSubmit={submit}
           style={{
             padding: '18px 26px',
-            borderTop: '1px solid var(--paper-2)',
-            background: 'var(--paper)',
+            borderTop: '1px solid var(--border)',
+            background: 'var(--cream)',
             display: 'flex',
+            flexDirection: 'column',
             gap: 10,
-            flexWrap: 'wrap',
           }}
         >
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Your name"
-            required
-            style={{
-              flex: '1 1 160px',
-              padding: '10px 14px',
-              borderRadius: 10,
-              border: '1px solid var(--hairline)',
-              background: 'white',
-              fontSize: 14,
-            }}
-          />
-          <input
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="WhatsApp (+91…)"
-            required
-            style={{
-              flex: '1 1 160px',
-              padding: '10px 14px',
-              borderRadius: 10,
-              border: '1px solid var(--hairline)',
-              background: 'white',
-              fontSize: 14,
-            }}
-          />
-          <button
-            type="submit"
-            style={{
-              padding: '10px 20px',
-              borderRadius: 100,
-              background: 'var(--ink)',
-              color: 'white',
-              fontSize: 13,
-              fontWeight: 500,
-            }}
-          >
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Your name"
+              required
+              style={{
+                flex: '1 1 160px',
+                padding: '10px 14px',
+                borderRadius: 10,
+                border: '1px solid var(--border)',
+                background: 'white',
+                fontSize: 14,
+              }}
+            />
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+91 98XXXXXXXX"
+              required
+              style={{
+                flex: '1 1 160px',
+                padding: '10px 14px',
+                borderRadius: 10,
+                border: '1px solid var(--border)',
+                background: 'white',
+                fontSize: 14,
+              }}
+            />
+          </div>
+
+          <ChannelToggle value={channel} onChange={setChannel} />
+
+          <button type="submit" className="btn-plum" style={{ justifyContent: 'center', padding: '11px 20px' }}>
             Confirm {slot.day} {slot.time} →
           </button>
         </form>
@@ -217,8 +215,8 @@ export default function VisitTile({ intro = 'default' }: VisitTileProps) {
         <div
           style={{
             padding: '18px 26px',
-            borderTop: '1px solid var(--paper-2)',
-            background: 'var(--sienna-soft)',
+            borderTop: '1px solid var(--border)',
+            background: 'var(--plum-pale)',
           }}
         >
           <div
@@ -236,8 +234,10 @@ export default function VisitTile({ intro = 'default' }: VisitTileProps) {
           <div className="display" style={{ fontSize: 20 }}>
             {slot.day}, {slot.date} at {slot.time}
           </div>
-          <div style={{ fontSize: 12.5, color: 'var(--ink-2)', marginTop: 4 }}>
-            WhatsApp confirmation on its way. Your RM&apos;s contact will arrive within 10 minutes.
+          <div style={{ fontSize: 12.5, color: 'var(--gray-2)', marginTop: 4 }}>
+            {channel === 'call'
+              ? `A named RM will call you on ${phone} within 30 minutes (9am–8pm).`
+              : `WhatsApp confirmation on its way. Your RM's contact will arrive within 10 minutes.`}
           </div>
         </div>
       )}

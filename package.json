@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed": "tsx -r dotenv/config scripts/seed.ts dotenv_config_path=.env.local"
+    "seed": "tsx -r dotenv/config scripts/seed.ts dotenv_config_path=.env.local",
+    "upload-media": "tsx -r dotenv/config scripts/upload-media.ts dotenv_config_path=.env.local"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

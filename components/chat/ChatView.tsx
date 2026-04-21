@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { routeQuery, RouterResult, ArtifactKind } from '@/lib/utils/queryRouter';
 import { requiresLead } from '@/lib/utils/intent';
 import { campaignFromParams } from '@/lib/utils/campaigns';
@@ -24,7 +24,7 @@ import SchoolsTile from './artifacts/SchoolsTile';
 import VisitTile from './artifacts/VisitTile';
 import ShareRequestTile from './artifacts/ShareRequestTile';
 import LeadGate from './LeadGate';
-import { AskContext } from './AskContext';
+import { AskContext, useAsk } from './AskContext';
 
 type MessageRole = 'user' | 'bot';
 
@@ -40,16 +40,11 @@ interface Message {
   visitIntro?: 'default' | 'no_model_flat' | 'live_inventory';
   shareSubject?: string;
   originalQuery?: string;
+  preferredChannel?: 'whatsapp' | 'call';
 }
 
-function renderArtifact(
-  m: Pick<
-    Message,
-    'artifact' | 'unitId' | 'salaryLakh' | 'existingEmi' | 'visitIntro' | 'shareSubject' | 'originalQuery'
-  >
-) {
-  const kind = m.artifact;
-  switch (kind) {
+function renderArtifact(m: Message) {
+  switch (m.artifact) {
     case 'price':
       return <PriceTile />;
     case 'yield':
@@ -81,44 +76,28 @@ function renderArtifact(
     case 'visit':
       return <VisitTile intro={m.visitIntro ?? 'default'} />;
     case 'share_request':
-      return <ShareRequestTile subject={m.shareSubject} originalQuery={m.originalQuery} />;
+      return (
+        <ShareRequestTile
+          subject={m.shareSubject}
+          originalQuery={m.originalQuery}
+          preferredChannel={m.preferredChannel}
+        />
+      );
     default:
       return null;
   }
 }
 
 const DEFAULT_CHIPS: { label: string; query: string }[] = [
-  { label: 'Unit floor plans', query: 'Show me the 3BHK unit floor plans and dimensions' },
-  { label: 'Master plan', query: 'Show me the master plan and site landscape' },
-  { label: 'Urban corridors', query: 'Show me the urban corridors and location map' },
-  { label: 'Model flat', query: 'Can I see the model flat?' },
+  { label: 'Floor plans', query: 'Tell me about the floor plans' },
+  { label: 'Pricing', query: 'What is the pricing for ASBL Loft?' },
+  { label: 'Amenities', query: 'What amenities does ASBL Loft offer?' },
+  { label: 'Location', query: 'Where is ASBL Loft and what is nearby?' },
+  { label: 'Rental offer', query: 'Tell me about the rental offer' },
   { label: 'Book a site visit', query: 'Book a weekend site visit' },
-  { label: 'Price breakdown', query: 'Show full price breakdown 1695 East' },
-  { label: 'Am I eligible?', query: 'Check affordability · salary 30L' },
-  { label: 'Cash-on-cash', query: 'Open the levered finance calculator' },
-  { label: 'Schools nearby', query: 'What schools are within 12 minutes?' },
 ];
 
-const ARTIFACT_LABELS: Partial<Record<ArtifactKind, string>> = {
-  unit_plans: 'Unit plans',
-  master_plan: 'Master plan',
-  urban_corridors: 'Urban corridors',
-  price: 'Price breakdown',
-  yield: 'Rental yield',
-  amenity: 'Amenities',
-  trends: 'Price trends',
-  why_fd: 'Why FD',
-  commute: 'Commute',
-  finance: 'Cash-on-cash',
-  affordability: 'Affordability',
-  plans: 'Payment plan',
-  schools: 'Schools',
-  visit: 'Visit slots',
-  unit_detail: 'Unit dossier',
-};
-
 export default function ChatView() {
-  const router = useRouter();
   const params = useSearchParams();
   const initialQ = params.get('q') ?? '';
   const campaign = campaignFromParams(new URLSearchParams(params?.toString() ?? ''));
@@ -129,7 +108,6 @@ export default function ChatView() {
   const [composerValue, setComposerValue] = useState('');
   const initRef = useRef(false);
   const composerRef = useRef<HTMLTextAreaElement>(null);
-  const scrollerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setCampaign(campaign.key);
@@ -146,10 +124,7 @@ export default function ChatView() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const t = window.setTimeout(() => {
-      window.scrollTo({
-        top: document.body.scrollHeight,
-        behavior: 'smooth',
-      });
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     }, 80);
     return () => window.clearTimeout(t);
   }, [messages, typing]);
@@ -161,9 +136,8 @@ export default function ChatView() {
     setMessages((m) => [...m, userMsg]);
     setTyping(true);
 
-    await new Promise((r) => setTimeout(r, 750));
+    await new Promise((r) => setTimeout(r, 400));
 
-    // Collect session context so LLM comparisons / suggestions are personalised
     const seenArtifacts = Array.from(
       new Set(
         messages
@@ -179,18 +153,9 @@ export default function ChatView() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: text,
-          seenArtifacts,
-          pinnedUnits,
-          campaign: campaign.key,
-        }),
+        body: JSON.stringify({ query: text, seenArtifacts, pinnedUnits, campaign: campaign.key }),
       });
-      if (res.ok) {
-        result = (await res.json()) as RouterResult;
-      } else {
-        result = routeQuery(text);
-      }
+      result = res.ok ? ((await res.json()) as RouterResult) : routeQuery(text);
     } catch {
       result = routeQuery(text);
     }
@@ -208,6 +173,7 @@ export default function ChatView() {
       visitIntro: result.visitIntro,
       shareSubject: result.shareSubject,
       originalQuery: result.originalQuery,
+      preferredChannel: result.preferredChannel,
     };
     setMessages((m) => [...m, botMsg]);
   };
@@ -216,312 +182,101 @@ export default function ChatView() {
     const el = composerRef.current;
     if (!el) return;
     el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+    el.style.height = Math.min(el.scrollHeight, 110) + 'px';
   };
-
-  // Last 4 distinct artifacts the user has seen, newest-first, excluding the very last one
-  // (so the strip suggests "re-open previous", not the one already on screen).
-  const recentArtifacts = (() => {
-    const seen = new Set<string>();
-    const out: { label: string; query: string }[] = [];
-    const botMsgs = messages.filter((m) => m.role === 'bot' && m.artifact && m.artifact !== 'none');
-    for (let i = botMsgs.length - 2; i >= 0 && out.length < 4; i--) {
-      const msg = botMsgs[i];
-      const kind = msg.artifact as ArtifactKind;
-      if (!kind || seen.has(kind)) continue;
-      seen.add(kind);
-      const label = ARTIFACT_LABELS[kind] ?? kind;
-      // Find the user query that triggered it — the user message immediately before this bot msg
-      const idx = messages.indexOf(msg);
-      const userBefore = [...messages.slice(0, idx)].reverse().find((m) => m.role === 'user');
-      out.push({
-        label: msg.unitId ? `${label} · ${msg.unitId}` : label,
-        query: userBefore?.text ?? label,
-      });
-    }
-    return out;
-  })();
 
   return (
     <AskContext.Provider value={submit}>
-    <div className="min-h-screen flex flex-col">
-      {/* Top bar */}
+      {/* ─── Header ─── */}
       <header
         style={{
-          padding: '18px 24px',
-          borderBottom: '1px solid var(--hairline)',
-          position: 'sticky',
+          position: 'fixed',
           top: 0,
-          background: 'rgba(246, 241, 232, 0.9)',
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
-          zIndex: 10,
+          left: 0,
+          right: 0,
+          height: 64,
+          background: 'rgba(250, 247, 242, 0.97)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderBottom: '1px solid var(--border)',
+          zIndex: 100,
           display: 'flex',
-          justifyContent: 'space-between',
           alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 1.75rem',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
-          <span
-            style={{
-              width: 8,
-              height: 8,
-              background: 'var(--sage)',
-              borderRadius: '50%',
-              boxShadow: '0 0 0 4px rgba(90,107,79,0.15)',
-            }}
-          />
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="https://www.asblloft-hyderabad.com/images/logo.png"
-              alt="ASBL Loft"
-              style={{ height: 26, width: 'auto', objectFit: 'contain' }}
-            />
-            <span style={{ color: 'var(--mute)' }}>· {campaign.shortLabel}</span>
-          </span>
-        </div>
-        <Link
-          href="/"
-          style={{
-            fontSize: 12,
-            color: 'var(--mute)',
-            padding: '6px 10px',
-            borderRadius: 6,
-          }}
-          className="hover:text-[var(--ink)] hover:bg-[var(--paper-2)]"
-        >
-          ↺ Start over
+        <Link href="/">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/assets/logo.webp" alt="ASBL Loft" style={{ height: 44, display: 'block' }} />
         </Link>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <Link href="/" className="btn-outline">
+            New Chat
+          </Link>
+          <button onClick={() => submit('Book a site visit')} className="btn-plum">
+            Book Site Visit
+          </button>
+        </div>
       </header>
 
-      {/* Messages */}
+      {/* ─── Messages ─── */}
       <div
-        ref={scrollerRef}
         style={{
-          flex: 1,
+          paddingTop: 88,
           paddingBottom: 140,
+          minHeight: '100vh',
+          background: 'var(--cream)',
         }}
       >
         <div
           style={{
-            maxWidth: 820,
-            width: '100%',
+            maxWidth: 700,
             margin: '0 auto',
-            padding: '32px 24px',
+            padding: '0 1rem',
             display: 'flex',
             flexDirection: 'column',
-            gap: 28,
+            gap: '1.25rem',
           }}
         >
-          {messages.map((m) => (
-            <div key={m.id} className="animate-msg-in">
-              <div
-                style={{
-                  fontSize: 10.5,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.15em',
-                  color: 'var(--mute)',
-                  marginBottom: 10,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                }}
-              >
-                <span
-                  style={{
-                    width: 5,
-                    height: 5,
-                    borderRadius: '50%',
-                    background: m.role === 'user' ? 'var(--ink)' : 'var(--sienna)',
-                  }}
-                />
-                {m.role === 'user' ? 'You' : 'Loft assistant'}
-              </div>
-              {m.role === 'user' ? (
-                <div
-                  className="display"
-                  style={{
-                    fontSize: 24,
-                    fontWeight: 400,
-                    lineHeight: 1.25,
-                    letterSpacing: '-0.01em',
-                    color: 'var(--ink)',
-                    padding: '8px 0',
-                  }}
-                >
-                  {m.text}
-                </div>
-              ) : (
-                <>
-                  <div
-                    style={{
-                      fontSize: 15.5,
-                      lineHeight: 1.6,
-                      color: 'var(--ink-2)',
-                    }}
-                    dangerouslySetInnerHTML={{ __html: m.text }}
-                  />
-                  {m.artifact && m.artifact !== 'none' && (
-                    <div className="animate-artifact-in" style={{ marginTop: 18 }}>
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 10,
-                          fontSize: 11,
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.15em',
-                          color: 'var(--mute)',
-                          marginBottom: 10,
-                        }}
-                      >
-                        <span>{m.artifactLabel ?? 'Generated interface'}</span>
-                        <span style={{ flex: 1, height: 1, background: 'var(--hairline)' }} />
-                      </div>
-                      {requiresLead(m.artifact) ? (
-                        <LeadGate
-                          reason={m.artifactLabel ?? 'Unlock detail'}
-                          preview={renderArtifact(m)}
-                        >
-                          {renderArtifact(m)}
-                        </LeadGate>
-                      ) : (
-                        renderArtifact(m)
-                      )}
-                    </div>
-                  )}
-                  {m.artifact === 'none' && (
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        gap: 8,
-                        marginTop: 14,
-                      }}
-                    >
-                      {DEFAULT_CHIPS.map((c) => (
-                        <button
-                          key={c.label}
-                          type="button"
-                          onClick={() => submit(c.query)}
-                          style={{
-                            padding: '7px 14px',
-                            fontSize: 12.5,
-                            borderRadius: 100,
-                            background: 'white',
-                            border: '1px solid var(--hairline)',
-                            color: 'var(--ink-2)',
-                            fontWeight: 500,
-                            transition: 'all 160ms',
-                          }}
-                          className="hover:border-[var(--ink)] hover:text-[var(--ink)]"
-                        >
-                          {c.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          ))}
-
-          {typing && (
-            <div className="animate-msg-in">
-              <div
-                style={{
-                  fontSize: 10.5,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.15em',
-                  color: 'var(--mute)',
-                  marginBottom: 10,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                }}
-              >
-                <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--sienna)' }} />
-                Loft assistant
-              </div>
-              <div style={{ display: 'flex', gap: 5, padding: '12px 0' }}>
-                <span className="typing-dot" />
-                <span className="typing-dot" />
-                <span className="typing-dot" />
-              </div>
-            </div>
+          {messages.map((m) =>
+            m.role === 'user' ? <UserBubble key={m.id} text={m.text} /> : <BotMessage key={m.id} m={m} />,
           )}
+          {typing && <TypingCard />}
         </div>
       </div>
 
-      {/* Composer (fixed bottom) */}
+      {/* ─── Bottom input bar ─── */}
       <div
         style={{
           position: 'fixed',
           left: 0,
           right: 0,
           bottom: 0,
-          padding: '10px 24px 20px',
-          background: 'linear-gradient(to bottom, transparent, var(--paper) 20px)',
-          zIndex: 20,
+          padding: '0.7rem 1.5rem 0.85rem',
+          background: 'rgba(250, 247, 242, 0.97)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderTop: '1px solid var(--border)',
+          zIndex: 300,
         }}
       >
-        <div style={{ maxWidth: 820, margin: '0 auto' }}>
-          {/* Recent-artifacts recall strip */}
-          {recentArtifacts.length > 0 && (
-            <div
-              style={{
-                display: 'flex',
-                gap: 6,
-                flexWrap: 'wrap',
-                alignItems: 'center',
-                marginBottom: 10,
-                paddingLeft: 4,
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 10,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.14em',
-                  color: 'var(--mute)',
-                  fontWeight: 600,
-                  marginRight: 4,
-                }}
-              >
-                Jump back
-              </span>
-              {recentArtifacts.map((r) => (
-                <button
-                  key={r.query}
-                  type="button"
-                  onClick={() => submit(r.query)}
-                  style={{
-                    padding: '5px 12px',
-                    borderRadius: 100,
-                    background: 'white',
-                    border: '1px solid var(--hairline)',
-                    fontSize: 11.5,
-                    color: 'var(--ink-2)',
-                    fontWeight: 500,
-                  }}
-                  className="hover:border-[var(--sienna)] hover:text-[var(--sienna-dark)]"
-                >
-                  ↻ {r.label}
-                </button>
-              ))}
-            </div>
-          )}
+        <div style={{ maxWidth: 700, margin: '0 auto' }}>
           <div
             style={{
-              background: 'white',
-              border: '1px solid var(--hairline)',
-              borderRadius: 20,
-              padding: '18px 20px',
-              display: 'flex',
-              alignItems: 'flex-end',
-              gap: 12,
-              boxShadow: 'var(--shadow-sm)',
+              background: '#fff',
+              border: '1.5px solid var(--border)',
+              borderRadius: 16,
+              padding: '10px 16px',
+              transition: 'border-color 180ms ease, box-shadow 180ms ease',
+            }}
+            onFocus={(e) => {
+              (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--plum-border)';
+              (e.currentTarget as HTMLDivElement).style.boxShadow = '0 0 0 3px rgba(139,47,122,0.07)';
+            }}
+            onBlur={(e) => {
+              (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--border)';
+              (e.currentTarget as HTMLDivElement).style.boxShadow = 'none';
             }}
           >
             <textarea
@@ -542,48 +297,223 @@ export default function ChatView() {
                   }
                 }
               }}
-              placeholder="Ask a follow-up…"
+              placeholder="Ask anything about ASBL Loft…"
               style={{
-                flex: 1,
-                fontSize: 16,
+                width: '100%',
+                fontSize: 14,
+                fontWeight: 300,
                 resize: 'none',
-                minHeight: 28,
-                maxHeight: 140,
-                lineHeight: 1.4,
-                paddingTop: 4,
+                minHeight: 46,
+                maxHeight: 110,
+                lineHeight: 1.55,
               }}
             />
-            <button
-              onClick={() => {
-                if (composerValue.trim() && !typing) {
-                  submit(composerValue);
-                  setComposerValue('');
-                  autoGrow();
-                }
-              }}
-              disabled={!composerValue.trim() || typing}
-              aria-label="Send"
+            <div
               style={{
-                width: 36,
-                height: 36,
-                borderRadius: '50%',
-                background: composerValue.trim() && !typing ? 'var(--ink)' : 'var(--paper-3)',
-                color: 'white',
                 display: 'flex',
+                justifyContent: 'space-between',
                 alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                cursor: composerValue.trim() && !typing ? 'pointer' : 'not-allowed',
+                marginTop: 4,
               }}
             >
-              <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M13 6l6 6-6 6" />
-              </svg>
-            </button>
+              <span style={{ fontSize: 10, color: 'var(--light-gray)' }}>ASBL Loft Assistant</span>
+              <button
+                onClick={() => {
+                  if (composerValue.trim() && !typing) {
+                    submit(composerValue);
+                    setComposerValue('');
+                    autoGrow();
+                  }
+                }}
+                disabled={!composerValue.trim() || typing}
+                aria-label="Send"
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 9,
+                  background: composerValue.trim() && !typing ? 'var(--plum)' : 'var(--light-gray)',
+                  color: '#fff',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'background 180ms ease',
+                }}
+              >
+                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 19V5M5 12l7-7 7 7" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
     </AskContext.Provider>
+  );
+}
+
+function UserBubble({ text }: { text: string }) {
+  return (
+    <div className="animate-msg-in" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+      <div
+        style={{
+          background: 'var(--plum)',
+          color: '#fff',
+          fontSize: 13.5,
+          lineHeight: 1.6,
+          padding: '10px 16px',
+          borderRadius: '16px 16px 4px 16px',
+          maxWidth: '68%',
+          fontWeight: 400,
+        }}
+      >
+        {text}
+      </div>
+    </div>
+  );
+}
+
+function BotMessage({ m }: { m: Message }) {
+  return (
+    <div className="animate-msg-in" style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+      {/* Avatar */}
+      <div
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: '50%',
+          background: '#fff',
+          border: '1px solid var(--border)',
+          padding: 2,
+          marginTop: 3,
+          flexShrink: 0,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/assets/logo.webp"
+          alt="ASBL Loft"
+          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+        />
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          style={{
+            fontSize: 9,
+            textTransform: 'uppercase',
+            letterSpacing: '0.1em',
+            color: 'var(--mid-gray)',
+            marginBottom: 5,
+            fontWeight: 500,
+          }}
+        >
+          ASBL Loft Assistant
+        </div>
+
+        {/* Text bubble — rendered above the artifact tile */}
+        {m.text && (
+          <div
+            className="animate-artifact-in"
+            style={{
+              background: '#fff',
+              border: '1px solid var(--border)',
+              borderRadius: 16,
+              padding: '12px 18px',
+              boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
+              fontSize: 13.5,
+              lineHeight: 1.7,
+              color: 'var(--gray-2)',
+              marginBottom: m.artifact && m.artifact !== 'none' ? 12 : 0,
+            }}
+            dangerouslySetInnerHTML={{ __html: m.text }}
+          />
+        )}
+
+        {m.artifact && m.artifact !== 'none' && (
+          <div className="animate-artifact-in">
+            {requiresLead(m.artifact) ? (
+              <LeadGate reason={m.artifactLabel ?? 'Unlock detail'} preview={renderArtifact(m)}>
+                {renderArtifact(m)}
+              </LeadGate>
+            ) : (
+              renderArtifact(m)
+            )}
+          </div>
+        )}
+
+        {m.artifact === 'none' && <DefaultChips />}
+      </div>
+    </div>
+  );
+}
+
+function DefaultChips() {
+  const ask = useAsk();
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 14 }}>
+      {DEFAULT_CHIPS.map((c) => (
+        <button key={c.label} type="button" onClick={() => ask(c.query)} className="chip-followup">
+          {c.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function TypingCard() {
+  return (
+    <div className="animate-msg-in" style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+      <div
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: '50%',
+          background: '#fff',
+          border: '1px solid var(--border)',
+          padding: 2,
+          marginTop: 3,
+          flexShrink: 0,
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/assets/logo.webp"
+          alt="ASBL Loft"
+          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+        />
+      </div>
+      <div>
+        <div
+          style={{
+            fontSize: 9,
+            textTransform: 'uppercase',
+            letterSpacing: '0.1em',
+            color: 'var(--mid-gray)',
+            marginBottom: 5,
+            fontWeight: 500,
+          }}
+        >
+          ASBL Loft Assistant
+        </div>
+        <div
+          style={{
+            background: '#fff',
+            border: '1px solid var(--border)',
+            borderRadius: 16,
+            padding: '14px 18px',
+            boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
+            display: 'inline-flex',
+            gap: 5,
+          }}
+        >
+          <span className="typing-dot" />
+          <span className="typing-dot" />
+          <span className="typing-dot" />
+        </div>
+      </div>
+    </div>
   );
 }
