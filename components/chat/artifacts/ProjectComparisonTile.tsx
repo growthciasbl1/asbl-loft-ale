@@ -111,7 +111,7 @@ export default function ProjectComparisonTile() {
         </>
       }
       askMore={{
-        label: 'Talk to a named RM about this',
+        label: 'Talk to one of our RMs about this',
         query: 'Please call me to walk through the comparison',
       }}
       relatedAsks={[

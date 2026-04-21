@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { insertLead, markLeadCrmPushed } from '@/lib/db/leads';
+import type { LeadBooking, LeadGeo } from '@/lib/db/schemas';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -64,6 +65,27 @@ export async function POST(req: NextRequest) {
     const utmContent = tracker.utm_content ?? null;
     const utmTerm = tracker.utm_term ?? null;
 
+    const booking =
+      body.booking && typeof body.booking === 'object'
+        ? {
+            type: body.booking.type === 'call_back' ? 'call_back' : 'site_visit',
+            slotIsoLocal: String(body.booking.slotIsoLocal ?? ''),
+            timezone: String(body.booking.timezone ?? 'Asia/Kolkata'),
+            timezoneDetected: String(body.booking.timezoneDetected ?? 'Asia/Kolkata'),
+            timezoneUserOverridden: Boolean(body.booking.timezoneUserOverridden),
+          }
+        : null;
+
+    const geo =
+      body.geo && typeof body.geo === 'object'
+        ? {
+            lat: Number(body.geo.lat),
+            lng: Number(body.geo.lng),
+            accuracy: Number(body.geo.accuracy ?? 0),
+            timezone: body.geo.timezone ? String(body.geo.timezone) : undefined,
+          }
+        : null;
+
     // 1) Persist lead in Mongo (no-op if MONGODB_URI missing)
     const leadId = await insertLead({
       name: body.name,
@@ -75,6 +97,9 @@ export async function POST(req: NextRequest) {
       utmSource: utmSource ?? undefined,
       utmCampaign: utmCampaign ?? undefined,
       utmMedium: utmMedium ?? undefined,
+      preferredChannel: body.preferredChannel === 'call' ? 'call' : 'whatsapp',
+      booking: booking as LeadBooking | null,
+      geo: geo as LeadGeo | null,
       pinnedUnitIds: Array.isArray(body.pinnedUnitIds) ? body.pinnedUnitIds : undefined,
       conversationId: body.conversationId,
     });
@@ -100,6 +125,15 @@ export async function POST(req: NextRequest) {
       total_page_views: tracker.total_page_views ?? null,
       referrer_url: tracker.referrer_url ?? referer ?? null,
       time_spent_minutes: tracker.time_spent_minutes ?? null,
+      booking_type: booking?.type ?? null,
+      booking_slot_local: booking?.slotIsoLocal ?? null,
+      booking_timezone: booking?.timezone ?? null,
+      booking_timezone_detected: booking?.timezoneDetected ?? null,
+      booking_timezone_user_overridden: booking?.timezoneUserOverridden ?? null,
+      geo_lat: geo?.lat ?? null,
+      geo_lng: geo?.lng ?? null,
+      geo_accuracy_meters: geo?.accuracy ?? null,
+      geo_timezone: geo?.timezone ?? null,
       pinned_units: body.pinnedUnitIds ?? [],
       referer,
       user_agent: ua,

@@ -45,6 +45,7 @@ interface Message {
   shareSubject?: string;
   originalQuery?: string;
   preferredChannel?: 'whatsapp' | 'call';
+  initialBookingType?: 'site_visit' | 'call_back';
 }
 
 function renderArtifact(m: Message) {
@@ -82,7 +83,12 @@ function renderArtifact(m: Message) {
     case 'schools':
       return <SchoolsTile />;
     case 'visit':
-      return <VisitTile intro={m.visitIntro ?? 'default'} />;
+      return (
+        <VisitTile
+          intro={m.visitIntro ?? 'default'}
+          initialBookingType={m.initialBookingType}
+        />
+      );
     case 'share_request':
       return (
         <ShareRequestTile
@@ -187,6 +193,7 @@ export default function ChatView() {
       shareSubject: result.shareSubject,
       originalQuery: result.originalQuery,
       preferredChannel: result.preferredChannel,
+      initialBookingType: result.initialBookingType,
     };
     setMessages((m) => [...m, botMsg]);
     track('view', 'bot_response', {

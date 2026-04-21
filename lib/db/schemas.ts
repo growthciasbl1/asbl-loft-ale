@@ -33,6 +33,21 @@ export interface MediaDoc {
   uploadedAt: Date;
 }
 
+export interface LeadBooking {
+  type: 'site_visit' | 'call_back';
+  slotIsoLocal: string;
+  timezone: string;
+  timezoneDetected: string;
+  timezoneUserOverridden: boolean;
+}
+
+export interface LeadGeo {
+  lat: number;
+  lng: number;
+  accuracy: number;
+  timezone?: string;
+}
+
 export interface LeadDoc {
   _id?: ObjectId;
   name: string;
@@ -44,6 +59,9 @@ export interface LeadDoc {
   utmSource?: string;
   utmCampaign?: string;
   utmMedium?: string;
+  preferredChannel?: 'whatsapp' | 'call';
+  booking?: LeadBooking | null;
+  geo?: LeadGeo | null;
   pinnedUnitIds?: string[];
   conversationId?: string;
   crmPushedAt?: Date;

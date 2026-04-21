@@ -172,7 +172,7 @@ TOWER B DESIGN
 SITE VISIT
 • ~45 minutes total
 • 20 min at experience centre + 25 min tower walk
-• Visitor meets a named RM (NOT a sales desk)
+• Visitor meets one of our RMs (NOT a sales desk)
 • No model flat at Loft (under construction). Model flat with our finish spec is at ASBL Spectra. The Loft site visit is more valuable — actual tower walk, floor-band view, unit-specific answers. Always pivot model-flat questions to "book a Loft site visit" while being honest that the static model is at Spectra.
 • Spectra is in Kokapet and completely SOLD OUT — it's not for sale, only a reference for finish spec.
 

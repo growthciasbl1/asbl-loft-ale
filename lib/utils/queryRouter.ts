@@ -34,6 +34,8 @@ export interface RouterResult {
   originalQuery?: string;
   /** For any lead form: pre-select WhatsApp or Call. */
   preferredChannel?: 'whatsapp' | 'call';
+  /** For visit artifact: pre-select booking type. */
+  initialBookingType?: 'site_visit' | 'call_back';
 }
 
 /**
@@ -81,17 +83,17 @@ function parseExistingEmi(q: string): number | undefined {
 export function routeQuery(q: string): RouterResult {
   const ql = q.toLowerCase().trim();
 
-  // Call-back intent — explicit "call me" / "someone call" / "phone me" / "callback".
+  // Call-back intent — explicit "call me" / "callback" / "phone me". Routes to the
+  // visit tile with "call_back" preselected so the visitor picks an actual slot
+  // (9 AM–9 PM, next 7 days) rather than just submitting a name + phone.
   if (
-    /\b(call\s*me|call\s*back|callback|someone\s*(call|phone)|please\s*call|give\s*me\s*a\s*call|i\s*want\s*a\s*call|ring\s*me|get\s*on\s*(a\s*)?call|phone\s*me)\b/i.test(q)
+    /\b(call\s*me|call\s*back|callback|someone\s*(call|phone)|please\s*call|give\s*me\s*a\s*call|i\s*want\s*a\s*call|ring\s*me|get\s*on\s*(a\s*)?call|phone\s*me|schedule\s*a\s*call|book\s*a\s*call)\b/i.test(q)
   ) {
     return {
-      text: `<p>Sure — drop your name and number and a named RM will call you within 30 minutes (9 am–8 pm). No auto-dialers, no call centres.</p>`,
-      artifact: 'share_request',
-      artifactLabel: 'Request a call',
-      shareSubject: 'a call-back from the Loft team',
-      originalQuery: q,
-      preferredChannel: 'call',
+      text: `<p>Pick a slot when you want the call — we&apos;ll ring on the dot. Available every day 9 AM–9 PM over the next week.</p>`,
+      artifact: 'visit',
+      artifactLabel: 'Call-back · pick a slot',
+      initialBookingType: 'call_back',
     };
   }
 
@@ -100,7 +102,7 @@ export function routeQuery(q: string): RouterResult {
   if (SHARE_INTENT.test(q)) {
     const subject = extractShareSubject(q);
     return {
-      text: `<p>Drop your name and WhatsApp — we&apos;ll send <strong>${subject}</strong> over in under 2 minutes. A named RM follows up from there, no auto-dialers.</p>`,
+      text: `<p>Drop your name and WhatsApp — we&apos;ll send <strong>${subject}</strong> over in under 2 minutes. Our RM follows up from there, no auto-dialers.</p>`,
       artifact: 'share_request',
       artifactLabel: 'Share · WhatsApp',
       shareSubject: subject,
@@ -152,7 +154,7 @@ export function routeQuery(q: string): RouterResult {
   // Live inventory — we don't publish, push to visit
   if (/live\s*inventory|real[-\s]?time\s*units|current\s*availability|what\s*is\s*available\s*now|which\s*units\s*are\s*open/.test(ql)) {
     return {
-      text: `<p>We don&apos;t publish live inventory in chat — pricing and availability change daily as construction progresses. A named RM will walk you through exactly what&apos;s open.</p>`,
+      text: `<p>We don&apos;t publish live inventory in chat — pricing and availability change daily as construction progresses. Our RM will walk you through exactly what&apos;s open.</p>`,
       artifact: 'visit',
       artifactLabel: 'Get current availability on visit',
       visitIntro: 'live_inventory',
@@ -162,7 +164,7 @@ export function routeQuery(q: string): RouterResult {
   // Visit booking
   if (/book.*visit|site\s*visit|schedule\s*tour|book\s*a\s*tour|book.*slot|slot\s*to\s*visit|saturday\s*tour|weekend\s*tour/.test(ql)) {
     return {
-      text: `<p>Pick any slot — you&apos;ll meet a <strong>named relationship manager</strong> on arrival, not a sales desk. Visit takes ~45 minutes.</p>`,
+      text: `<p>Pick any slot — <strong>one of our RMs</strong> meets you on arrival, not a sales desk. Visit takes ~45 minutes.</p>`,
       artifact: 'visit',
       artifactLabel: 'Pick a visit slot',
     };

@@ -77,7 +77,7 @@ export default function ShareRequestTile({ subject, originalQuery, preferredChan
       }
       footer={
         done ? (
-          <>A named RM follows up personally. No spam calls, no auto-dialers.</>
+          <>Our RM follows up personally. No spam calls, no auto-dialers.</>
         ) : (
           <>Your number stays with ASBL · never shared · opt-out anytime.</>
         )
@@ -126,7 +126,7 @@ export default function ShareRequestTile({ subject, originalQuery, preferredChan
           </div>
           <div style={{ fontSize: 12.5, color: 'var(--mid-gray)', maxWidth: 420 }}>
             {channel === 'call'
-              ? 'A named RM will call you within 30 minutes (9am – 8pm). You can reply in this chat anytime.'
+              ? 'Our RM will call you within 30 minutes (9am – 8pm). You can reply in this chat anytime.'
               : (
                 <>
                   Check your WhatsApp — <b>{displaySubject}</b> arrives inside 2 minutes. If it doesn&apos;t
