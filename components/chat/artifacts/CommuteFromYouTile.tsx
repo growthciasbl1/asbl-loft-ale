@@ -3,86 +3,102 @@
 import { useMemo, useState } from 'react';
 import { TileShell } from './common';
 
-interface Place {
-  label: string;
-  aliases: string[];
-  toLoft: number;
-  toGachi: number;
-  toKokapet: number;
-  cluster: 'north' | 'central' | 'east' | 'south';
+interface DistanceResponse {
+  ok: true;
+  origin: { label: string; lat: number; lng: number; locality: string | null };
+  toLoftMin: number | null;
+  toGachibowliMin: number | null;
+  toKokapetMin: number | null;
+  toLoftKm: number | null;
+  toGachibowliKm: number | null;
+  toKokapetKm: number | null;
 }
 
-const PLACES: Place[] = [
-  { label: 'HITEC City', aliases: ['hitec', 'hitech', 'raheja'], toLoft: 18, toGachi: 10, toKokapet: 22, cluster: 'north' },
-  { label: 'Madhapur', aliases: ['madhapur', 'cyber towers'], toLoft: 16, toGachi: 8, toKokapet: 20, cluster: 'north' },
-  { label: 'Kondapur', aliases: ['kondapur'], toLoft: 14, toGachi: 6, toKokapet: 18, cluster: 'north' },
-  { label: 'Raidurg', aliases: ['raidurg'], toLoft: 14, toGachi: 7, toKokapet: 17, cluster: 'north' },
-  { label: 'Gachibowli', aliases: ['gachibowli', 'dlf', 'uoh'], toLoft: 12, toGachi: 0, toKokapet: 14, cluster: 'central' },
-  { label: 'Nanakramguda', aliases: ['nanakramguda', 'nanakram'], toLoft: 4, toGachi: 8, toKokapet: 8, cluster: 'central' },
-  { label: 'Manikonda', aliases: ['manikonda'], toLoft: 10, toGachi: 14, toKokapet: 12, cluster: 'central' },
-  { label: 'Kokapet', aliases: ['kokapet'], toLoft: 9, toGachi: 14, toKokapet: 0, cluster: 'central' },
-  { label: 'Jubilee Hills', aliases: ['jubilee hills', 'jubilee'], toLoft: 25, toGachi: 15, toKokapet: 30, cluster: 'east' },
-  { label: 'Banjara Hills', aliases: ['banjara hills', 'banjara'], toLoft: 22, toGachi: 16, toKokapet: 32, cluster: 'east' },
-  { label: 'Begumpet', aliases: ['begumpet'], toLoft: 32, toGachi: 28, toKokapet: 42, cluster: 'east' },
-  { label: 'Ameerpet', aliases: ['ameerpet'], toLoft: 30, toGachi: 22, toKokapet: 40, cluster: 'east' },
-  { label: 'Secunderabad', aliases: ['secunderabad', 'sec-bad'], toLoft: 45, toGachi: 35, toKokapet: 50, cluster: 'east' },
-  { label: 'Kukatpally / KPHB', aliases: ['kukatpally', 'kphb'], toLoft: 40, toGachi: 30, toKokapet: 45, cluster: 'north' },
-  { label: 'Mehdipatnam', aliases: ['mehdipatnam'], toLoft: 28, toGachi: 24, toKokapet: 18, cluster: 'south' },
-  { label: 'Tolichowki', aliases: ['tolichowki'], toLoft: 18, toGachi: 18, toKokapet: 14, cluster: 'south' },
-  { label: 'Shamshabad / Airport', aliases: ['airport', 'rgi', 'shamshabad'], toLoft: 32, toGachi: 38, toKokapet: 28, cluster: 'south' },
-  { label: 'LB Nagar', aliases: ['lb nagar', 'lbnagar'], toLoft: 55, toGachi: 50, toKokapet: 52, cluster: 'east' },
-  { label: 'Nallagandla', aliases: ['nallagandla'], toLoft: 10, toGachi: 6, toKokapet: 15, cluster: 'north' },
-  { label: 'Financial District', aliases: ['financial district', 'fd'], toLoft: 5, toGachi: 12, toKokapet: 9, cluster: 'central' },
+const SUGGESTS = [
+  'HITEC City',
+  'Madhapur',
+  'Jubilee Hills',
+  'Begumpet',
+  'Banjara Hills',
+  'Kondapur',
+  'Hyderabad Airport',
 ];
-
-const SUGGESTS = ['HITEC City', 'Madhapur', 'Jubilee Hills', 'Begumpet', 'Airport', 'Banjara Hills'];
-
-function findPlace(q: string): Place | null {
-  const s = q.toLowerCase().trim();
-  if (!s) return null;
-  return (
-    PLACES.find((p) => p.aliases.some((a) => s === a || s.includes(a))) ??
-    PLACES.find((p) => p.label.toLowerCase().includes(s) || s.includes(p.label.toLowerCase())) ??
-    null
-  );
-}
 
 export default function CommuteFromYouTile() {
   const [input, setInput] = useState('');
-  const [picked, setPicked] = useState<Place | null>(null);
+  const [data, setData] = useState<DistanceResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const onSubmit = (raw: string) => {
+  const submit = async (raw: string) => {
     const q = raw.trim();
+    if (!q || q.length < 2) return;
     setInput(q);
-    const found = findPlace(q);
-    setPicked(found);
+    setLoading(true);
+    setErrorMsg(null);
+    setData(null);
+    try {
+      const res = await fetch('/api/geo/distance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ origin: q }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setErrorMsg(
+          (err as { message?: string; error?: string }).message ??
+            'Could not compute that route. Try a more specific neighbourhood.',
+        );
+      } else {
+        const payload = (await res.json()) as DistanceResponse;
+        setData(payload);
+      }
+    } catch {
+      setErrorMsg('Network error — please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const math = useMemo(() => {
-    if (!picked) return null;
-    const toLoft = picked.toLoft;
-    const toGachi = picked.toGachi;
-    const toKokapet = picked.toKokapet;
+    if (!data || data.toLoftMin == null) return null;
+    const toLoft = data.toLoftMin;
+    const toGachi = data.toGachibowliMin ?? toLoft;
+    const toKokapet = data.toKokapetMin ?? toLoft;
     const bestAlt = Math.min(toGachi, toKokapet);
     const bestAltLabel = toGachi <= toKokapet ? 'Gachibowli' : 'Kokapet';
     const savingsMin = bestAlt - toLoft;
-    const dailySavingMin = savingsMin * 2; // round trip
-    const yearlyHours = (dailySavingMin * 22 * 12) / 60; // 22 working days / mo
-    const sundays = Math.round(yearlyHours / 18); // rough Sunday-equivalent
-    return { toLoft, toGachi, toKokapet, savingsMin, dailySavingMin, yearlyHours, sundays, bestAltLabel };
-  }, [picked]);
+    const dailySavingMin = Math.max(0, savingsMin * 2);
+    const yearlyHours = (dailySavingMin * 22 * 12) / 60;
+    const sundays = Math.round(yearlyHours / 18);
+    return {
+      toLoft,
+      toGachi,
+      toKokapet,
+      savingsMin,
+      dailySavingMin,
+      yearlyHours,
+      sundays,
+      bestAltLabel,
+    };
+  }, [data]);
 
   return (
     <TileShell
       eyebrow="Your address · Loft commute"
       title="How much time does Loft buy you back?"
-      sub="Tell us where you live or work — we'll compare your commute vs buying in Gachibowli or Kokapet."
-      footer={<>Drive times are midweek 9am estimates via Google Distance Matrix · ±3 min variance.</>}
+      sub="Tell us where you live or work — we'll pull real driving times from OpenRouteService and compare vs Gachibowli / Kokapet."
+      footer={
+        <>
+          Drive times are free-flow estimates from OpenRouteService (OpenStreetMap data).
+          Peak traffic can vary ±3–5 min.
+        </>
+      }
       askMore={{
         label: 'Book a visit from this side of town',
-        query: picked
-          ? `Book a weekend visit · I'm coming from ${picked.label}`
-          : 'Book a weekend visit',
+        query: data
+          ? `Book a weekend visit · I'm coming from ${data.origin.label}`
+          : 'Book a weekend site visit',
       }}
       relatedAsks={[
         { label: 'Urban corridors', query: 'Show me the urban corridors and location map' },
@@ -116,12 +132,13 @@ export default function CommuteFromYouTile() {
         >
           <input
             type="text"
-            placeholder="e.g. HITEC City, Jubilee Hills, Madhapur"
+            placeholder="e.g. Jubilee Hills, Begumpet, or your office address"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') onSubmit(input);
+              if (e.key === 'Enter') submit(input);
             }}
+            disabled={loading}
             style={{
               flex: 1,
               padding: '10px 12px',
@@ -132,17 +149,19 @@ export default function CommuteFromYouTile() {
           />
           <button
             type="button"
-            onClick={() => onSubmit(input)}
+            onClick={() => submit(input)}
+            disabled={loading || !input.trim()}
             style={{
               padding: '10px 18px',
               borderRadius: 8,
-              background: 'var(--ink)',
+              background: loading || !input.trim() ? 'var(--mute, #9a958e)' : 'var(--ink)',
               color: 'white',
               fontSize: 13,
               fontWeight: 500,
+              cursor: loading ? 'wait' : 'pointer',
             }}
           >
-            Calculate →
+            {loading ? '…' : 'Calculate →'}
           </button>
         </div>
 
@@ -151,7 +170,8 @@ export default function CommuteFromYouTile() {
             <button
               key={s}
               type="button"
-              onClick={() => onSubmit(s)}
+              onClick={() => submit(s)}
+              disabled={loading}
               style={{
                 padding: '5px 12px',
                 borderRadius: 100,
@@ -168,16 +188,15 @@ export default function CommuteFromYouTile() {
           ))}
         </div>
 
-        {input.trim() && !picked && (
-          <div style={{ marginTop: 10, fontSize: 12, color: 'var(--mute)' }}>
-            We couldn&apos;t match that exactly. Try one of the suggestions, or type your neighborhood
-            (e.g. &ldquo;Kondapur&rdquo;, &ldquo;Ameerpet&rdquo;).
+        {errorMsg && (
+          <div style={{ marginTop: 10, fontSize: 12, color: 'var(--sienna-dark, #7a3d29)' }}>
+            {errorMsg}
           </div>
         )}
       </div>
 
       {/* Result */}
-      {picked && math && (
+      {data && math && (
         <>
           <div
             style={{
@@ -196,7 +215,7 @@ export default function CommuteFromYouTile() {
                 marginBottom: 4,
               }}
             >
-              From {picked.label} to ASBL Loft
+              From {data.origin.label} to ASBL Loft
             </div>
             <div
               className="display"
@@ -210,9 +229,11 @@ export default function CommuteFromYouTile() {
               {math.toLoft}
               <span style={{ fontSize: 22, marginLeft: 6 }}>min</span>
             </div>
-            <div style={{ fontSize: 12.5, color: 'var(--ink-2)', marginTop: 6 }}>
-              Midweek, 9am departure · door-to-door
-            </div>
+            {data.toLoftKm != null && (
+              <div style={{ fontSize: 12.5, color: 'var(--ink-2)', marginTop: 6 }}>
+                {data.toLoftKm.toFixed(1)} km · free-flow driving time · door-to-door
+              </div>
+            )}
           </div>
 
           {/* Comparison strip */}
@@ -227,7 +248,7 @@ export default function CommuteFromYouTile() {
                 marginBottom: 12,
               }}
             >
-              If you&apos;d bought nearby instead
+              If you'd bought nearby instead
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
               <ComparisonCard label="Gachibowli" min={math.toGachi} baseline={math.toLoft} />
@@ -240,16 +261,21 @@ export default function CommuteFromYouTile() {
                   color: '#f5f1e8',
                 }}
               >
-                <div style={{ fontSize: 10.5, opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                <div
+                  style={{
+                    fontSize: 10.5,
+                    opacity: 0.7,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.1em',
+                  }}
+                >
                   ASBL Loft
                 </div>
                 <div className="display" style={{ fontSize: 28, lineHeight: 1, marginTop: 4 }}>
                   {math.toLoft}
                   <span style={{ fontSize: 12, opacity: 0.7, marginLeft: 3 }}>min</span>
                 </div>
-                <div style={{ fontSize: 10.5, opacity: 0.7, marginTop: 6 }}>
-                  Your pick
-                </div>
+                <div style={{ fontSize: 10.5, opacity: 0.7, marginTop: 6 }}>Your pick</div>
               </div>
             </div>
           </div>
@@ -272,7 +298,9 @@ export default function CommuteFromYouTile() {
               {math.savingsMin > 0 && (
                 <Pro
                   title={`You save ${math.savingsMin} min each way vs ${math.bestAltLabel}`}
-                  body={`That's <b>${math.dailySavingMin} min a day</b>, <b>${Math.round(math.yearlyHours)} hours a year</b>, or roughly <b>${math.sundays} Sundays of commute</b> handed back to you.`}
+                  body={`That's <b>${math.dailySavingMin} min a day</b>, <b>${Math.round(
+                    math.yearlyHours,
+                  )} hours a year</b>, or roughly <b>${math.sundays} Sundays of commute</b> handed back to you.`}
                 />
               )}
               {math.savingsMin <= 0 && (
@@ -282,16 +310,16 @@ export default function CommuteFromYouTile() {
                 />
               )}
               <Pro
-                title="ORR access in 4 minutes"
-                body="Nanakramguda ORR exit puts you on the outer ring before most traffic even builds up. The IT corridor becomes a straight shot."
+                title="ORR access in ~4 minutes"
+                body="Nanakramguda ORR exit puts you on the outer ring before most traffic even builds up."
               />
               <Pro
-                title="Metro extension by 2027"
-                body="Raidurg–FD metro extension is sanctioned. Once live, your commute to HITEC drops another 6–8 minutes."
+                title="Metro Phase II proposed"
+                body="76.4 km Metro Phase II expansion covers FD — confidence multiplier on future connectivity."
               />
               <Pro
                 title="Last-mile is walkable"
-                body={`Unlike buildings deep inside ${math.bestAltLabel === 'Gachibowli' ? 'Gachibowli' : 'Kokapet'}, Loft faces a main road — no 15-minute crawl through internal lanes.`}
+                body={`Unlike buildings deep inside ${math.bestAltLabel}, Loft faces a main road — no 15-minute crawl through internal lanes.`}
               />
             </div>
           </div>
@@ -301,7 +329,15 @@ export default function CommuteFromYouTile() {
   );
 }
 
-function ComparisonCard({ label, min, baseline }: { label: string; min: number; baseline: number }) {
+function ComparisonCard({
+  label,
+  min,
+  baseline,
+}: {
+  label: string;
+  min: number;
+  baseline: number;
+}) {
   const worse = min > baseline;
   return (
     <div
@@ -333,7 +369,11 @@ function ComparisonCard({ label, min, baseline }: { label: string; min: number; 
           color: worse ? 'var(--sienna-dark)' : 'var(--mute)',
         }}
       >
-        {worse ? `+${min - baseline} min vs Loft` : min === baseline ? 'Same as Loft' : `${baseline - min} min better`}
+        {worse
+          ? `+${min - baseline} min vs Loft`
+          : min === baseline
+            ? 'Same as Loft'
+            : `${baseline - min} min better`}
       </div>
     </div>
   );

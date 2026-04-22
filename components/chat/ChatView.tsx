@@ -26,6 +26,7 @@ import VisitTile from './artifacts/VisitTile';
 import ShareRequestTile from './artifacts/ShareRequestTile';
 import RentalOfferTile from './artifacts/RentalOfferTile';
 import ProjectComparisonTile from './artifacts/ProjectComparisonTile';
+import ResaleFrameworkTile from './artifacts/ResaleFrameworkTile';
 import LeadGate from './LeadGate';
 import { AskContext, useAsk } from './AskContext';
 import { track } from '@/lib/analytics/tracker';
@@ -101,10 +102,7 @@ function renderArtifact(m: Message) {
         />
       );
     case 'resale_framework':
-      // Phase 3B will ship a dedicated full-dashboard ResaleFrameworkTile.
-      // Until then, TrendsTile is the closest compliant match — same FD
-      // appreciation + GCC data, just without the yield card + TDR cost table.
-      return <TrendsTile />;
+      return <ResaleFrameworkTile />;
     default:
       return null;
   }
@@ -484,33 +482,25 @@ function BotMessage({ m }: { m: Message }) {
           ASBL Loft Assistant
         </div>
 
-        {/* Text bubble — rendered above the artifact tile */}
-        {m.text && (
-          <div
-            className="animate-artifact-in"
-            style={{
-              background: '#fff',
-              border: '1px solid var(--border)',
-              borderRadius: 16,
-              padding: '12px 18px',
-              boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
-              fontSize: 13.5,
-              lineHeight: 1.7,
-              color: 'var(--gray-2)',
-              marginBottom: m.artifact && m.artifact !== 'none' ? 12 : 0,
-            }}
-            dangerouslySetInnerHTML={{ __html: m.text }}
-          />
-        )}
-
-        {m.artifact && m.artifact !== 'none' && (
-          <div className="animate-artifact-in">
-            {requiresLead(m.artifact) ? (
-              <LeadGate reason={m.artifactLabel ?? 'Unlock detail'} preview={renderArtifact(m)}>
-                {renderArtifact(m)}
-              </LeadGate>
-            ) : (
-              renderArtifact(m)
+        {/* Unified bot message — text answer + artifact tile as ONE card with a divider */}
+        {(m.text || (m.artifact && m.artifact !== 'none')) && (
+          <div className="asbl-unified-msg animate-artifact-in">
+            {m.text && (
+              <div
+                className="asbl-unified-msg-text"
+                dangerouslySetInnerHTML={{ __html: m.text }}
+              />
+            )}
+            {m.artifact && m.artifact !== 'none' && (
+              <div className="asbl-unified-msg-tile">
+                {requiresLead(m.artifact) ? (
+                  <LeadGate reason={m.artifactLabel ?? 'Unlock detail'} preview={renderArtifact(m)}>
+                    {renderArtifact(m)}
+                  </LeadGate>
+                ) : (
+                  renderArtifact(m)
+                )}
+              </div>
             )}
           </div>
         )}

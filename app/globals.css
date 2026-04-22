@@ -261,3 +261,30 @@ textarea {
   font-weight: 500;
   color: var(--mid-gray);
 }
+
+
+/* ─── Unified bot message card ─── */
+/* Wraps text-answer + artifact-tile into one seamless card. Strips the
+   inner TileShell's own border/shadow/radius so we see a single card with
+   a divider between the text and the tile content.                        */
+.asbl-unified-msg {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+}
+.asbl-unified-msg-text {
+  padding: 14px 18px;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--gray-2);
+}
+.asbl-unified-msg-text p { margin: 0 0 8px; }
+.asbl-unified-msg-text p:last-child { margin-bottom: 0; }
+.asbl-unified-msg-text + .asbl-unified-msg-tile { border-top: 1px solid var(--border); }
+.asbl-unified-msg-tile > * {
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
