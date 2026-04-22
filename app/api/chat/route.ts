@@ -52,11 +52,14 @@ export async function POST(req: NextRequest) {
       if (llm) finalResult = llm;
     }
 
-    // 3. Extract signal, save to conversation_signals (fire-and-forget) and strip before returning
+    // 3. Extract signal, save to conversation_signals and conversations collections
     const { signal, ...publicResult } = finalResult;
 
-    // Fire-and-forget Mongo writes — never block the reply
-    void Promise.allSettled([
+    // Await the Mongo writes — fire-and-forget was getting orphaned on Vercel
+    // Lambda cold starts (promises dropped when handler returned). Adds ~100-500ms
+    // but guarantees persistence. Both calls are already try/catch wrapped so
+    // failures log and return null without throwing.
+    await Promise.allSettled([
       insertSignal(
         conversationId,
         turnNumber,
