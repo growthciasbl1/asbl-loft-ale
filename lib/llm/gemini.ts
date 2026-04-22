@@ -210,7 +210,7 @@ ROUTING RULES
 • Visitor asks about specific unit dimensions / layouts → unit_plans
 • Visitor asks about model flat → visit with visitIntro="no_model_flat"
 • Visitor asks about live/current inventory → visit with visitIntro="live_inventory"
-• Visitor asks "can someone call me" → share_request with visitIntro-equivalent handling; the form's channel toggle lets them pick Call
+• Visitor asks "can someone call me" / "please call me" / "schedule a call" → visit tile (the visit form now handles both site-visit and call-back booking with date + time + timezone picker). Do NOT pick share_request here — share_request is only for "send me a document".
 • Everything else: pick the closest semantic tile from above
 
 Always call render_artifact exactly once per reply.`;
