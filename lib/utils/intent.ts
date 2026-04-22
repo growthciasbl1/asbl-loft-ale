@@ -26,8 +26,10 @@ export const ARTIFACT_INTENT: Record<ArtifactKind, IntentLevel> = {
   why_fd: 'low',
   project_comparison: 'low',
   commute: 'low',
+  commute_from_you: 'low',
   amenity: 'low',
   schools: 'low',
+  resale_framework: 'low',
   none: 'low',
 };
 

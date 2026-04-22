@@ -7,6 +7,7 @@ export type ArtifactKind =
   | 'why_fd'
   | 'project_comparison'
   | 'commute'
+  | 'commute_from_you'
   | 'unit_plans'
   | 'master_plan'
   | 'urban_corridors'
@@ -17,6 +18,7 @@ export type ArtifactKind =
   | 'schools'
   | 'visit'
   | 'share_request'
+  | 'resale_framework'
   | 'none';
 
 export interface RouterResult {
