@@ -136,6 +136,19 @@ export function routeQuery(q: string): RouterResult {
     };
   }
 
+  // Commute from user's specific place — interactive distance calculator.
+  // Covers: "how far from my office", "how long to commute from Jubilee Hills",
+  // "distance from HITEC to Loft", "travel time from my home", etc.
+  if (
+    /\b(how\s*(far|long|much\s*time).{0,40}(from|commute|reach|drive|travel|to\s*loft)|commute\s*from\s+\w|distance\s*from\s+\w|travel\s*time\s*from|drive\s*time\s*from|calculate.*distance|from\s*my\s*(office|home|school|work|house|place|apartment)|reach\s*loft\s*from|loft\s*from\s*(jubilee|banjara|hitec|madhapur|kondapur|gachibowli|kokapet|begumpet|ameerpet|kukatpally|secunderabad|airport|tolichowki|manikonda|raidurg|nanakramguda|mehdipatnam|nallagandla|attapur|khajaguda))\b/i.test(q)
+  ) {
+    return {
+      text: `<p>Tell me where you're coming from — office, home, anywhere in Hyderabad — and I'll pull the real drive time vs Gachibowli and Kokapet as alternates.</p>`,
+      artifact: 'commute_from_you',
+      artifactLabel: 'Your drive time to Loft',
+    };
+  }
+
   // Urban corridors / location / neighborhood
   if (/urban\s*corridor|connectivity|location\s*map|where is|which area|neighbour|neighborhood|micro[-\s]?market|nearby\s*area|area\s*around/.test(ql)) {
     return {
