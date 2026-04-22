@@ -38,6 +38,8 @@ export interface RouterResult {
   preferredChannel?: 'whatsapp' | 'call';
   /** For visit artifact: pre-select booking type. */
   initialBookingType?: 'site_visit' | 'call_back';
+  /** Parsed <signal> payload from LLM. API-layer saves this to Mongo and strips before returning to frontend. */
+  signal?: Record<string, unknown> | null;
 }
 
 /**

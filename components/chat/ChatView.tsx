@@ -167,16 +167,35 @@ export default function ChatView() {
     ).slice(0, 8);
     const pinnedUnits = useChatStore.getState().pinnedUnitIds;
 
-    let result: RouterResult;
+    // Build conversation history (user + bot pairs) for LLM context
+    const history = messages.map((m) => ({ role: m.role, text: m.text }));
+
+    const existingConvId = useChatStore.getState().conversationId;
+
+    let result: RouterResult & { conversationId?: string };
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: text, seenArtifacts, pinnedUnits, campaign: campaign.key }),
+        body: JSON.stringify({
+          query: text,
+          seenArtifacts,
+          pinnedUnits,
+          campaign: campaign.key,
+          history,
+          conversationId: existingConvId,
+        }),
       });
-      result = res.ok ? ((await res.json()) as RouterResult) : routeQuery(text);
+      result = res.ok
+        ? ((await res.json()) as RouterResult & { conversationId?: string })
+        : routeQuery(text);
     } catch {
       result = routeQuery(text);
+    }
+
+    // Persist conversationId so future turns append to same document
+    if (result.conversationId && result.conversationId !== existingConvId) {
+      useChatStore.getState().setConversationId(result.conversationId);
     }
 
     setTyping(false);

@@ -5,6 +5,7 @@ import {
   type FunctionDeclaration,
 } from '@google/generative-ai';
 import { RouterResult, ArtifactKind } from '@/lib/utils/queryRouter';
+import { extractSignal } from '@/lib/db/signals';
 
 export function hasLLM(): boolean {
   return !!process.env.GEMINI_API_KEY;
@@ -534,10 +535,16 @@ const renderArtifactDecl: FunctionDeclaration = {
   },
 };
 
+export interface ChatHistoryMsg {
+  role: 'user' | 'bot';
+  text: string;
+}
+
 export interface LLMContext {
   seenArtifacts?: string[];
   pinnedUnits?: string[];
   campaign?: string;
+  history?: ChatHistoryMsg[];
 }
 
 interface ToolArgs {
@@ -596,14 +603,29 @@ export async function routeWithLLM(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), opts?.timeoutMs ?? 12000);
 
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: query }] }],
-    });
+    // Build multi-turn contents from history (if provided). History excludes the current query.
+    const priorTurns = (ctx.history ?? [])
+      .filter((m) => m.text && m.text.trim())
+      .slice(-20) // last 20 turns max — stays well under Gemini context
+      .map((m) => ({
+        role: m.role === 'bot' ? 'model' : 'user',
+        parts: [{ text: stripHtml(m.text) }],
+      }));
+
+    const contents = [
+      ...priorTurns,
+      { role: 'user', parts: [{ text: query }] },
+    ];
+
+    const result = await model.generateContent({ contents });
     clearTimeout(timeoutId);
 
     const response = result.response;
     const rawText = response.text() || '';
-    const text = normalizeText(rawText);
+
+    // Extract + strip <signal>{...}</signal> block before showing to user
+    const { cleanText: signalStripped, signal } = extractSignal(rawText);
+    const text = normalizeText(signalStripped);
 
     const calls = response.functionCalls();
     const firstCall = calls?.[0];
@@ -612,6 +634,7 @@ export async function routeWithLLM(
       return {
         text: text || '<p>Happy to dig deeper — what matters most to you?</p>',
         artifact: 'none',
+        signal,
       };
     }
 
@@ -629,11 +652,16 @@ export async function routeWithLLM(
       visitIntro: args.visitIntro,
       shareSubject: args.shareSubject,
       originalQuery: query,
+      signal,
     };
   } catch (err) {
     console.error('[llm/gemini] failed, falling back to regex:', err);
     return null;
   }
+}
+
+function stripHtml(s: string): string {
+  return s.replace(/<[^>]+>/g, '').trim();
 }
 
 /**

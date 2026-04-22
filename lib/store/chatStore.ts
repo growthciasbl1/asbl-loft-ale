@@ -13,6 +13,7 @@ export interface ChatState {
   pinnedUnitIds: string[];
   lead: LeadData | null;
   sessionCampaign: string | null;
+  conversationId: string | null;
 
   pinUnit: (id: string) => void;
   unpinUnit: (id: string) => void;
@@ -23,6 +24,7 @@ export interface ChatState {
   hasLead: () => boolean;
 
   setCampaign: (c: string | null) => void;
+  setConversationId: (id: string | null) => void;
   reset: () => void;
 }
 
@@ -43,6 +45,7 @@ export const useChatStore = create<ChatState>()(
       pinnedUnitIds: [],
       lead: null,
       sessionCampaign: null,
+      conversationId: null,
 
       pinUnit: (id) =>
         set((s) => (s.pinnedUnitIds.includes(id) ? s : { pinnedUnitIds: [...s.pinnedUnitIds, id] })),
@@ -61,7 +64,9 @@ export const useChatStore = create<ChatState>()(
       hasLead: () => !!get().lead?.phone,
 
       setCampaign: (c) => set({ sessionCampaign: c }),
-      reset: () => set({ pinnedUnitIds: [], lead: null, sessionCampaign: null }),
+      setConversationId: (id) => set({ conversationId: id }),
+      reset: () =>
+        set({ pinnedUnitIds: [], lead: null, sessionCampaign: null, conversationId: null }),
     }),
     {
       name: 'asbl-loft-chat',
