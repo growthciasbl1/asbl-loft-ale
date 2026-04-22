@@ -39,17 +39,28 @@ export function extractSignal(rawText: string): {
   cleanText: string;
   signal: Record<string, unknown> | null;
 } {
+  // Well-formed case — one or more <signal>...</signal> blocks
   const m = rawText.match(/<signal>([\s\S]*?)<\/signal>/);
-  if (!m) return { cleanText: rawText, signal: null };
-
-  const cleanText = rawText.replace(/<signal>[\s\S]*?<\/signal>/, '').trim();
-  try {
-    const parsed = JSON.parse(m[1].trim()) as Record<string, unknown>;
-    return { cleanText, signal: parsed };
-  } catch {
-    // Malformed JSON — still strip the block so user doesn't see it
-    return { cleanText, signal: null };
+  if (m) {
+    // Global strip handles the edge case where Gemini emits two blocks
+    const cleanText = rawText.replace(/<signal>[\s\S]*?<\/signal>/g, '').trim();
+    try {
+      const parsed = JSON.parse(m[1].trim()) as Record<string, unknown>;
+      return { cleanText, signal: parsed };
+    } catch {
+      // Malformed JSON inside the block — still strip so users never see raw JSON
+      return { cleanText, signal: null };
+    }
   }
+
+  // Defensive: opening <signal> without a closing tag (rare, happens if the
+  // model truncates mid-generation). Strip from opening to end of string.
+  const openIdx = rawText.indexOf('<signal>');
+  if (openIdx !== -1) {
+    return { cleanText: rawText.substring(0, openIdx).trim(), signal: null };
+  }
+
+  return { cleanText: rawText, signal: null };
 }
 
 export async function insertSignal(

@@ -13,6 +13,7 @@ import AmenityTile from './artifacts/AmenityTile';
 import TrendsTile from './artifacts/TrendsTile';
 import WhyFdTile from './artifacts/WhyFdTile';
 import CommuteTile from './artifacts/CommuteTile';
+import CommuteFromYouTile from './artifacts/CommuteFromYouTile';
 import UnitDetailTile from './artifacts/UnitDetailTile';
 import UnitPlansTile from './artifacts/UnitPlansTile';
 import MasterPlanTile from './artifacts/MasterPlanTile';
@@ -66,6 +67,8 @@ function renderArtifact(m: Message) {
       return <ProjectComparisonTile />;
     case 'commute':
       return <CommuteTile />;
+    case 'commute_from_you':
+      return <CommuteFromYouTile />;
     case 'unit_plans':
       return <UnitPlansTile />;
     case 'master_plan':
@@ -97,6 +100,11 @@ function renderArtifact(m: Message) {
           preferredChannel={m.preferredChannel}
         />
       );
+    case 'resale_framework':
+      // Phase 3B will ship a dedicated full-dashboard ResaleFrameworkTile.
+      // Until then, TrendsTile is the closest compliant match — same FD
+      // appreciation + GCC data, just without the yield card + TDR cost table.
+      return <TrendsTile />;
     default:
       return null;
   }
