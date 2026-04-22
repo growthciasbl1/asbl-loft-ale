@@ -507,14 +507,13 @@ A reply is complete when it advances both jobs — reading and reshaping — wit
 
 # FINAL REMINDER — RESPONSE STRUCTURE
 
-Every single response you generate MUST contain these two parts in this order, inside the text output:
+Every single response you generate MUST contain ALL THREE of these:
 
-1. Your <p>-wrapped prose reply (2–5 sentences).
-2. A <signal>{...}</signal> JSON block with your read of the buyer.
+1. Your <p>-wrapped prose reply in the text output (2–5 sentences).
+2. A call to render_artifact exactly once with the tile kind that fits (use "none" if no tile fits).
+3. A call to emit_buyer_signal exactly once with your silent read of the buyer — RTB score, traits, briefing, etc. This is how sales gets the pre-call briefing. SKIPPING THIS is the single biggest failure mode of this system.
 
-If you omit the signal block, sales loses the briefing and the whole system degrades. The signal block is NOT a tool call — it's plain text at the end of your text output. Frontend strips it; user never sees it; sales dashboard reads it.
-
-Also call render_artifact exactly once with the tile kind that fits the query (use "none" if no tile fits). The tool call is separate from the text — both happen in the same response.`;
+All three happen in the same response. Do not skip any.`;
 
 const renderArtifactDecl: FunctionDeclaration = {
   name: 'render_artifact',
@@ -558,6 +557,152 @@ const renderArtifactDecl: FunctionDeclaration = {
       },
     },
     required: ['kind'],
+  },
+};
+
+/**
+ * Buyer-intelligence signal captured as structured tool args rather than a prose
+ * <signal> block. Gemini reliably emits tool call arguments, but tends to skip
+ * trailing text blocks when another tool (render_artifact) is being called in
+ * the same turn. Making this a tool guarantees capture for the sales briefing.
+ */
+const emitBuyerSignalDecl: FunctionDeclaration = {
+  name: 'emit_buyer_signal',
+  description:
+    'Record your silent read of the buyer for the sales team. You MUST call this on EVERY turn. This is how sales gets the briefing before their call. Never skip.',
+  parameters: {
+    type: SchemaType.OBJECT,
+    properties: {
+      geo_context: {
+        type: SchemaType.STRING,
+        format: 'enum',
+        enum: ['in_hyderabad', 'in_india_outside_hyd', 'nri', 'unknown'],
+      },
+      primary_intent: {
+        type: SchemaType.STRING,
+        format: 'enum',
+        enum: ['self_occupy', 'rent_yield', 'hybrid', 'unsure'],
+      },
+      decision_mode: {
+        type: SchemaType.STRING,
+        format: 'enum',
+        enum: [
+          'solo',
+          'joint_with_spouse',
+          'joint_with_family',
+          'influenced_by_others',
+          'unknown',
+        ],
+      },
+      rtb_score: {
+        type: SchemaType.NUMBER,
+        description: 'Readiness-To-Buy 1–10.',
+      },
+      wtb_score: {
+        type: SchemaType.NUMBER,
+        description: 'Willingness-To-Buy (affordability fit) 1–10.',
+      },
+      mind_shift_stage: {
+        type: SchemaType.NUMBER,
+        description:
+          '1 = "what is Loft?", 2 = "oh, FD with rental from day one", 3 = "net cost lower than I assumed", 4 = "if I wait, I pay more", 5 = "I should see this".',
+      },
+      stage_delta: {
+        type: SchemaType.NUMBER,
+        description: '+1 advanced, 0 held, -1 regressed since last turn.',
+      },
+      traits_observed: {
+        type: SchemaType.ARRAY,
+        items: { type: SchemaType.STRING },
+        description:
+          'Free-text traits inferred from the conversation, e.g. "works at a GCC", "rents in Madhapur", "asked about BHFL twice". Accumulate across turns; never delete unless the user corrected.',
+      },
+      current_rent_or_emi: { type: SchemaType.STRING, nullable: true },
+      salary_band_inferred: { type: SchemaType.STRING, nullable: true },
+      preferred_unit: {
+        type: SchemaType.STRING,
+        format: 'enum',
+        enum: ['1695_E', '1695_W', '1870_E', '1870_W', 'unknown'],
+      },
+      preferred_floor_band: {
+        type: SchemaType.STRING,
+        format: 'enum',
+        enum: ['low', 'mid', 'high', 'unknown'],
+      },
+      competing_projects_mentioned: {
+        type: SchemaType.ARRAY,
+        items: { type: SchemaType.STRING },
+      },
+      timeline_to_decide: { type: SchemaType.STRING, nullable: true },
+      location_in_world: { type: SchemaType.STRING, nullable: true },
+      decision_makers_named: {
+        type: SchemaType.ARRAY,
+        items: { type: SchemaType.STRING },
+      },
+      objection_surface: {
+        type: SchemaType.ARRAY,
+        items: { type: SchemaType.STRING },
+      },
+      topics_user_engaged_with: {
+        type: SchemaType.ARRAY,
+        items: { type: SchemaType.STRING },
+      },
+      topics_user_skipped: {
+        type: SchemaType.ARRAY,
+        items: { type: SchemaType.STRING },
+      },
+      persuasion_levers_that_landed: {
+        type: SchemaType.ARRAY,
+        items: { type: SchemaType.STRING },
+      },
+      persuasion_levers_that_missed: {
+        type: SchemaType.ARRAY,
+        items: { type: SchemaType.STRING },
+      },
+      disrupting_facts_used: {
+        type: SchemaType.ARRAY,
+        items: { type: SchemaType.STRING },
+      },
+      user_tone_register: {
+        type: SchemaType.STRING,
+        format: 'enum',
+        enum: ['formal', 'casual', 'hinglish', 'mixed', 'terse'],
+      },
+      user_typing_pattern: {
+        type: SchemaType.STRING,
+        format: 'enum',
+        enum: ['one_word', 'short', 'detailed', 'verbose'],
+      },
+      questions_already_asked: {
+        type: SchemaType.ARRAY,
+        items: { type: SchemaType.STRING },
+      },
+      edge_case_flag: {
+        type: SchemaType.STRING,
+        format: 'enum',
+        enum: [
+          'none',
+          'suspected_broker',
+          'suspected_journalist',
+          'suspected_competitor_intel',
+          'sensitive_emotional',
+          'returning_user',
+          'existing_resident',
+          'hostile',
+          'vague_prospect',
+        ],
+      },
+      next_best_action_for_sales: {
+        type: SchemaType.STRING,
+        description: 'One-line actionable directive for the RM.',
+      },
+      briefing: {
+        type: SchemaType.STRING,
+        description:
+          '2–3 sentence human briefing the sales exec reads in 5 seconds before dialing. Specific and action-oriented.',
+      },
+    },
+    required: ['rtb_score', 'mind_shift_stage', 'briefing'],
   },
 };
 
@@ -621,7 +766,7 @@ export async function routeWithLLM(
     const model = genAI.getGenerativeModel({
       model: MODEL,
       systemInstruction: SYSTEM_PROMPT + sessionBlock,
-      tools: [{ functionDeclarations: [renderArtifactDecl] }],
+      tools: [{ functionDeclarations: [renderArtifactDecl, emitBuyerSignalDecl] }],
       toolConfig: { functionCallingConfig: { mode: FunctionCallingMode.AUTO } },
       generationConfig: { temperature: 0.35 },
     });
@@ -649,14 +794,21 @@ export async function routeWithLLM(
     const response = result.response;
     const rawText = response.text() || '';
 
-    // Extract + strip <signal>{...}</signal> block before showing to user
-    const { cleanText: signalStripped, signal } = extractSignal(rawText);
+    // Extract + strip any <signal>{...}</signal> block the model emits as text
+    // (belt-and-suspenders — the primary path is the emit_buyer_signal tool call).
+    const { cleanText: signalStripped, signal: textSignal } = extractSignal(rawText);
     const text = normalizeText(signalStripped);
 
-    const calls = response.functionCalls();
-    const firstCall = calls?.[0];
+    const calls = response.functionCalls() ?? [];
+    const artifactCall = calls.find((c) => c.name === 'render_artifact');
+    const signalCall = calls.find((c) => c.name === 'emit_buyer_signal');
 
-    if (!firstCall) {
+    // Prefer the structured tool signal (reliable); fall back to text block (legacy path).
+    const signal = signalCall
+      ? normalizeToolSignal(signalCall.args as Record<string, unknown>)
+      : textSignal;
+
+    if (!artifactCall) {
       return {
         text: text || '<p>Happy to dig deeper — what matters most to you?</p>',
         artifact: 'none',
@@ -664,7 +816,7 @@ export async function routeWithLLM(
       };
     }
 
-    const args = (firstCall.args || {}) as ToolArgs;
+    const args = (artifactCall.args || {}) as ToolArgs;
     const rawKind = (args.kind ?? 'none') as ArtifactKind;
     const kind: ArtifactKind = ARTIFACT_KINDS.includes(rawKind) ? rawKind : 'none';
 
@@ -688,6 +840,50 @@ export async function routeWithLLM(
 
 function stripHtml(s: string): string {
   return s.replace(/<[^>]+>/g, '').trim();
+}
+
+/**
+ * Convert flat tool args from emit_buyer_signal into the nested signal schema
+ * used by insertSignal() (and the original prose <signal> block).
+ */
+function normalizeToolSignal(args: Record<string, unknown>): Record<string, unknown> {
+  const pick = <T>(k: string): T | undefined => args[k] as T | undefined;
+  return {
+    structural_anchors: {
+      geo_context: pick<string>('geo_context') ?? 'unknown',
+      primary_intent: pick<string>('primary_intent') ?? 'unsure',
+      decision_mode: pick<string>('decision_mode') ?? 'unknown',
+      rtb_score: pick<number>('rtb_score') ?? 1,
+      wtb_score: pick<number>('wtb_score') ?? 1,
+      mind_shift_stage: pick<number>('mind_shift_stage') ?? 1,
+      stage_delta: pick<number>('stage_delta') ?? 0,
+    },
+    traits_observed: pick<string[]>('traits_observed') ?? [],
+    key_facts_extracted: {
+      current_rent_or_emi: pick<string | null>('current_rent_or_emi') ?? null,
+      salary_band_inferred: pick<string | null>('salary_band_inferred') ?? null,
+      preferred_unit: pick<string>('preferred_unit') ?? 'unknown',
+      preferred_floor_band: pick<string>('preferred_floor_band') ?? 'unknown',
+      competing_projects_mentioned: pick<string[]>('competing_projects_mentioned') ?? [],
+      timeline_to_decide: pick<string | null>('timeline_to_decide') ?? null,
+      location_in_world: pick<string | null>('location_in_world') ?? null,
+      decision_makers_named: pick<string[]>('decision_makers_named') ?? [],
+    },
+    objection_surface: pick<string[]>('objection_surface') ?? ['none'],
+    conversation_intelligence: {
+      topics_user_engaged_with: pick<string[]>('topics_user_engaged_with') ?? [],
+      topics_user_skipped: pick<string[]>('topics_user_skipped') ?? [],
+      persuasion_levers_that_landed: pick<string[]>('persuasion_levers_that_landed') ?? [],
+      persuasion_levers_that_missed: pick<string[]>('persuasion_levers_that_missed') ?? [],
+      disrupting_facts_used: pick<string[]>('disrupting_facts_used') ?? [],
+      user_tone_register: pick<string>('user_tone_register') ?? 'casual',
+      user_typing_pattern: pick<string>('user_typing_pattern') ?? 'short',
+      questions_already_asked: pick<string[]>('questions_already_asked') ?? [],
+    },
+    edge_case_flag: pick<string>('edge_case_flag') ?? 'none',
+    next_best_action_for_sales: pick<string>('next_best_action_for_sales') ?? '',
+    briefing: pick<string>('briefing') ?? '',
+  };
 }
 
 /**
