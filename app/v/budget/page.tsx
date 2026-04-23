@@ -159,7 +159,7 @@ function BudgetHomeInner() {
           {[
             {
               t: '10% booking',
-              b: 'Just ₹1.94L (Bajaj) or ₹2.15L to lock your unit. Rest is construction-linked.',
+              b: 'Just ₹1.94L (Bajaj) or ₹2.15L to lock your unit. Rest follows a fixed 5-milestone schedule.',
             },
             {
               t: 'Pre-EMI till handover',

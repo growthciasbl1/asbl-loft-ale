@@ -200,7 +200,7 @@ export default function InvestorFinancePage() {
         <p className="eyebrow mb-3">Fine print, not buried</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {[
-            ['Construction-linked', 'You pay as we build. No full capital lock-up upfront.'],
+            ['Fixed 5-milestone schedule', 'You pay at pre-defined stages. No full capital lock-up upfront.'],
             ['Pre-EMI until handover', 'Interest-only on disbursed portion. Your cash stays liquid.'],
             ['GST rebate on rent', 'Residential exempt — your yield is clean.'],
           ].map(([t, b]) => (

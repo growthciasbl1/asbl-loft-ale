@@ -20,7 +20,7 @@ export default function RentalOfferTile() {
     <TileShell
       eyebrow="Rental offer · active now"
       title="₹10 L books it. ₹85K/mo lands till Dec 2026."
-      sub="₹85,000/month guaranteed rental income — direct from ASBL till December 2026."
+      sub="₹85,000/month assured rental income — direct from ASBL till December 2026."
       icon={
         <TileIcon>
           <svg

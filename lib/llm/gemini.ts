@@ -365,7 +365,7 @@ Upcoming project at RTC X Roads — EOI started.
 Rule: any sister-project detail question → brief factual ack + share_request to route to executive.
 
 KEY DIFFERENTIATORS (lead with these)
-1. Only FD project with guaranteed rental income from booking.
+1. Only FD project with an Assured Rental Offer from booking (not a guarantee — contractual payment from ASBL till 31 Dec 2026).
 2. Lowest entry ticket in FD via BHFL (₹10 L).
 3. Largest clubhouse in micro-market (55,000 sqft).
 4. All-outward balconies.

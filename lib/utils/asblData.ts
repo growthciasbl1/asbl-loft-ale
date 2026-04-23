@@ -159,7 +159,7 @@ export const UNIT_LAYOUTS: Record<1695 | 1870, {
 }> = {
   1695: {
     area: '1,695 sqft carpet + common',
-    balcony: { sqft: 125, label: '125 sqft balcony', note: 'Off the living room, accommodates a 4-seat table' },
+    balcony: { sqft: 125, label: '125 sqft outdoor living balcony', note: 'Off the living room' },
     bathrooms: 2,
     bestFor: 'Family of 4 · occasional guests',
     rooms: [

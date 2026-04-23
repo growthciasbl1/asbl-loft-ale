@@ -18,7 +18,7 @@ export default function YieldTile() {
       }
       footer={
         <>
-          Open-market comps drawn from Magicbricks + NoBroker · Q1 2026 · ASBL&apos;s guaranteed
+          Open-market comps drawn from Magicbricks + NoBroker · Q1 2026 · ASBL&apos;s assured
           component is a separate direct payment.
         </>
       }

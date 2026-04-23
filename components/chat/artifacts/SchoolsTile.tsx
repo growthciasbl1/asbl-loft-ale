@@ -21,12 +21,28 @@ const HOSPITALS = [
   { name: 'AIG Hospitals', min: 15 },
 ];
 
-export default function SchoolsTile() {
+interface Props {
+  /** Which side should be shown first. Defaults to "schools" — but if the user
+   *  query was hospital-specific, queryRouter passes 'hospitals' so the
+   *  healthcare strip is surfaced before the school grid. */
+  focus?: 'schools' | 'hospitals';
+}
+
+export default function SchoolsTile({ focus = 'schools' }: Props) {
+  const isHospitalFocus = focus === 'hospitals';
   return (
     <TileShell
-      eyebrow="Schools + healthcare"
-      title="Eight schools. Five at 10 minutes or less."
-      sub="Plus Continental, Apollo and Star Hospitals all 5 min away."
+      eyebrow={isHospitalFocus ? 'Healthcare + schools' : 'Schools + healthcare'}
+      title={
+        isHospitalFocus
+          ? 'Continental, Apollo and Star — all 5 minutes away.'
+          : 'Eight schools. Five at 10 minutes or less.'
+      }
+      sub={
+        isHospitalFocus
+          ? 'Plus eight K–12 schools in the same 15-minute radius.'
+          : 'Plus Continental, Apollo and Star Hospitals all 5 min away.'
+      }
       icon={
         <TileIcon>
           <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--plum)" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
@@ -37,13 +53,13 @@ export default function SchoolsTile() {
       }
       footer={<>Distances are typical midweek drives · verified via Google Distance Matrix.</>}
       askMore={{
-        label: 'Connect me with a family who lives here',
-        query: 'Connect me with a family who already lives in ASBL Loft',
+        label: 'Book a site visit to see the neighborhood',
+        query: 'Book a site visit',
       }}
       relatedAsks={[
         { label: 'Amenities', query: 'What amenities does ASBL Loft offer?' },
         { label: 'Commute to offices', query: "What's the commute to Hitech City?" },
-        { label: 'Book a tour', query: 'Book a site visit' },
+        { label: 'Book a visit', query: 'Book a site visit' },
       ]}
     >
       <div
