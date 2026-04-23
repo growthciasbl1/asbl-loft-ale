@@ -11,6 +11,11 @@ import { resolveAssets } from '@/lib/share/catalog';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+// This route chains several Periskope calls (up to 4 docs + 1 intro = 5 WhatsApp
+// sends, each 3-5s). Vercel default 10s Hobby timeout kills the function
+// mid-send so only the caption text arrives while the actual document never
+// attaches. Bumping to 60s so the whole chain can finish.
+export const maxDuration = 60;
 
 function resolvePublicHost(req: NextRequest): string {
   // Priority: explicit env > Vercel URL > request host
@@ -72,31 +77,28 @@ export async function POST(req: NextRequest) {
     const host = resolvePublicHost(req);
     const baseUrl = `https://${host}`;
 
-    // 1) Send each document one by one, from Anandita's number.
-    //    Periskope needs a publicly reachable URL — we use our own Vercel host.
-    //
-    //    Bug fix: our PDF filenames contain spaces ("Loft Brochure.pdf") which
-    //    need URL-encoding. encodeURI() preserves slashes so we can pipe the
-    //    full path through safely (it encodes spaces as %20 etc).
-    const results = [];
-    for (const a of assets) {
-      const publicUrl = `${baseUrl}${encodeURI(a.url)}`;
-      const res = await sendWhatsAppDocument({
-        toE164: phoneE164,
-        fromE164: ANANDITA_E164,
-        url: publicUrl,
-        filename: a.filename,
-        caption: a.caption,
-      });
-      results.push({ asset: a.id, ok: res.ok, status: res.status, error: res.error, url: publicUrl });
-      if (!res.ok) {
-        console.warn('[api/share/send] document send failed:', a.id, publicUrl, res.error);
-      }
-      // Small stagger between sends so WhatsApp doesn't bundle them into one
-      // visual burst + gives Periskope's queue room to process each before
-      // the next hits.
-      await new Promise((resolve) => setTimeout(resolve, 1200));
-    }
+    // 1) Send all documents in parallel from Anandita's number. Periskope's
+    //    own queue handles delivery ordering on WhatsApp's side, so we don't
+    //    need to serialise on our end. Parallel cuts total latency from
+    //    sum(per-doc) to max(per-doc) — critical for staying under Vercel's
+    //    serverless limit when there are 3-4 PDFs.
+    const results = await Promise.all(
+      assets.map(async (a) => {
+        const publicUrl = `${baseUrl}${encodeURI(a.url)}`;
+        const res = await sendWhatsAppDocument({
+          toE164: phoneE164,
+          fromE164: ANANDITA_E164,
+          url: publicUrl,
+          filename: a.filename,
+          caption: a.caption,
+          timeoutMs: 15000,
+        });
+        if (!res.ok) {
+          console.warn('[api/share/send] document send failed:', a.id, publicUrl, res.error);
+        }
+        return { asset: a.id, ok: res.ok, status: res.status, error: res.error, url: publicUrl };
+      }),
+    );
 
     // 2) Anandita's personal handoff message — so user knows who will follow up
     const introMsg = buildIntroMessage(name, assets.length);
