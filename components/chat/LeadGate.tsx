@@ -32,8 +32,14 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
 
   const otpInputRef = useRef<HTMLInputElement>(null);
 
-  // Already verified via zustand lead → unlock immediately
-  if (lead?.phone) return <>{children}</>;
+  // CRITICAL: all hooks above any early-return. React enforces that the
+  // SAME hooks run in the SAME order on every render. Previously this
+  // component had `if (lead?.phone) return <>{children}</>` BEFORE the
+  // useEffect calls — first render (no lead) ran 10 hooks, subsequent
+  // render after verification (lead set) bailed out early at 7 hooks,
+  // React threw minified error #300 and the whole chat crashed to an
+  // Application error page. Moving the early-return below all hooks
+  // keeps the hook count stable across renders.
 
   useEffect(() => {
     if (step === 'otp' && otpInputRef.current) otpInputRef.current.focus();
@@ -44,6 +50,9 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
     const id = setTimeout(() => setResendIn((n) => n - 1), 1000);
     return () => clearTimeout(id);
   }, [resendIn]);
+
+  // Already verified via zustand lead → unlock immediately (AFTER all hooks)
+  if (lead?.phone) return <>{children}</>;
 
   // ───── Step 1: send OTP ─────
   const sendOtp = async () => {
