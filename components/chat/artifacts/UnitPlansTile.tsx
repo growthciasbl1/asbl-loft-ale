@@ -168,10 +168,10 @@ export default function UnitPlansTile() {
             background: 'var(--plum-pale)',
             borderRadius: 10,
             fontSize: 12,
-            color: 'var(--gray-2)',
+            color: 'var(--plum-dark)',
+            fontWeight: 500,
           }}
         >
-          <b style={{ color: 'var(--plum-dark)' }}>Outdoor living balcony:</b>{' '}
           {layout.balcony.label}
         </div>
       </div>

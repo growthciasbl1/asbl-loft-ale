@@ -176,7 +176,7 @@ export const UNIT_LAYOUTS: Record<1695 | 1870, {
   },
   1870: {
     area: '1,870 sqft carpet + common',
-    balcony: { sqft: 260, label: '260 sqft wrap balcony', note: 'Wraps living + master. Table for 6 + swing chair' },
+    balcony: { sqft: 260, label: '260 sqft outdoor living balcony', note: '' },
     bathrooms: 2.5,
     bestFor: 'Family of 4 + home office · extended family stays',
     rooms: [

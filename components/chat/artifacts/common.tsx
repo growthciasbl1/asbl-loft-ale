@@ -1,6 +1,9 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useAsk } from '../AskContext';
+import { useSeenArtifacts } from '../SeenArtifactsContext';
+import { routeQuery } from '@/lib/utils/queryRouter';
 import { track } from '@/lib/analytics/tracker';
 
 interface Props {
@@ -16,6 +19,26 @@ interface Props {
 
 export function TileShell({ eyebrow, title, sub, icon, children, footer, askMore, relatedAsks }: Props) {
   const ask = useAsk();
+  const seen = useSeenArtifacts();
+
+  // Filter out chips whose query would route to an artifact the visitor has
+  // already seen — keeps suggestions fresh instead of re-offering the same
+  // tile (doc feedback: once rental_offer is shown, don't keep suggesting it).
+  const filteredRelatedAsks = useMemo(() => {
+    if (!relatedAsks || relatedAsks.length === 0) return [];
+    return relatedAsks.filter((r) => {
+      const kind = routeQuery(r.query).artifact;
+      return !(kind && kind !== 'none' && seen.has(kind));
+    });
+  }, [relatedAsks, seen]);
+
+  // Hide askMore if it points at a seen artifact — same rationale.
+  const filteredAskMore = useMemo(() => {
+    if (!askMore) return undefined;
+    const kind = routeQuery(askMore.query).artifact;
+    if (kind && kind !== 'none' && seen.has(kind)) return undefined;
+    return askMore;
+  }, [askMore, seen]);
 
   return (
     <div
@@ -71,8 +94,9 @@ export function TileShell({ eyebrow, title, sub, icon, children, footer, askMore
         {children}
       </div>
 
-      {/* Related-ask chips (plum follow-ups) */}
-      {relatedAsks && relatedAsks.length > 0 && (
+      {/* Related-ask chips (plum follow-ups) — filtered to hide chips for
+          artifacts the visitor already saw. */}
+      {filteredRelatedAsks.length > 0 && (
         <div
           className="asbl-tile-followups"
           style={{
@@ -83,7 +107,7 @@ export function TileShell({ eyebrow, title, sub, icon, children, footer, askMore
             gap: 7,
           }}
         >
-          {relatedAsks.map((r) => (
+          {filteredRelatedAsks.map((r) => (
             <button
               type="button"
               key={r.label}
@@ -104,7 +128,7 @@ export function TileShell({ eyebrow, title, sub, icon, children, footer, askMore
       )}
 
       {/* Footer / ask-more link */}
-      {(footer || askMore) && (
+      {(footer || filteredAskMore) && (
         <div
           className="asbl-tile-footer"
           style={{
@@ -119,16 +143,16 @@ export function TileShell({ eyebrow, title, sub, icon, children, footer, askMore
           }}
         >
           <div style={{ fontSize: 10.5, color: 'var(--mid-gray)', lineHeight: 1.5 }}>{footer}</div>
-          {askMore && (
+          {filteredAskMore && (
             <button
               type="button"
               onClick={() => {
                 track('click', 'tile_ask_more_click', {
                   tile: title,
-                  label: askMore.label,
-                  query: askMore.query,
+                  label: filteredAskMore.label,
+                  query: filteredAskMore.query,
                 });
-                ask(askMore.query);
+                ask(filteredAskMore.query);
               }}
               style={{
                 fontSize: 11.5,
@@ -139,7 +163,7 @@ export function TileShell({ eyebrow, title, sub, icon, children, footer, askMore
               }}
               className="hover:underline"
             >
-              {askMore.label} →
+              {filteredAskMore.label} →
             </button>
           )}
         </div>

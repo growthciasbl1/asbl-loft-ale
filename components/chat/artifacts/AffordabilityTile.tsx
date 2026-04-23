@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import { TileShell } from './common';
+import { useAsk } from '../AskContext';
+import { track } from '@/lib/analytics/tracker';
 
 function emi(p: number, r: number, y: number) {
   const m = r / 12 / 100;
@@ -21,9 +23,15 @@ const TICKET_1695 = 19400000;
 const TICKET_1870 = 21500000;
 
 export default function AffordabilityTile({ initialSalary = 40, initialExistingEmi = 0 }: Props) {
+  const ask = useAsk();
   const [salary, setSalary] = useState(initialSalary);
   const [existingEmi, setExistingEmi] = useState(initialExistingEmi);
   const [years, setYears] = useState(25);
+
+  const onDiscussOnSiteVisit = () => {
+    track('click', 'affordability_site_visit_nudge');
+    ask('Book a site visit');
+  };
 
   const result = useMemo(() => {
     const monthlyIncome = (salary * 100000) / 12;
@@ -147,14 +155,14 @@ export default function AffordabilityTile({ initialSalary = 40, initialExistingE
           price="₹1.94Cr"
           ok={result.canAfford1695}
           emiL={result.emi1695 / 100000}
-          diffL={Math.round((TICKET_1695 - result.maxTicket) / 100000)}
+          onDiscussOnSiteVisit={onDiscussOnSiteVisit}
         />
         <UnitCheck
           label="1,870 sqft"
           price="₹2.15Cr"
           ok={result.canAfford1870}
           emiL={result.emi1870 / 100000}
-          diffL={Math.round((TICKET_1870 - result.maxTicket) / 100000)}
+          onDiscussOnSiteVisit={onDiscussOnSiteVisit}
         />
       </div>
     </TileShell>
@@ -188,13 +196,13 @@ function UnitCheck({
   price,
   ok,
   emiL,
-  diffL,
+  onDiscussOnSiteVisit,
 }: {
   label: string;
   price: string;
   ok: boolean;
   emiL: number;
-  diffL: number;
+  onDiscussOnSiteVisit: () => void;
 }) {
   return (
     <div
@@ -202,7 +210,7 @@ function UnitCheck({
         padding: 14,
         background: 'var(--paper)',
         borderRadius: 10,
-        border: '1px solid ' + (ok ? 'var(--sienna)' : 'var(--hairline)'),
+        border: '1px solid var(--sienna)',
       }}
     >
       <div style={{ fontSize: 12.5, fontWeight: 500 }}>{label}</div>
@@ -213,12 +221,36 @@ function UnitCheck({
         style={{
           fontSize: 11.5,
           marginTop: 6,
-          color: ok ? 'var(--sienna-dark)' : 'var(--mute)',
+          color: 'var(--sienna-dark)',
           fontWeight: 500,
         }}
       >
-        {ok ? `✓ Affordable · EMI ₹${emiL.toFixed(2)}L` : `Short by ₹${diffL}L`}
+        ✓ Affordable · EMI ₹{emiL.toFixed(2)}L
       </div>
+      {!ok && (
+        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ fontSize: 11, color: 'var(--mute)', lineHeight: 1.45 }}>
+            Still within reach — want to discuss this on a site visit?
+          </div>
+          <button
+            type="button"
+            onClick={onDiscussOnSiteVisit}
+            style={{
+              background: 'var(--sienna)',
+              color: 'white',
+              border: 'none',
+              borderRadius: 100,
+              padding: '5px 14px',
+              fontSize: 11.5,
+              fontWeight: 500,
+              cursor: 'pointer',
+              alignSelf: 'flex-start',
+            }}
+          >
+            Yes, book a site visit →
+          </button>
+        </div>
+      )}
     </div>
   );
 }

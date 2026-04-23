@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { routeQuery, RouterResult, ArtifactKind } from '@/lib/utils/queryRouter';
@@ -30,6 +30,7 @@ import ResaleFrameworkTile from './artifacts/ResaleFrameworkTile';
 import RoiCalculatorTile from './artifacts/RoiCalculatorTile';
 import LeadGate from './LeadGate';
 import { AskContext, useAsk } from './AskContext';
+import { SeenArtifactsContext } from './SeenArtifactsContext';
 import { track } from '@/lib/analytics/tracker';
 import { useTrackView } from '@/lib/analytics/useTrackView';
 import { getOrCreateVisitorId } from '@/lib/analytics/visitorId';
@@ -301,8 +302,17 @@ export default function ChatView() {
     el.style.height = Math.min(el.scrollHeight, 110) + 'px';
   };
 
+  const seenArtifacts = useMemo(() => {
+    const set = new Set<ArtifactKind>();
+    for (const m of messages) {
+      if (m.artifact && m.artifact !== 'none') set.add(m.artifact);
+    }
+    return set;
+  }, [messages]);
+
   return (
     <AskContext.Provider value={submit}>
+      <SeenArtifactsContext.Provider value={seenArtifacts}>
       {/* ─── Header ─── */}
       <header
         style={{
@@ -474,6 +484,7 @@ export default function ChatView() {
           </div>
         </div>
       </div>
+      </SeenArtifactsContext.Provider>
     </AskContext.Provider>
   );
 }
