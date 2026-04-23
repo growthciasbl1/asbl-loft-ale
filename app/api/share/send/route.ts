@@ -71,9 +71,13 @@ export async function POST(req: NextRequest) {
 
     // 1) Send each document one by one, from Anandita's number.
     //    Periskope needs a publicly reachable URL — we use our own Vercel host.
+    //
+    //    Bug fix: our PDF filenames contain spaces ("Loft Brochure.pdf") which
+    //    need URL-encoding. encodeURI() preserves slashes so we can pipe the
+    //    full path through safely (it encodes spaces as %20 etc).
     const results = [];
     for (const a of assets) {
-      const publicUrl = `${baseUrl}${a.url}`;
+      const publicUrl = `${baseUrl}${encodeURI(a.url)}`;
       const res = await sendWhatsAppDocument({
         toE164: phoneE164,
         fromE164: ANANDITA_E164,
@@ -81,10 +85,14 @@ export async function POST(req: NextRequest) {
         filename: a.filename,
         caption: a.caption,
       });
-      results.push({ asset: a.id, ok: res.ok, status: res.status, error: res.error });
+      results.push({ asset: a.id, ok: res.ok, status: res.status, error: res.error, url: publicUrl });
       if (!res.ok) {
-        console.warn('[api/share/send] document send failed:', a.id, res.error);
+        console.warn('[api/share/send] document send failed:', a.id, publicUrl, res.error);
       }
+      // Small stagger between sends so WhatsApp doesn't bundle them into one
+      // visual burst + gives Periskope's queue room to process each before
+      // the next hits.
+      await new Promise((resolve) => setTimeout(resolve, 1200));
     }
 
     // 2) Anandita's personal handoff message — so user knows who will follow up
