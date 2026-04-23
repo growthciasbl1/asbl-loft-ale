@@ -70,9 +70,7 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
         );
       } else {
         setStep('otp');
-        setInfoMsg(
-          `OTP WhatsApp pe bhej diya hai ${phone}. Code valid for 5 minutes.`,
-        );
+        setInfoMsg(`OTP WhatsApp pe bhej diya hai ${phone}. Code valid for 5 minutes.`);
         setResendIn(30);
         track('view', 'otp_send_success', { form: 'lead_gate' });
       }
