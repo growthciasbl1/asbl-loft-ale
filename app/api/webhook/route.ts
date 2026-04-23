@@ -189,8 +189,16 @@ export async function POST(req: NextRequest) {
       !!normalisedPhone &&
       (await wasRecentlyVerified(normalisedPhone));
 
+    // Confirmation is sent ONLY for bookings (site visit / call back).
+    // - LeadGate unlocks (price, plans, unit_detail) are trivial reveals \u2014 no
+    //   confirmation needed; spamming users with "got it" after a tile unlock
+    //   is noise
+    // - ShareRequestTile has its own /api/share/send which delivers the PDFs
+    //   + Anandita's intro, so webhook confirmation would be a duplicate
+    const shouldSendConfirmation = wasVerified && !!normalisedPhone && !!booking?.type;
+
     const confirmationPromise = (async () => {
-      if (!wasVerified || !normalisedPhone) return { ok: false, skipped: true };
+      if (!shouldSendConfirmation || !normalisedPhone) return { ok: false, skipped: true };
       const message = buildConfirmationMessage({
         name: body.name,
         reason: body.reason ?? body.query,
