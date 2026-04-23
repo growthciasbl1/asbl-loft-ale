@@ -11,7 +11,7 @@ export const PRICING = {
   cachedInput: 0.01875 / 1_000_000,
 } as const;
 
-export const USD_TO_INR = 87; // manual constant; update as needed
+export const USD_TO_INR = 95; // manual constant; update as needed
 
 export interface LlmUsageDoc {
   _id?: ObjectId;

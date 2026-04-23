@@ -25,7 +25,12 @@ function addToTotals(t: TotalsAgg, doc: Record<string, number>) {
   t.candidates += doc.candidatesTokens ?? 0;
   t.total += doc.totalTokens ?? 0;
   t.usd += doc.costUsd ?? 0;
-  t.inr += doc.costInr ?? 0;
+  // Always compute INR from USD × current rate. The stored costInr on each
+  // Mongo doc was written at whatever rate was active when the call
+  // happened (old docs at 87, new docs at 95) — for the dashboard we want
+  // a single consistent rate applied to all historical data. costUsd is
+  // rate-agnostic, so we re-price here.
+  t.inr += (doc.costUsd ?? 0) * USD_TO_INR;
   t.calls += 1;
 }
 
@@ -72,7 +77,7 @@ export async function GET(req: NextRequest) {
               candidatesTokens: { $sum: '$candidatesTokens' },
               totalTokens: { $sum: '$totalTokens' },
               costUsd: { $sum: '$costUsd' },
-              costInr: { $sum: '$costInr' },
+              costInr: { $sum: { $multiply: ['$costUsd', USD_TO_INR] } },
               calls: { $sum: 1 },
             },
           },
@@ -87,7 +92,7 @@ export async function GET(req: NextRequest) {
               candidatesTokens: { $sum: '$candidatesTokens' },
               totalTokens: { $sum: '$totalTokens' },
               costUsd: { $sum: '$costUsd' },
-              costInr: { $sum: '$costInr' },
+              costInr: { $sum: { $multiply: ['$costUsd', USD_TO_INR] } },
               calls: { $sum: 1 },
             },
           },
@@ -102,7 +107,7 @@ export async function GET(req: NextRequest) {
               candidatesTokens: { $sum: '$candidatesTokens' },
               totalTokens: { $sum: '$totalTokens' },
               costUsd: { $sum: '$costUsd' },
-              costInr: { $sum: '$costInr' },
+              costInr: { $sum: { $multiply: ['$costUsd', USD_TO_INR] } },
               calls: { $sum: 1 },
             },
           },
@@ -116,7 +121,7 @@ export async function GET(req: NextRequest) {
               candidatesTokens: { $sum: '$candidatesTokens' },
               totalTokens: { $sum: '$totalTokens' },
               costUsd: { $sum: '$costUsd' },
-              costInr: { $sum: '$costInr' },
+              costInr: { $sum: { $multiply: ['$costUsd', USD_TO_INR] } },
               calls: { $sum: 1 },
             },
           },
@@ -128,7 +133,7 @@ export async function GET(req: NextRequest) {
               _id: '$artifactKind',
               calls: { $sum: 1 },
               totalTokens: { $sum: '$totalTokens' },
-              costInr: { $sum: '$costInr' },
+              costInr: { $sum: { $multiply: ['$costUsd', USD_TO_INR] } },
             },
           },
           { $sort: { calls: -1 } },
@@ -143,7 +148,7 @@ export async function GET(req: NextRequest) {
               },
               calls: { $sum: 1 },
               totalTokens: { $sum: '$totalTokens' },
-              costInr: { $sum: '$costInr' },
+              costInr: { $sum: { $multiply: ['$costUsd', USD_TO_INR] } },
             },
           },
           { $sort: { _id: 1 } },
@@ -154,7 +159,7 @@ export async function GET(req: NextRequest) {
               _id: '$conversationId',
               calls: { $sum: 1 },
               totalTokens: { $sum: '$totalTokens' },
-              costInr: { $sum: '$costInr' },
+              costInr: { $sum: { $multiply: ['$costUsd', USD_TO_INR] } },
               lastAt: { $max: '$createdAt' },
             },
           },
