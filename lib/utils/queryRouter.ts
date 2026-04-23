@@ -40,6 +40,15 @@ export interface RouterResult {
   initialBookingType?: 'site_visit' | 'call_back';
   /** Parsed <signal> payload from LLM. API-layer saves this to Mongo and strips before returning to frontend. */
   signal?: Record<string, unknown> | null;
+  /** Token usage metadata from LLM. API-layer saves this to llm_usage collection and strips before returning to frontend. */
+  usage?: {
+    promptTokenCount?: number;
+    candidatesTokenCount?: number;
+    cachedContentTokenCount?: number;
+    totalTokenCount?: number;
+  } | null;
+  /** Model name used for the LLM call (if LLM was used). */
+  model?: string;
 }
 
 /**

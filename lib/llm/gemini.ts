@@ -6,6 +6,7 @@ import {
 } from '@google/generative-ai';
 import { RouterResult, ArtifactKind } from '@/lib/utils/queryRouter';
 import { extractSignal } from '@/lib/db/signals';
+import type { UsageMetadata } from '@/lib/db/usage';
 
 export function hasLLM(): boolean {
   return !!process.env.GEMINI_API_KEY;
@@ -794,6 +795,9 @@ export async function routeWithLLM(
     const response = result.response;
     const rawText = response.text() || '';
 
+    // Capture token usage for the /admin/usage dashboard.
+    const usageMeta = (response.usageMetadata ?? null) as UsageMetadata | null;
+
     // Extract + strip any <signal>{...}</signal> block the model emits as text
     // (belt-and-suspenders — the primary path is the emit_buyer_signal tool call).
     const { cleanText: signalStripped, signal: textSignal } = extractSignal(rawText);
@@ -813,6 +817,8 @@ export async function routeWithLLM(
         text: text || '<p>Happy to dig deeper — what matters most to you?</p>',
         artifact: 'none',
         signal,
+        usage: usageMeta,
+        model: MODEL,
       };
     }
 
@@ -831,6 +837,8 @@ export async function routeWithLLM(
       shareSubject: args.shareSubject,
       originalQuery: query,
       signal,
+      usage: usageMeta,
+      model: MODEL,
     };
   } catch (err) {
     console.error('[llm/gemini] failed, falling back to regex:', err);

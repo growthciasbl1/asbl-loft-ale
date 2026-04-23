@@ -3,6 +3,7 @@ import { routeQuery, type RouterResult } from '@/lib/utils/queryRouter';
 import { routeWithLLM, shouldUseLLM, type ChatHistoryMsg } from '@/lib/llm/gemini';
 import { insertSignal } from '@/lib/db/signals';
 import { appendConversationTurn } from '@/lib/db/conversations';
+import { insertUsage } from '@/lib/db/usage';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -52,13 +53,13 @@ export async function POST(req: NextRequest) {
       if (llm) finalResult = llm;
     }
 
-    // 3. Extract signal, save to conversation_signals and conversations collections
-    const { signal, ...publicResult } = finalResult;
+    // 3. Extract signal + usage, save to Mongo, strip internals before returning.
+    const { signal, usage, model: usedModel, ...publicResult } = finalResult;
 
     // Await the Mongo writes — fire-and-forget was getting orphaned on Vercel
     // Lambda cold starts (promises dropped when handler returned). Adds ~100-500ms
-    // but guarantees persistence. Both calls are already try/catch wrapped so
-    // failures log and return null without throwing.
+    // but guarantees persistence. All calls are try/catch wrapped so failures log
+    // and return null without throwing.
     await Promise.allSettled([
       insertSignal(
         conversationId,
@@ -75,6 +76,15 @@ export async function POST(req: NextRequest) {
         botArtifact: publicResult.artifact,
         botArtifactLabel: publicResult.artifactLabel,
       }),
+      usage
+        ? insertUsage(
+            conversationId,
+            turnNumber,
+            usedModel ?? 'unknown',
+            usage,
+            publicResult.artifact,
+          )
+        : Promise.resolve(null),
     ]);
 
     return NextResponse.json({ ...publicResult, conversationId });
