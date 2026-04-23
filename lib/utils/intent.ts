@@ -10,7 +10,10 @@ export type IntentLevel = 'low' | 'medium' | 'high';
  * share_request itself is a form tile, so it doesn't need a gate wrapper.
  */
 export const ARTIFACT_INTENT: Record<ArtifactKind, IntentLevel> = {
-  price: 'high',
+  // 'price' is now 'medium' — per doc 3.1 base price + total sale consideration
+  // are visible by default; only GST + other charges + all-in are gated inline
+  // inside PriceTile itself.
+  price: 'medium',
   unit_detail: 'high',
   plans: 'high',
   unit_plans: 'medium',

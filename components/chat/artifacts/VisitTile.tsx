@@ -20,6 +20,18 @@ import {
 import { getOrCreateVisitorId } from '@/lib/analytics/visitorId';
 
 type BookingType = 'site_visit' | 'virtual_visit' | 'call_back';
+type CallPreference = 'now' | 'tomorrow' | 'later' | 'anytime';
+
+const CALL_PREF_OPTIONS: { value: CallPreference; label: string; hint: string }[] = [
+  { value: 'now', label: 'Call me now', hint: 'Within the next 30 minutes' },
+  { value: 'tomorrow', label: 'Call me tomorrow', hint: 'Morning between 10 AM – 12 PM' },
+  { value: 'later', label: 'Call me later this week', hint: 'RM picks a slot and confirms' },
+  { value: 'anytime', label: 'Anytime, 9 AM – 9 PM', hint: 'Whenever the RM is free' },
+];
+
+function callPrefLabel(pref: CallPreference): string {
+  return CALL_PREF_OPTIONS.find((o) => o.value === pref)?.label ?? 'Call back';
+}
 
 interface VisitTileProps {
   intro?: 'default' | 'no_model_flat' | 'live_inventory';
@@ -49,7 +61,7 @@ function eyebrowFor(type: BookingType): string {
 function titleFor(type: BookingType): string {
   if (type === 'site_visit') return 'Pick a date + time. Our RM meets you.';
   if (type === 'virtual_visit') return 'Pick a slot — RM walks you through on video.';
-  return 'Pick when you want the call.';
+  return 'Drop your number — we’ll call.';
 }
 
 function subFor(type: BookingType): string {
@@ -57,7 +69,7 @@ function subFor(type: BookingType): string {
     return 'Walk the actual tower, see views from your floor band, and get unit-specific answers.';
   if (type === 'virtual_visit')
     return 'RM joins on Google Meet · shares master plan, unit walkthrough, payment plans, and your floor-band view.';
-  return 'One of our RMs will call at the slot you pick, no earlier, no later.';
+  return 'Call now, tomorrow, or anytime during working hours (9 AM – 9 PM). Pick what suits you.';
 }
 
 function successEyebrowFor(type: BookingType): string {
@@ -102,6 +114,9 @@ export default function VisitTile({
   const [bookingType, setBookingType] = useState<BookingType>(initialBookingType);
   const [dayIndex, setDayIndex] = useState(0);
   const [slotIdx, setSlotIdx] = useState<number | null>(null);
+
+  // For bookingType === 'call_back' — replaces the date/slot picker per doc 2.22.
+  const [callPref, setCallPref] = useState<CallPreference>('now');
 
   // Identity comes from zustand lead if already verified this session. Visitor
   // can still hit "Change details" to override — tracked via editingIdentity.
@@ -182,7 +197,33 @@ export default function VisitTile({
     }
   }, [lead?.phone, lead?.name, editingIdentity]);
 
-  const canSubmit = Boolean(selectedSlot && !selectedSlot.disabled && name.trim() && phone.trim());
+  const canSubmit = Boolean(
+    bookingType === 'call_back'
+      ? name.trim() && phone.trim() && callPref
+      : selectedSlot && !selectedSlot.disabled && name.trim() && phone.trim(),
+  );
+
+  /** Synthetic booking descriptor for call_back — gives the rest of the flow
+   *  (webhook / persistence / confirmed view) a slot/day-shape object so we
+   *  don't fork every code path that references selectedSlot/selectedDay. */
+  const callBookingDescriptor = () => {
+    const pref = callPref;
+    const label = callPrefLabel(pref);
+    const now = new Date();
+    const isoLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
+    const longLabel = now.toLocaleDateString(undefined, {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+    return {
+      slotLabel: label,
+      dayShortLabel: pref === 'anytime' ? 'Flexible' : pref === 'now' ? 'Today' : pref === 'tomorrow' ? 'Tomorrow' : 'This week',
+      dayLongLabel: longLabel,
+      slotIsoLocal: isoLocal,
+    };
+  };
 
   /** On custom-date pick from the native date picker — build the DaySlots and
    *  select it. Resets the slot selection so visitor picks a fresh time. */
@@ -214,6 +255,18 @@ export default function VisitTile({
   /** Persist the current selection to zustand so re-entering VisitTile shows
    *  the "already scheduled" state (doc 4.11) and the Reschedule button (4.10). */
   const persistBookingToStore = () => {
+    if (bookingType === 'call_back') {
+      const d = callBookingDescriptor();
+      setBookingStore({
+        type: bookingType,
+        slotIsoLocal: d.slotIsoLocal,
+        slotLabel: d.slotLabel,
+        dayShortLabel: d.dayShortLabel,
+        dayLongLabel: d.dayLongLabel,
+        timezone: userTz,
+      });
+      return;
+    }
     if (!selectedSlot || !selectedDay) return;
     setBookingStore({
       type: bookingType,
@@ -230,7 +283,8 @@ export default function VisitTile({
    *  Otherwise show the OTP input panel optimistically while Periskope delivers. */
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit || !selectedSlot || !selectedDay) return;
+    if (!canSubmit) return;
+    if (bookingType !== 'call_back' && (!selectedSlot || !selectedDay)) return;
 
     setSubmitting(true);
     setOtpError(null);
@@ -269,7 +323,8 @@ export default function VisitTile({
 
     track('submit', 'visit_otp_send_click', {
       bookingType,
-      slotIso: selectedSlot.isoLocal,
+      slotIso: selectedSlot?.isoLocal,
+      callPref: bookingType === 'call_back' ? callPref : undefined,
     });
 
     // ─── Fire server call in background ───
@@ -309,8 +364,12 @@ export default function VisitTile({
   /** Step 2 of 2: verify OTP then show success immediately. */
   const verifyAndBook = async () => {
     const clean = otpCode.replace(/\D/g, '').trim();
-    if (clean.length !== 6 || !selectedSlot || !selectedDay) {
+    if (clean.length !== 6) {
       setOtpError('Please enter the 6-digit code.');
+      return;
+    }
+    if (bookingType !== 'call_back' && (!selectedSlot || !selectedDay)) {
+      setOtpError('Please pick a date and time.');
       return;
     }
     setSubmitting(true);
@@ -347,7 +406,19 @@ export default function VisitTile({
   };
 
   const fireBookingWebhook = () => {
-    if (!selectedSlot || !selectedDay) return;
+    const descriptor =
+      bookingType === 'call_back'
+        ? callBookingDescriptor()
+        : selectedSlot && selectedDay
+          ? {
+              slotIsoLocal: selectedSlot.isoLocal,
+              slotLabel: selectedSlot.label,
+              dayShortLabel: selectedDay.shortLabel,
+              dayLongLabel: selectedDay.longLabel,
+            }
+          : null;
+    if (!descriptor) return;
+
     const webhookEvent =
       bookingType === 'site_visit'
         ? 'visit_booking'
@@ -355,11 +426,12 @@ export default function VisitTile({
           ? 'virtual_visit_booking'
           : 'call_booking';
     track('submit', webhookEvent, {
-      slotIso: selectedSlot.isoLocal,
+      slotIso: descriptor.slotIsoLocal,
       timezone: userTz,
       tzOverridden: userTzOverridden,
       bookingType,
       geoGranted: geoStatus === 'granted',
+      callPref: bookingType === 'call_back' ? callPref : undefined,
     });
 
     fetch('/api/webhook', {
@@ -368,7 +440,7 @@ export default function VisitTile({
       body: JSON.stringify({
         name,
         phone,
-        query: `${bookingLabelFor(bookingType)} · ${selectedDay.longLabel} · ${selectedSlot.label}`,
+        query: `${bookingLabelFor(bookingType)} · ${descriptor.dayLongLabel} · ${descriptor.slotLabel}`,
         reason: reasonFor(bookingType),
         preferredChannel: channelFor(bookingType),
         webTracker: readWebTracker(),
@@ -376,10 +448,11 @@ export default function VisitTile({
         visitorId: getOrCreateVisitorId(),
         booking: {
           type: bookingType,
-          slotIsoLocal: selectedSlot.isoLocal,
+          slotIsoLocal: descriptor.slotIsoLocal,
           timezone: userTz,
           timezoneDetected: detectedTz,
           timezoneUserOverridden: userTzOverridden,
+          callPreference: bookingType === 'call_back' ? callPref : undefined,
         },
         geo: geo
           ? { lat: geo.lat, lng: geo.lng, accuracy: geo.accuracy, timezone: detectedTz }
@@ -403,9 +476,25 @@ export default function VisitTile({
     : existingBooking
       ? existingBooking.type
       : null;
-  const confirmedSlotLabel = done ? selectedSlot?.label : existingBooking?.slotLabel;
-  const confirmedDayLabel = done ? selectedDay?.shortLabel : existingBooking?.dayShortLabel;
-  const confirmedSlotIso = done ? selectedSlot?.isoLocal : existingBooking?.slotIsoLocal;
+  const liveDescriptor =
+    bookingType === 'call_back'
+      ? callBookingDescriptor()
+      : selectedSlot && selectedDay
+        ? {
+            slotLabel: selectedSlot.label,
+            dayShortLabel: selectedDay.shortLabel,
+            slotIsoLocal: selectedSlot.isoLocal,
+          }
+        : null;
+  const confirmedSlotLabel = done
+    ? liveDescriptor?.slotLabel
+    : existingBooking?.slotLabel;
+  const confirmedDayLabel = done
+    ? liveDescriptor?.dayShortLabel
+    : existingBooking?.dayShortLabel;
+  const confirmedSlotIso = done
+    ? liveDescriptor?.slotIsoLocal
+    : existingBooking?.slotIsoLocal;
   const confirmedPhone = phone || lead?.phone;
 
   if (confirmedType && confirmedSlotLabel && confirmedDayLabel && confirmedSlotIso) {
@@ -414,6 +503,7 @@ export default function VisitTile({
       setDone(false);
       setSlotIdx(null);
       setDayIndex(0);
+      setCallPref('now');
       setOtpStep('idle');
       track('click', 'visit_reschedule');
     };
@@ -609,7 +699,69 @@ export default function VisitTile({
         </div>
       </div>
 
-      {/* Date picker */}
+      {/* Call-back timing picker (doc 2.22) — replaces date+time for call_back */}
+      {bookingType === 'call_back' && (
+        <div style={{ marginBottom: 16 }}>
+          <label
+            style={{
+              display: 'block',
+              fontSize: 10.5,
+              textTransform: 'uppercase',
+              letterSpacing: '0.13em',
+              color: 'var(--mid-gray)',
+              fontWeight: 600,
+              marginBottom: 8,
+            }}
+          >
+            When do you want the call?
+          </label>
+          <div style={{ display: 'grid', gap: 8 }}>
+            {CALL_PREF_OPTIONS.map((opt) => {
+              const active = callPref === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    setCallPref(opt.value);
+                    track('click', 'call_pref_select', { value: opt.value });
+                  }}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: 12,
+                    background: active ? 'var(--plum)' : 'white',
+                    color: active ? '#fff' : 'var(--charcoal)',
+                    border:
+                      '1px solid ' + (active ? 'var(--plum)' : 'var(--border)'),
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    transition: 'all 160ms',
+                  }}
+                >
+                  <div
+                    className="serif"
+                    style={{ fontSize: 15, fontWeight: 500, marginBottom: 2 }}
+                  >
+                    {opt.label}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      opacity: active ? 0.85 : 0.6,
+                    }}
+                  >
+                    {opt.hint}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Date + time pickers (site_visit + virtual_visit only) */}
+      {bookingType !== 'call_back' && (
+      <>
       <div style={{ marginBottom: 16 }}>
         <label
           style={{
@@ -813,6 +965,8 @@ export default function VisitTile({
             })}
           </div>
         </div>
+      )}
+      </>
       )}
 
       {/* Name + phone + timezone + submit OR OTP verification */}
