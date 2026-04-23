@@ -163,7 +163,9 @@ export default function VisitTile({
     }
   };
 
-  /** Step 2 of 2: verify OTP then do the actual booking + confirmation. */
+  /** Step 2 of 2: verify OTP then show success immediately. Webhook fires
+   *  in background — user doesn't wait for Zoho CRM / WhatsApp confirmation
+   *  (those take 2\u20135s each and aren't critical for the user's UX). */
   const verifyAndBook = async () => {
     const clean = otpCode.replace(/\D/g, '').trim();
     if (clean.length !== 6 || !selectedSlot || !selectedDay) {
@@ -189,7 +191,15 @@ export default function VisitTile({
         );
         return;
       }
-      await commitBooking();
+
+      // OTP OK \u2014 immediately show success. Webhook + Zoho + WhatsApp confirmation
+      // run in background, not awaited. This keeps the perceived verify\u2192book
+      // latency to just the /api/otp/verify roundtrip (~200ms).
+      setLead({ name, phone, source: bookingType });
+      setOtpStep('idle');
+      setDone(true);
+      track('view', 'lead_success', { form: bookingType, verified: true });
+      fireBookingWebhook(); // non-blocking
     } catch {
       setOtpError('Network error — please retry.');
     } finally {
@@ -197,7 +207,9 @@ export default function VisitTile({
     }
   };
 
-  const commitBooking = async () => {
+  /** Fire the booking webhook without awaiting. The user is already on the
+   *  success screen; this just persists the lead + triggers CRM + confirmation. */
+  const fireBookingWebhook = () => {
     if (!selectedSlot || !selectedDay) return;
     track('submit', bookingType === 'site_visit' ? 'visit_booking' : 'call_booking', {
       slotIso: selectedSlot.isoLocal,
@@ -207,42 +219,35 @@ export default function VisitTile({
       geoGranted: geoStatus === 'granted',
     });
 
-    try {
-      await fetch('/api/webhook', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          phone,
-          query:
-            bookingType === 'site_visit'
-              ? `Site visit · ${selectedDay.longLabel} · ${selectedSlot.label}`
-              : `Call back · ${selectedDay.longLabel} · ${selectedSlot.label}`,
-          reason: bookingType === 'site_visit' ? 'site_visit_booking' : 'call_booking',
-          preferredChannel: bookingType === 'site_visit' ? 'whatsapp' : 'call',
-          webTracker: readWebTracker(),
-          otpVerified: true,
-          visitorId: getOrCreateVisitorId(),
-          booking: {
-            type: bookingType,
-            slotIsoLocal: selectedSlot.isoLocal,
-            timezone: userTz,
-            timezoneDetected: detectedTz,
-            timezoneUserOverridden: userTzOverridden,
-          },
-          geo: geo
-            ? { lat: geo.lat, lng: geo.lng, accuracy: geo.accuracy, timezone: detectedTz }
-            : null,
-        }),
-      });
-    } catch {
-      // non-blocking
-    }
-
-    setLead({ name, phone, source: bookingType });
-    setOtpStep('idle');
-    setDone(true);
-    track('view', 'lead_success', { form: bookingType, verified: true });
+    fetch('/api/webhook', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        phone,
+        query:
+          bookingType === 'site_visit'
+            ? `Site visit · ${selectedDay.longLabel} · ${selectedSlot.label}`
+            : `Call back · ${selectedDay.longLabel} · ${selectedSlot.label}`,
+        reason: bookingType === 'site_visit' ? 'site_visit_booking' : 'call_booking',
+        preferredChannel: bookingType === 'site_visit' ? 'whatsapp' : 'call',
+        webTracker: readWebTracker(),
+        otpVerified: true,
+        visitorId: getOrCreateVisitorId(),
+        booking: {
+          type: bookingType,
+          slotIsoLocal: selectedSlot.isoLocal,
+          timezone: userTz,
+          timezoneDetected: detectedTz,
+          timezoneUserOverridden: userTzOverridden,
+        },
+        geo: geo
+          ? { lat: geo.lat, lng: geo.lng, accuracy: geo.accuracy, timezone: detectedTz }
+          : null,
+      }),
+    }).catch((err) => {
+      console.warn('[visit] webhook failed:', err);
+    });
   };
 
   // Resend cooldown countdown

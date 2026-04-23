@@ -130,6 +130,27 @@ export async function wasRecentlyVerified(
   }
 }
 
+/**
+ * Fetch the business-sender phone used for the most recent verified OTP for
+ * this user. The booking confirmation is sent from the same number so the
+ * visitor sees a single continuous thread in their WhatsApp inbox rather
+ * than two unrelated numbers.
+ */
+export async function getLastOtpSender(phoneE164: string): Promise<string | null> {
+  if (!hasMongo()) return null;
+  try {
+    const db = await getDb();
+    const col = db.collection<OtpDoc>('otp_codes');
+    const doc = await col.findOne(
+      { phoneE164, verified: true, lastSenderE164: { $exists: true } },
+      { sort: { verifiedAt: -1 } },
+    );
+    return doc?.lastSenderE164 ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function verifyOtp(phoneE164: string, code: string): Promise<VerifyResult> {
   if (!hasMongo()) return { ok: false, reason: 'db_error' };
   try {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { insertLead, markLeadCrmPushed } from '@/lib/db/leads';
 import type { LeadBooking, LeadGeo } from '@/lib/db/schemas';
-import { wasRecentlyVerified } from '@/lib/otp/store';
+import { wasRecentlyVerified, getLastOtpSender } from '@/lib/otp/store';
 import { normalisePhone, sendWhatsApp } from '@/lib/wa/periskope';
 
 export const runtime = 'nodejs';
@@ -179,49 +179,56 @@ export async function POST(req: NextRequest) {
       booking_readable: body.query ?? null,
     };
 
-    const crm = await pushToCrm(crmPayload);
-
-    // 3) Mark lead as pushed (best-effort)
-    if (leadId && crm.ok) {
-      await markLeadCrmPushed(leadId, crm.json);
-    }
-
-    if (!crm.ok) {
-      console.warn('[webhook] CRM push failed:', crm);
-    }
-
-    // 4) Send a WhatsApp confirmation via Periskope — best effort, non-blocking.
-    //    Runs only when the lead came through the verified-OTP path so we don't
-    //    ping unverified numbers (WhatsApp ToS + avoids spam-flag risk).
-    let whatsappConfirmationSent = false;
+    // 3) Parallelise Zoho CRM push + WhatsApp confirmation send. These were
+    //    serial earlier which stacked 2\u20133s of Periskope WhatsApp Web latency
+    //    on top of CRM roundtrip. Promise.all takes max(CRM, WA) instead of
+    //    sum, cutting user-visible wait from ~7s to ~3s.
     const normalisedPhone = normalisePhone(String(body.phone));
-
-    // Bug fix: OTP store saves phoneE164 in E.164-normalised form ("919XXXXXXXXX").
-    // Previously we queried wasRecentlyVerified(body.phone) which could be
-    // "9415117000" (10 digits) \u2192 zero matches \u2192 confirmation never sent.
     const wasVerified =
       body.otpVerified === true &&
       !!normalisedPhone &&
       (await wasRecentlyVerified(normalisedPhone));
 
-    if (wasVerified && normalisedPhone) {
+    const confirmationPromise = (async () => {
+      if (!wasVerified || !normalisedPhone) return { ok: false, skipped: true };
       const message = buildConfirmationMessage({
         name: body.name,
         reason: body.reason ?? body.query,
         booking: booking as { type: string; slotIsoLocal: string; timezone: string } | null,
       });
-      const waResult = await sendWhatsApp({ toE164: normalisedPhone, message });
-      whatsappConfirmationSent = waResult.ok;
+      // Use the same sender number that delivered the OTP so the visitor sees
+      // one continuous WhatsApp thread from a known number.
+      const fromE164 = await getLastOtpSender(normalisedPhone);
+      const waResult = await sendWhatsApp({
+        toE164: normalisedPhone,
+        message,
+        fromE164: fromE164 ?? undefined,
+      });
       if (!waResult.ok) {
         console.warn('[webhook] confirmation WhatsApp send failed', waResult.error);
       }
+      return { ok: waResult.ok, fromE164: waResult.fromE164 };
+    })();
+
+    const [crm, confirmation] = await Promise.all([
+      pushToCrm(crmPayload),
+      confirmationPromise,
+    ]);
+
+    // Mark lead as pushed (best-effort, non-blocking)
+    if (leadId && crm.ok) {
+      markLeadCrmPushed(leadId, crm.json).catch((err) =>
+        console.warn('[webhook] markLeadCrmPushed failed:', err),
+      );
     }
+    if (!crm.ok) console.warn('[webhook] CRM push failed:', crm);
 
     return NextResponse.json({
       success: true,
       leadId,
       crm: { ok: crm.ok, status: crm.status },
-      whatsappConfirmationSent,
+      whatsappConfirmationSent: confirmation.ok,
+      confirmationFromE164: 'fromE164' in confirmation ? confirmation.fromE164 : null,
     });
   } catch (err) {
     console.error('[api/webhook] error:', err);
