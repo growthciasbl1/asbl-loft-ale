@@ -111,12 +111,12 @@ export default function VisitTile({
     e.preventDefault();
     if (!canSubmit || !selectedSlot || !selectedDay) return;
 
-    // If lead is already verified in this browser session, skip the OTP step.
-    const zustandLead = useChatStore.getState().lead;
-    if (zustandLead?.phone === phone) {
-      await commitBooking();
-      return;
-    }
+    // NOTE: Earlier builds had a "skip OTP if lead already in zustand" shortcut
+    // which bypassed verification for users who had a stale lead in localStorage
+    // (from pre-OTP builds, or a pre-filled returning-user auto-populate). That
+    // was both a UX bug and a security hole. OTP is now always required for
+    // every fresh booking click — verification state is only a Mongo-level
+    // record, never trusted from client storage.
 
     setSubmitting(true);
     setOtpError(null);
