@@ -106,25 +106,28 @@ export default function VisitTile({
     selectedSlot && !selectedSlot.disabled && name.trim() && phone.trim(),
   );
 
-  /** Step 1 of 2: send an OTP to the phone. Does NOT book yet. */
+  /** Step 1 of 2: send an OTP to the phone. Does NOT book yet.
+   *  Shows the OTP input panel immediately (optimistic) so the user can pull
+   *  up their phone while Periskope (2–5s WhatsApp Web latency) delivers.
+   *  If the server returns an error we roll back to the form. */
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit || !selectedSlot || !selectedDay) return;
 
-    // NOTE: Earlier builds had a "skip OTP if lead already in zustand" shortcut
-    // which bypassed verification for users who had a stale lead in localStorage
-    // (from pre-OTP builds, or a pre-filled returning-user auto-populate). That
-    // was both a UX bug and a security hole. OTP is now always required for
-    // every fresh booking click — verification state is only a Mongo-level
-    // record, never trusted from client storage.
-
-    setSubmitting(true);
+    // ─── Optimistic UI: show OTP panel immediately ───
+    setOtpStep('otp');
+    setOtpCode('');
     setOtpError(null);
+    setOtpInfo(`OTP ${phone} pe bhej rahe hain... WhatsApp check karo.`);
+    setResendIn(30);
+    setSubmitting(true);
+
     track('submit', 'visit_otp_send_click', {
       bookingType,
       slotIso: selectedSlot.isoLocal,
     });
 
+    // ─── Fire server call in background ───
     try {
       const visitorId = getOrCreateVisitorId();
       const res = await fetch('/api/otp/send', {
@@ -141,6 +144,8 @@ export default function VisitTile({
       });
       const json = await res.json();
       if (!res.ok || !json.ok) {
+        // Roll back to form with error
+        setOtpStep('idle');
         setOtpError(
           json.error === 'invalid phone'
             ? 'Ye phone number sahi nahi lag raha — please check.'
@@ -148,10 +153,10 @@ export default function VisitTile({
         );
         return;
       }
-      setOtpStep('otp');
+      // Successful send — update info message with confirmed state
       setOtpInfo(`OTP WhatsApp pe bhej diya hai ${phone}. Code valid 5 minutes.`);
-      setResendIn(30);
     } catch {
+      setOtpStep('idle');
       setOtpError('Network error — please retry.');
     } finally {
       setSubmitting(false);

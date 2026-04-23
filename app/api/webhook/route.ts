@@ -169,6 +169,14 @@ export async function POST(req: NextRequest) {
       user_agent: ua,
       lead_db_id: leadId,
       captured_at: new Date().toISOString(),
+      // Sales-friendly action flags so Zoho views can filter leads by intent
+      site_visit_requested: booking?.type === 'site_visit',
+      call_back_requested: booking?.type === 'call_back',
+      share_requested:
+        typeof body.reason === 'string' && /share|brochure|send|pdf|doc/i.test(body.reason),
+      lead_type: booking?.type ? `${booking.type}_booking` : body.reason ?? 'chat_lead',
+      otp_verified: body.otpVerified === true,
+      booking_readable: body.query ?? null,
     };
 
     const crm = await pushToCrm(crmPayload);
@@ -186,21 +194,26 @@ export async function POST(req: NextRequest) {
     //    Runs only when the lead came through the verified-OTP path so we don't
     //    ping unverified numbers (WhatsApp ToS + avoids spam-flag risk).
     let whatsappConfirmationSent = false;
+    const normalisedPhone = normalisePhone(String(body.phone));
+
+    // Bug fix: OTP store saves phoneE164 in E.164-normalised form ("919XXXXXXXXX").
+    // Previously we queried wasRecentlyVerified(body.phone) which could be
+    // "9415117000" (10 digits) \u2192 zero matches \u2192 confirmation never sent.
     const wasVerified =
-      body.otpVerified === true && (await wasRecentlyVerified(String(body.phone)));
-    if (wasVerified) {
-      const toE164 = normalisePhone(String(body.phone));
-      if (toE164) {
-        const message = buildConfirmationMessage({
-          name: body.name,
-          reason: body.reason ?? body.query,
-          booking: booking as { type: string; slotIsoLocal: string; timezone: string } | null,
-        });
-        const waResult = await sendWhatsApp({ toE164, message });
-        whatsappConfirmationSent = waResult.ok;
-        if (!waResult.ok) {
-          console.warn('[webhook] confirmation WhatsApp send failed', waResult.error);
-        }
+      body.otpVerified === true &&
+      !!normalisedPhone &&
+      (await wasRecentlyVerified(normalisedPhone));
+
+    if (wasVerified && normalisedPhone) {
+      const message = buildConfirmationMessage({
+        name: body.name,
+        reason: body.reason ?? body.query,
+        booking: booking as { type: string; slotIsoLocal: string; timezone: string } | null,
+      });
+      const waResult = await sendWhatsApp({ toE164: normalisedPhone, message });
+      whatsappConfirmationSent = waResult.ok;
+      if (!waResult.ok) {
+        console.warn('[webhook] confirmation WhatsApp send failed', waResult.error);
       }
     }
 
