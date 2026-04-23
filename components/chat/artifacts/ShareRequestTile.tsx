@@ -48,19 +48,43 @@ export default function ShareRequestTile({
     return () => clearTimeout(id);
   }, [resendIn]);
 
-  // Step 1: send OTP from Anandita's number
+  // Step 1: check if already verified in session → skip OTP and deliver
+  // directly. Otherwise send a fresh OTP from Anandita's number.
   const sendOtp = async () => {
     if (!name.trim() || !phone.trim()) {
       setErrorMsg('Name and phone both required.');
       return;
     }
+    setBusy(true);
+    setErrorMsg(null);
+
+    // First check server-side: is this phone already OTP-verified in the
+    // last 10 min? If yes, skip OTP step entirely — user already proved
+    // ownership on a prior tile in this session.
+    try {
+      const statusRes = await fetch('/api/otp/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phone.trim() }),
+      });
+      const statusJson = await statusRes.json();
+      if (statusJson?.verified) {
+        track('view', 'share_otp_skipped_recently_verified', { subject: displaySubject });
+        setStep('done');
+        setLead({ name: name.trim(), phone: phone.trim(), source: 'share_request' });
+        deliverAndSaveLead();
+        setBusy(false);
+        return;
+      }
+    } catch {
+      // network hiccup — just proceed with OTP send
+    }
+
     // Optimistic UI — switch to OTP panel immediately
     setStep('otp');
     setCode('');
-    setErrorMsg(null);
-    setInfoMsg(`OTP ${phone} pe bhej rahe hain... WhatsApp check karo.`);
+    setInfoMsg(`OTP ${phone} pe bhej rahe hain. WhatsApp check karo.`);
     setResendIn(30);
-    setBusy(true);
 
     track('submit', 'share_otp_send_click', {
       subject: displaySubject,
@@ -97,10 +121,48 @@ export default function ShareRequestTile({
       setInfoMsg(`OTP WhatsApp pe bhej diya hai ${phone}. Code valid 5 minutes.`);
     } catch {
       setStep('form');
-      setErrorMsg('Network error — please retry.');
+      setErrorMsg('Network error. Please retry.');
     } finally {
       setBusy(false);
     }
+  };
+
+  // Extracted: the post-verification fulfilment (deliver docs + save lead).
+  // Called either after OTP verify OR directly when skip path is taken.
+  const deliverAndSaveLead = () => {
+    const visitorId = getOrCreateVisitorId();
+
+    // Deliver documents via Anandita (primary user-facing value)
+    fetch('/api/share/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        phone: phone.trim(),
+        name: name.trim(),
+        subject: subject ?? originalQuery ?? null,
+      }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (j?.assetCount) setSentCount(j.assetCount);
+      })
+      .catch(() => {});
+
+    // Also save lead in Mongo/Zoho (non-blocking)
+    fetch('/api/webhook', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: name.trim(),
+        phone: phone.trim(),
+        reason: `share_request: ${displaySubject}`,
+        query: originalQuery,
+        preferredChannel: channel,
+        webTracker: readWebTracker(),
+        otpVerified: true,
+        visitorId,
+      }),
+    }).catch(() => {});
   };
 
   // Step 2: verify OTP → send documents via Anandita
@@ -130,7 +192,7 @@ export default function ShareRequestTile({
         return;
       }
 
-      // OTP OK → send docs + lead save (in parallel, fire-and-forget)
+      // OTP OK → deliver docs + save lead (fire-and-forget)
       setLead({ name: name.trim(), phone: phone.trim(), source: 'share_request' });
       setStep('done');
       track('view', 'lead_success', {
@@ -138,39 +200,7 @@ export default function ShareRequestTile({
         subject: displaySubject,
         verified: true,
       });
-
-      // Deliver documents via Anandita (primary user-facing value)
-      const visitorId = getOrCreateVisitorId();
-      fetch('/api/share/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: phone.trim(),
-          name: name.trim(),
-          subject: subject ?? originalQuery ?? null,
-        }),
-      })
-        .then((r) => r.ok ? r.json() : null)
-        .then((j) => {
-          if (j?.assetCount) setSentCount(j.assetCount);
-        })
-        .catch(() => {});
-
-      // Also save lead in Mongo/Zoho (non-blocking)
-      fetch('/api/webhook', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name.trim(),
-          phone: phone.trim(),
-          reason: `share_request: ${displaySubject}`,
-          query: originalQuery,
-          preferredChannel: channel,
-          webTracker: readWebTracker(),
-          otpVerified: true,
-          visitorId,
-        }),
-      }).catch(() => {});
+      deliverAndSaveLead();
     } catch {
       setErrorMsg('Network error — please retry.');
     } finally {

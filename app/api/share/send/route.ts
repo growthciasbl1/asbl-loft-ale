@@ -18,13 +18,26 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 function resolvePublicHost(req: NextRequest): string {
-  // Priority: explicit env > Vercel URL > request host
+  // Priority order — MUST resolve to a publicly-reachable URL so Periskope
+  // can fetch the PDFs. Critical bug (2026-04-23): we used to prefer
+  // process.env.VERCEL_URL which returns the per-deployment URL like
+  // `asbl-loft-j0cbuqims-xxx.vercel.app` — that URL is locked behind
+  // Vercel's Deployment Protection, so Periskope would queue the send but
+  // fail to fetch the file, delivering only the caption text.
+  // Now: explicit env override > request's host header (canonical domain
+  // like asbl-loft-ale.vercel.app) > hardcoded canonical > deploy URL.
   const envHost = process.env.NEXT_PUBLIC_SITE_HOST;
   if (envHost) return envHost.replace(/^https?:\/\//, '').replace(/\/$/, '');
-  const vercelUrl = process.env.VERCEL_URL; // automatically set on Vercel
-  if (vercelUrl) return vercelUrl;
-  const hostHeader = req.headers.get('host') ?? 'asbl-loft-ale.vercel.app';
-  return hostHeader;
+
+  const hostHeader = req.headers.get('host');
+  // Accept real production / project domains. Reject per-deployment URLs
+  // (they contain short hashes like -j0cbuqims-).
+  if (hostHeader && !/-[a-z0-9]{9}-.*\.vercel\.app$/i.test(hostHeader)) {
+    return hostHeader;
+  }
+
+  // Last resort — the stable project alias
+  return 'asbl-loft-ale.vercel.app';
 }
 
 function buildIntroMessage(name: string | null | undefined, assetCount: number): string {

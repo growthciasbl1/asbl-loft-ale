@@ -114,13 +114,36 @@ export default function VisitTile({
     e.preventDefault();
     if (!canSubmit || !selectedSlot || !selectedDay) return;
 
+    setSubmitting(true);
+    setOtpError(null);
+
+    // First check if phone is already recently verified — user may have
+    // verified on a prior tile in this session. Skip OTP in that case.
+    try {
+      const statusRes = await fetch('/api/otp/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone }),
+      });
+      const statusJson = await statusRes.json();
+      if (statusJson?.verified) {
+        track('view', 'visit_otp_skipped_recently_verified', { bookingType });
+        setLead({ name, phone, source: bookingType });
+        setOtpStep('idle');
+        setDone(true);
+        fireBookingWebhook();
+        setSubmitting(false);
+        return;
+      }
+    } catch {
+      // network hiccup — continue with OTP send
+    }
+
     // ─── Optimistic UI: show OTP panel immediately ───
     setOtpStep('otp');
     setOtpCode('');
-    setOtpError(null);
-    setOtpInfo(`OTP ${phone} pe bhej rahe hain... WhatsApp check karo.`);
+    setOtpInfo(`OTP ${phone} pe bhej rahe hain. WhatsApp check karo.`);
     setResendIn(30);
-    setSubmitting(true);
 
     track('submit', 'visit_otp_send_click', {
       bookingType,
