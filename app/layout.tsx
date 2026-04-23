@@ -6,6 +6,11 @@ export const metadata: Metadata = {
   title: 'ASBL LOFT — Ask Anything',
   description:
     '3BHK residences at ASBL Loft, Financial District, Hyderabad. Ask about plans, pricing, rental offer, amenities, location.',
+  icons: {
+    icon: [{ url: '/assets/logo.webp', type: 'image/webp' }],
+    shortcut: '/assets/logo.webp',
+    apple: '/assets/logo.webp',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
