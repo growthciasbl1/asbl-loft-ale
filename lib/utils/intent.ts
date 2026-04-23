@@ -30,6 +30,7 @@ export const ARTIFACT_INTENT: Record<ArtifactKind, IntentLevel> = {
   amenity: 'low',
   schools: 'low',
   resale_framework: 'low',
+  roi_calculator: 'low',
   none: 'low',
 };
 

@@ -1,29 +1,26 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { TileShell, TileIcon } from './common';
 
 type Size = 1695 | 1870;
 
+// Rounded headline numbers per user direction (avoid ₹84,750 / ₹93,500 —
+// users see these as awkward; round to clean ₹85K / ₹95K).
+const MONTHLY_BY_SIZE: Record<Size, number> = {
+  1695: 85000,
+  1870: 95000,
+};
+
 export default function RentalOfferTile() {
   const [size, setSize] = useState<Size>(1695);
-  const today = new Date();
-  const endDate = new Date('2026-12-31');
-
-  const { monthly, monthsLeft, totalAccrual } = useMemo(() => {
-    const m = Math.round(size * 50); // ₹50/sqft/mo
-    const diffMonths = Math.max(
-      0,
-      (endDate.getFullYear() - today.getFullYear()) * 12 + (endDate.getMonth() - today.getMonth()),
-    );
-    return { monthly: m, monthsLeft: diffMonths, totalAccrual: m * diffMonths };
-  }, [size]);
+  const monthly = MONTHLY_BY_SIZE[size];
 
   return (
     <TileShell
       eyebrow="Rental offer · active now"
       title="₹10 L books it. ₹85K/mo lands till Dec 2026."
-      sub="₹50/sqft/month guaranteed rental — direct from ASBL, not a third party."
+      sub="₹85,000/month guaranteed rental income — direct from ASBL till December 2026."
       icon={
         <TileIcon>
           <svg
@@ -43,8 +40,8 @@ export default function RentalOfferTile() {
       }
       footer={
         <>
-          Offer runs until <b>31 December 2026</b>. Book with ₹10 L, get paid every month in the
-          interim.
+          Offer runs until <b>31 December 2026</b>. Book with ₹10 L, receive ₹85,000/month from
+          ASBL until handover.
         </>
       }
       askMore={{
@@ -56,6 +53,7 @@ export default function RentalOfferTile() {
         { label: 'Payment schedule', query: 'Show me the payment plan schedule' },
         { label: 'Book a site visit', query: 'Book a weekend site visit' },
         { label: 'Am I eligible?', query: 'Check affordability · salary 30L' },
+        { label: 'Show me projected ROI', query: 'Show me projected ROI calculator' },
       ]}
     >
       {/* Unit size picker */}
@@ -111,7 +109,7 @@ export default function RentalOfferTile() {
             ₹{monthly.toLocaleString('en-IN')}
           </div>
           <div style={{ fontSize: 11, marginTop: 4, opacity: 0.8 }}>
-            ₹50 / sqft / month × {size.toLocaleString()} sqft
+            For {size.toLocaleString()} sqft unit
           </div>
         </div>
         <div>
@@ -129,36 +127,57 @@ export default function RentalOfferTile() {
             className="serif"
             style={{ fontSize: 34, fontWeight: 500, lineHeight: 1, marginTop: 4, color: '#fff' }}
           >
-            31 Dec 26
+            31 Dec 2026
           </div>
           <div style={{ fontSize: 11, marginTop: 4, opacity: 0.8 }}>
-            {monthsLeft} month{monthsLeft === 1 ? '' : 's'} × ₹{monthly.toLocaleString('en-IN')} ={' '}
-            ₹{Math.round(totalAccrual / 100000)} L total
+            Valid from date of agreement
           </div>
         </div>
       </div>
 
-      {/* Booking + context */}
+      {/* TDS disclaimer */}
       <div
         style={{
-          marginTop: 16,
+          marginTop: 10,
+          padding: '8px 14px',
+          fontSize: 11.5,
+          color: 'var(--mid-gray)',
+          fontStyle: 'italic',
+          textAlign: 'center',
+        }}
+      >
+        TDS will be applicable as per government rules.
+      </div>
+
+      {/* Booking + context cards */}
+      <div
+        style={{
+          marginTop: 10,
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
           gap: 10,
         }}
       >
         {[
-          { k: 'Booking amount', v: '₹10 Lakhs', note: 'Any unit, any floor' },
-          { k: 'Balance', v: 'Construction-linked', note: 'Bajaj HFL or standard banks' },
+          {
+            k: 'Booking amount',
+            v: '₹10 L / ₹19.4 L',
+            note: '₹10 L via Bajaj HFL · ₹19.4 L via other banks',
+          },
+          {
+            k: 'Balance',
+            v: 'Fixed milestone',
+            note: 'Pre-defined 5 milestones · both BHFL and standard banks',
+          },
           {
             k: 'Open-market rent',
             v: '₹75–85K/mo',
-            note: 'FD 3BHKs today — ASBL guarantees at upper end',
+            note: "Current FD 3BHK market rate · ASBL's ₹85K offer matches the upper band",
           },
           {
             k: 'Possession',
             v: 'Dec 2026',
-            note: 'Tentative · till then you collect the guaranteed rental',
+            note: 'ASBL pays rental till handover',
           },
         ].map((row) => (
           <div
@@ -207,9 +226,10 @@ export default function RentalOfferTile() {
         }}
       >
         <b style={{ color: 'var(--plum-dark)' }}>Why this works for you: </b>
-        you book now, pay a small ₹10 L, and ASBL pays you <b>₹{monthly.toLocaleString('en-IN')}/mo</b>{' '}
-        into your account every month till the project hands over. Possession comes with a real
-        tenant-ready unit in India&apos;s fastest renting corridor.
+        you book now, pay a small ₹10 L, and ASBL pays you{' '}
+        <b>₹{monthly.toLocaleString('en-IN')}/month</b> into your account every month till the
+        project hands over. Possession comes with a real tenant-ready unit in India&apos;s fastest
+        renting corridor.
       </div>
     </TileShell>
   );

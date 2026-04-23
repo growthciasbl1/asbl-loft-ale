@@ -27,6 +27,7 @@ import ShareRequestTile from './artifacts/ShareRequestTile';
 import RentalOfferTile from './artifacts/RentalOfferTile';
 import ProjectComparisonTile from './artifacts/ProjectComparisonTile';
 import ResaleFrameworkTile from './artifacts/ResaleFrameworkTile';
+import RoiCalculatorTile from './artifacts/RoiCalculatorTile';
 import LeadGate from './LeadGate';
 import { AskContext, useAsk } from './AskContext';
 import { track } from '@/lib/analytics/tracker';
@@ -104,6 +105,8 @@ function renderArtifact(m: Message) {
       );
     case 'resale_framework':
       return <ResaleFrameworkTile />;
+    case 'roi_calculator':
+      return <RoiCalculatorTile />;
     default:
       return null;
   }
@@ -176,11 +179,33 @@ export default function ChatView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Auto-trigger on landing based on URL signals:
+  //   1. Explicit `q` param (overrides everything) — submit it
+  //   2. utm_campaign contains rental-related keyword → pre-fill composer
+  //      with "Learn more about rental offer" so the user sees a ready
+  //      prompt aligned with why they clicked the ad
   useEffect(() => {
     if (initRef.current) return;
-    if (!initialQ.trim()) return;
-    initRef.current = true;
-    submit(initialQ);
+    if (initialQ.trim()) {
+      initRef.current = true;
+      submit(initialQ);
+      return;
+    }
+    // Rental-campaign detection
+    const utmCampaign = (params.get('utm_campaign') ?? '').toLowerCase();
+    const rentalKeywords = /(rental|rent[-_]?offer|85k|guaranteed[-_]?rent|yield|roi|income)/i;
+    if (utmCampaign && rentalKeywords.test(utmCampaign)) {
+      initRef.current = true;
+      track('view', 'rental_campaign_landing', { utm_campaign: utmCampaign });
+      // Pre-fill the composer with a natural prompt — user just hits Send
+      // (or we could auto-submit; prefilling is less aggressive and gives
+      // agency).
+      setComposerValue('Learn more about rental offer');
+      // Focus the composer so Enter sends immediately.
+      setTimeout(() => {
+        composerRef.current?.focus();
+      }, 100);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialQ]);
 

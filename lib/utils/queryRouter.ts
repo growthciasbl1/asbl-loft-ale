@@ -19,6 +19,7 @@ export type ArtifactKind =
   | 'visit'
   | 'share_request'
   | 'resale_framework'
+  | 'roi_calculator'
   | 'none';
 
 export interface RouterResult {
@@ -204,6 +205,15 @@ export function routeQuery(q: string): RouterResult {
       artifactLabel: 'Affordability check',
       salaryLakh: parseSalary(q),
       existingEmi: parseExistingEmi(q),
+    };
+  }
+
+  // Projected ROI calculator — interactive, market-informed
+  if (/roi\s*calc|return\s*on\s*investment|projected\s*roi|roi\s*projection|appreciation\s*calc|what.*roi|how\s*much\s*(will|would).*make|exit\s*(value|math)|5\s*year\s*return|long\s*term\s*return/i.test(q)) {
+    return {
+      text: `<p>Adjust the sliders — size, horizon, assumed appreciation, loan mix — to see a market-informed ROI projection. Based on FD's 14.2% YoY historical, GCC expansion, and TDR scarcity. Numbers are scenarios, not guarantees.</p>`,
+      artifact: 'roi_calculator',
+      artifactLabel: 'Projected ROI · interactive',
     };
   }
 
