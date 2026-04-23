@@ -151,14 +151,16 @@ export async function sendWhatsApp(input: SendMessageInput): Promise<SendMessage
 }
 
 /**
- * Build the OTP WhatsApp message — personal, branded, safe.
+ * Build the OTP WhatsApp message. Professional, English-only, no em-dashes.
  */
 export function buildOtpMessage(name: string | null | undefined, otp: string): string {
-  const greet = name && name.trim() ? `Hi ${name.split(/\s+/)[0]},` : 'Hi,';
+  const firstName = name && name.trim() ? name.trim().split(/\s+/)[0] : null;
+  const greet = firstName ? `Hi ${firstName},` : 'Hello,';
   return (
-    `${greet} your *ASBL Loft* verification code is *${otp}*.\n\n` +
+    `${greet}\n\n` +
+    `Your ASBL Loft verification code is *${otp}*.\n\n` +
     `This code is valid for 5 minutes. Please do not share it with anyone.\n\n` +
-    `— ASBL Loft Team`
+    `ASBL Loft Team`
   );
 }
 

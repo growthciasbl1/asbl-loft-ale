@@ -58,19 +58,25 @@ function buildConfirmationMessage(input: {
 
   if (input.booking?.type === 'site_visit' && when) {
     return (
-      `Hi ${firstName} — your *ASBL Loft site visit* is confirmed for ${when}.\n\n` +
-      `One of our RMs will WhatsApp you the exact meeting point + their direct number.\n\n` +
-      `Questions? Just reply to this chat.\n\n— ASBL Loft`
+      `Hi ${firstName},\n\n` +
+      `Your ASBL Loft site visit is confirmed for ${when}.\n\n` +
+      `One of our Relationship Managers will share the exact meeting point and their direct contact number shortly.\n\n` +
+      `For any questions, please reply to this thread.\n\n` +
+      `ASBL Loft`
     );
   }
   if (input.booking?.type === 'call_back' && when) {
     return (
-      `Hi ${firstName} — a call-back is booked for ${when}.\n\n` +
-      `One of our RMs will ring you on the dot.\n\n— ASBL Loft`
+      `Hi ${firstName},\n\n` +
+      `Your call back is scheduled for ${when}.\n\n` +
+      `One of our Relationship Managers will call you at the scheduled time.\n\n` +
+      `ASBL Loft`
     );
   }
   return (
-    `Hi ${firstName} — got it. One of our RMs will reach out on WhatsApp shortly regarding "${input.reason ?? 'your request'}".\n\n— ASBL Loft`
+    `Hi ${firstName},\n\n` +
+    `Thank you for your interest in ASBL Loft. One of our Relationship Managers will reach out shortly.\n\n` +
+    `ASBL Loft`
   );
 }
 

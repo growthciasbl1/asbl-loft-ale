@@ -26,10 +26,13 @@ function buildIntroMessage(name: string | null | undefined, assetCount: number):
   const firstName = name?.split(/\s+/)[0] ?? 'there';
   const s = assetCount === 1 ? 'document' : `${assetCount} documents`;
   return (
-    `Hi ${firstName}, sharing the ${s} you asked for.\n\n` +
-    `Main *${ANANDITA_NAME}* from ASBL Loft hoon — aapki personal RM assigned. ` +
-    `Koi bhi question ho, yahi reply kar do — I'll get back within a few hours.\n\n` +
-    `— ${ANANDITA_NAME} · ASBL Loft`
+    `Hi ${firstName},\n\n` +
+    `Sharing the ${s} you requested.\n\n` +
+    `I am ${ANANDITA_NAME}, your dedicated Relationship Manager at ASBL Loft. ` +
+    `Please feel free to reply to this thread with any questions about pricing, ` +
+    `availability, floor plans, or anything else. I will respond within a few hours.\n\n` +
+    `${ANANDITA_NAME}\n` +
+    `ASBL Loft`
   );
 }
 
