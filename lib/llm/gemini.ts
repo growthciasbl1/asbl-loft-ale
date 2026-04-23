@@ -980,11 +980,11 @@ ${pinLine}`;
 function heuristicSuggestions(ctx: LLMContext): { label: string; query: string }[] {
   const seen = new Set((ctx.seenArtifacts ?? []).map((s) => s.toLowerCase()));
   const all: { key: string; label: string; query: string }[] = [
-    { key: 'unit_plans', label: 'Unit floor plans', query: 'Show me the 3BHK unit floor plans' },
+    { key: 'unit_plans', label: 'Unit plans', query: 'Show me the 3BHK unit plans' },
     { key: 'master_plan', label: 'Master plan', query: 'Show me the master plan' },
     { key: 'price', label: 'Price breakdown', query: 'Show full price breakdown 1695 East' },
     { key: 'affordability', label: 'Can I afford it?', query: 'Check affordability · salary 30L' },
-    { key: 'finance', label: 'Cash-on-cash', query: 'Open the levered finance calculator' },
+    { key: 'roi_calculator', label: 'Projected ROI', query: 'Show me projected ROI calculator' },
     { key: 'yield', label: 'Rental yield', query: 'What rental yield can I expect?' },
     { key: 'schools', label: 'Schools nearby', query: 'What schools are within 12 minutes?' },
     { key: 'visit', label: 'Book a visit', query: 'Book a site visit' },

@@ -28,9 +28,9 @@ export default function PlansTile() {
         query: 'Start 3-minute pre-approval with HDFC, SBI and Bajaj',
       }}
       relatedAsks={[
-        { label: 'Am I eligible?', query: 'Check affordability · 30L salary · 0 existing EMI' },
-        { label: 'Cash-on-cash math', query: 'Open the levered finance calculator' },
-        { label: 'Unit plans', query: 'Show me the 3BHK unit floor plans' },
+        { label: 'Start pre-approval', query: 'Start 3-minute pre-approval with HDFC, SBI and Bajaj' },
+        { label: 'Show me projected ROI', query: 'Show me projected ROI calculator' },
+        { label: 'Unit plans', query: 'Show me the 3BHK unit plans' },
       ]}
     >
       <div style={{ padding: '18px 26px', borderBottom: '1px solid var(--paper-2)' }}>

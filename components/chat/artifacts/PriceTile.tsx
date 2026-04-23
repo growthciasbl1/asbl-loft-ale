@@ -20,7 +20,7 @@ export default function PriceTile() {
         { label: 'Price trend', query: 'How has FD price trend moved?' },
         { label: 'Compare with other FD projects', query: 'Compare ASBL Loft with other FD projects' },
         { label: 'Can I afford this?', query: 'Check affordability · ₹25L salary' },
-        { label: 'Floor plan', query: 'Show me the 1695 East floor plan' },
+        { label: 'Unit plan', query: 'Show me the 1695 East unit plan' },
       ]}
     >
       <div style={{ padding: '6px 26px' }}>

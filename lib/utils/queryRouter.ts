@@ -200,7 +200,7 @@ export function routeQuery(q: string): RouterResult {
   // Affordability / pre-approval
   if (/afford|eligibility|eligible|pre[-\s]?approval|qualify|can\s*i\s*buy/.test(ql)) {
     return {
-      text: `<p>Banks cap <strong>FOIR at 50%</strong> of take-home. Move the sliders — we&apos;ll show the max ticket that fits.</p>`,
+      text: `<p>FOIR is variable by profile. Move the sliders — we&apos;ll show the max ticket that fits.</p>`,
       artifact: 'affordability',
       artifactLabel: 'Affordability check',
       salaryLakh: parseSalary(q),
@@ -249,7 +249,7 @@ export function routeQuery(q: string): RouterResult {
     return {
       text: `<p>Two 3BHK configurations — 1,695 sqft and 1,870 sqft. Here&apos;s the typical-floor cluster (10 units per floor) with the layout highlighted, plus room-by-room dimensions.</p>`,
       artifact: 'unit_plans',
-      artifactLabel: 'Unit floor plans',
+      artifactLabel: 'Unit plans',
     };
   }
 

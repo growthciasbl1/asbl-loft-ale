@@ -29,7 +29,7 @@ const COLOR = {
 const CHIPS: { label: string; query: string; icon: React.ReactNode }[] = [
   {
     label: 'Plans',
-    query: 'Tell me about the floor plans',
+    query: 'Tell me about the unit plans',
     icon: (
       <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.4}>
         <rect x={3} y={3} width={7} height={7} />
@@ -392,7 +392,7 @@ export default function Landing() {
                   go();
                 }
               }}
-              placeholder="Ask about floor plans, pricing, amenities…"
+              placeholder="Ask about unit plans, pricing, amenities…"
               style={{
                 width: '100%',
                 fontSize: 14,

@@ -46,7 +46,7 @@ export default function FinanceTile() {
       footer={<>Indicative only. Actual rate depends on bank, CIBIL, LTV, vintage.</>}
       askMore={{ label: 'Send full 5-yr IRR', query: 'Send me the 5-year levered IRR model to my WhatsApp' }}
       relatedAsks={[
-        { label: 'Am I eligible?', query: 'Check affordability · salary 30L · existing EMI 25k' },
+        { label: 'Start pre-approval', query: 'Start 3-minute pre-approval with HDFC, SBI and Bajaj' },
         { label: 'Payment schedule', query: 'Show me the Bajaj vs standard payment structure' },
         { label: 'Pick a unit', query: 'Show me available high-yield units' },
       ]}

@@ -251,7 +251,7 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
                 className="btn-plum"
                 style={{ justifyContent: 'center', padding: '12px 20px', opacity: busy ? 0.6 : 1 }}
               >
-                {busy ? 'Sending OTP…' : 'Send OTP on WhatsApp →'}
+                {busy ? 'Sending OTP…' : 'Unlock →'}
               </button>
               <p style={{ fontSize: 10.5, color: 'var(--light-gray)' }}>
                 RERA TS P02400006761 · Data stays with ASBL. Opt out anytime.

@@ -44,7 +44,7 @@ export default function MasterPlanTile() {
         query: 'Show me a typical family day inside ASBL Loft',
       }}
       relatedAsks={[
-        { label: 'Unit floor plans', query: 'Show me the 3BHK unit floor plans' },
+        { label: 'Unit plans', query: 'Show me the 3BHK unit plans' },
         { label: 'Amenities list', query: 'What amenities does Loft offer?' },
         { label: 'Urban corridors', query: 'Show me the location and urban connectivity' },
       ]}

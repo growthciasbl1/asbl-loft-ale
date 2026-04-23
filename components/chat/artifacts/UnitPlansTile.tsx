@@ -73,7 +73,7 @@ export default function UnitPlansTile() {
       footer={<>Dimensions are carpet · NB = North Block, SB = South Block.</>}
       askMore={{
         label: 'Send high-res PDF on WhatsApp',
-        query: `Send me the high-res ${size} floor plan PDF`,
+        query: `Send me the high-res ${size} unit plan PDF`,
       }}
       relatedAsks={[
         { label: 'Rental offer', query: 'Tell me about the rental offer' },

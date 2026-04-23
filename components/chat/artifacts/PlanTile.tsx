@@ -12,9 +12,9 @@ export default function PlanTile() {
 
   return (
     <TileShell
-      title={`${size.toLocaleString()} East · floor plan`}
+      title={`${size.toLocaleString()} East · unit plan`}
       sub={L.bestFor}
-      askMore={{ label: 'Send high-res PDF', query: `Send me the high-res ${size} sqft floor plan PDF` }}
+      askMore={{ label: 'Send high-res PDF', query: `Send me the high-res ${size} sqft unit plan PDF` }}
       relatedAsks={[
         { label: 'Full price breakdown', query: `Show me the price breakdown for the ${size} East` },
         { label: 'Pick a unit', query: `Show me available ${size} sqft units` },

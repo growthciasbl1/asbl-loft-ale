@@ -29,7 +29,7 @@ export default function YieldTile() {
       relatedAsks={[
         { label: 'Tenant demographics', query: 'Who rents in Financial District?' },
         { label: 'Why FD not Gachibowli', query: 'Why FD and not Gachibowli or Kokapet?' },
-        { label: 'Unit plans', query: 'Show me the 3BHK unit floor plans' },
+        { label: 'Unit plans', query: 'Show me the 3BHK unit plans' },
       ]}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

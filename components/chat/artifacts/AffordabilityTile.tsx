@@ -14,7 +14,13 @@ interface Props {
   initialExistingEmi?: number;
 }
 
-export default function AffordabilityTile({ initialSalary = 25, initialExistingEmi = 0 }: Props) {
+// Actual ticket sizes (base price) per KB:
+// 1,695 sqft → ₹1.94 Cr
+// 1,870 sqft → ₹2.15 Cr
+const TICKET_1695 = 19400000;
+const TICKET_1870 = 21500000;
+
+export default function AffordabilityTile({ initialSalary = 40, initialExistingEmi = 0 }: Props) {
   const [salary, setSalary] = useState(initialSalary);
   const [existingEmi, setExistingEmi] = useState(initialExistingEmi);
   const [years, setYears] = useState(25);
@@ -29,18 +35,18 @@ export default function AffordabilityTile({ initialSalary = 25, initialExistingE
       maxEmiAllowed > 0
         ? (maxEmiAllowed * (Math.pow(1 + m, n) - 1)) / (m * Math.pow(1 + m, n))
         : 0;
-    const downNeeded = 2150000;
+    const downNeeded = Math.round(TICKET_1695 * 0.1);
     const maxTicket = maxLoan + downNeeded;
-    const emi1695 = emi(21500000 - 215000, rate, years);
-    const emi1870 = emi(24100000 - 241000, rate, years);
+    const emi1695 = emi(TICKET_1695 * 0.9, rate, years);
+    const emi1870 = emi(TICKET_1870 * 0.9, rate, years);
 
     return {
       monthlyIncome,
       maxEmiAllowed,
       maxLoan,
       maxTicket,
-      canAfford1695: maxTicket >= 21500000,
-      canAfford1870: maxTicket >= 24100000,
+      canAfford1695: maxTicket >= TICKET_1695,
+      canAfford1870: maxTicket >= TICKET_1870,
       emi1695,
       emi1870,
     };
@@ -50,7 +56,7 @@ export default function AffordabilityTile({ initialSalary = 25, initialExistingE
     <TileShell
       eyebrow="Affordability, instantly"
       title="Can you afford ASBL Loft?"
-      sub="Banks cap FOIR at 50% of take-home. We model that here."
+      sub="FOIR is variable — use the sliders to unlock your new home."
       footer={<>Actual sanction depends on CIBIL, vintage, and obligations — variance ±12%.</>}
       askMore={{
         label: 'Start 3-min pre-approval',
@@ -59,7 +65,7 @@ export default function AffordabilityTile({ initialSalary = 25, initialExistingE
       relatedAsks={[
         { label: 'Full price breakdown', query: 'Show me the full price breakdown for 1695 East' },
         { label: 'Payment schedule', query: 'Show me Bajaj vs standard payment schedule' },
-        { label: 'Unit plans', query: 'Show me the 3BHK unit floor plans' },
+        { label: 'Unit plans', query: 'Show me the 3BHK unit plans' },
       ]}
     >
       <div style={{ padding: '22px 26px', display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -127,25 +133,28 @@ export default function AffordabilityTile({ initialSalary = 25, initialExistingE
           <span style={{ fontSize: 22, marginLeft: 4 }}>Cr</span>
         </div>
         <div style={{ fontSize: 12, color: 'var(--ink-2)', marginTop: 6 }}>
-          Max EMI ₹{Math.round(result.maxEmiAllowed / 1000)}K/mo · Max loan ₹
-          {Math.round(result.maxLoan / 100000)}L
+          Max EMI ₹{(result.maxEmiAllowed / 100000).toFixed(2)}L/mo · Max loan ₹
+          {(result.maxLoan / 10000000).toFixed(2)}Cr
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--mute)', marginTop: 8, fontStyle: 'italic' }}>
+          Subject to your credit health (CIBIL, obligations, vintage).
         </div>
       </div>
 
       <div style={{ padding: '18px 26px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <UnitCheck
           label="1,695 sqft"
-          price="₹2.15Cr"
+          price="₹1.94Cr"
           ok={result.canAfford1695}
-          emiK={Math.round(result.emi1695 / 1000)}
-          diffL={Math.round((21500000 - result.maxTicket) / 100000)}
+          emiL={result.emi1695 / 100000}
+          diffL={Math.round((TICKET_1695 - result.maxTicket) / 100000)}
         />
         <UnitCheck
           label="1,870 sqft"
-          price="₹2.41Cr"
+          price="₹2.15Cr"
           ok={result.canAfford1870}
-          emiK={Math.round(result.emi1870 / 1000)}
-          diffL={Math.round((24100000 - result.maxTicket) / 100000)}
+          emiL={result.emi1870 / 100000}
+          diffL={Math.round((TICKET_1870 - result.maxTicket) / 100000)}
         />
       </div>
     </TileShell>
@@ -178,13 +187,13 @@ function UnitCheck({
   label,
   price,
   ok,
-  emiK,
+  emiL,
   diffL,
 }: {
   label: string;
   price: string;
   ok: boolean;
-  emiK: number;
+  emiL: number;
   diffL: number;
 }) {
   return (
@@ -208,7 +217,7 @@ function UnitCheck({
           fontWeight: 500,
         }}
       >
-        {ok ? `✓ Affordable · EMI ₹${emiK}K` : `Short by ₹${diffL}L`}
+        {ok ? `✓ Affordable · EMI ₹${emiL.toFixed(2)}L` : `Short by ₹${diffL}L`}
       </div>
     </div>
   );

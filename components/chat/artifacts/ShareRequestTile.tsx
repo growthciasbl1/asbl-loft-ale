@@ -265,7 +265,7 @@ export default function ShareRequestTile({
           ? [
               { label: 'Book a site visit', query: 'Book a site visit' },
               { label: 'Pricing', query: 'What is the pricing for ASBL Loft?' },
-              { label: 'Floor plans', query: 'Tell me about the floor plans' },
+              { label: 'Unit plans', query: 'Tell me about the unit plans' },
             ]
           : step === 'form'
             ? [{ label: 'Someone should call me', query: 'Please have someone call me' }]

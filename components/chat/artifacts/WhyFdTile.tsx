@@ -20,7 +20,7 @@ export default function WhyFdTile() {
         { label: 'Compare projects', query: 'Compare ASBL Loft with other FD projects' },
         { label: 'Price trends', query: 'Show me the FD price trends' },
         { label: 'Rental offer', query: 'Tell me about the rental offer' },
-        { label: 'Unit plans', query: 'Show me the 3BHK unit floor plans' },
+        { label: 'Unit plans', query: 'Show me the 3BHK unit plans' },
       ]}
     >
       <div style={{ padding: 26 }}>

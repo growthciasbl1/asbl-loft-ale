@@ -396,7 +396,7 @@ export default function VisitTile({
         relatedAsks={[
           { label: 'Rental offer', query: 'Tell me about the rental offer' },
           { label: 'Price breakdown', query: 'Show me the price breakdown' },
-          { label: 'Floor plans', query: 'Tell me about the floor plans' },
+          { label: 'Unit plans', query: 'Tell me about the unit plans' },
         ]}
       >
         <div
