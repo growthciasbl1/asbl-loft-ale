@@ -18,10 +18,13 @@ interface Props {
 
 type SlideState = 'active' | 'exiting' | 'entering' | 'idle';
 
-export default function FloorPlanCarousel({ slides, autoPlayMs = 3000 }: Props) {
+export default function FloorPlanCarousel({ slides, autoPlayMs = 8000 }: Props) {
   const [active, setActive] = useState(0);
   const [prev, setPrev] = useState<number | null>(null);
   const [lightbox, setLightbox] = useState(false);
+  // `paused` = visitor has interacted (click/arrow/dot). Once true, auto-cycle
+  // stops permanently for this mount — user is now driving.
+  const [paused, setPaused] = useState(false);
   const timer = useRef<number | null>(null);
 
   const go = (next: number) => {
@@ -31,19 +34,27 @@ export default function FloorPlanCarousel({ slides, autoPlayMs = 3000 }: Props) 
     setActive(n);
   };
 
+  /** Visitor-initiated navigation — stops auto-cycle for the rest of the session. */
+  const userGo = (next: number) => {
+    setPaused(true);
+    go(next);
+  };
+
   const resetTimer = () => {
     if (timer.current) window.clearInterval(timer.current);
+    if (paused) return;
     timer.current = window.setInterval(() => go(active + 1), autoPlayMs);
   };
 
   useEffect(() => {
+    if (paused) return;
     const start = window.setTimeout(() => resetTimer(), 400);
     return () => {
       window.clearTimeout(start);
       if (timer.current) window.clearInterval(timer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [paused]);
 
   useEffect(() => {
     resetTimer();
@@ -51,7 +62,16 @@ export default function FloorPlanCarousel({ slides, autoPlayMs = 3000 }: Props) 
       if (timer.current) window.clearInterval(timer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active]);
+  }, [active, paused]);
+
+  // When slide set swaps (e.g. size toggle 1695 → 1870), reset to first slide
+  // and resume auto-cycle — this is a fresh context.
+  useEffect(() => {
+    setActive(0);
+    setPrev(null);
+    setPaused(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slides.length, slides[0]?.key]);
 
   const slideState = (i: number): SlideState => {
     if (i === active) return 'active';
@@ -199,7 +219,7 @@ export default function FloorPlanCarousel({ slides, autoPlayMs = 3000 }: Props) 
                   direction: a.dir === -1 ? 'prev' : 'next',
                   via: 'arrow',
                 });
-                go(active + a.dir);
+                userGo(active + a.dir);
               }}
               aria-label={a.dir === -1 ? 'Previous' : 'Next'}
               style={{
@@ -246,7 +266,7 @@ export default function FloorPlanCarousel({ slides, autoPlayMs = 3000 }: Props) 
             key={s.key}
             onClick={() => {
               track('click', 'carousel_nav', { target: s.key, via: 'dot' });
-              go(i);
+              userGo(i);
             }}
             aria-label={`Go to ${s.label}`}
             style={{
@@ -266,7 +286,7 @@ export default function FloorPlanCarousel({ slides, autoPlayMs = 3000 }: Props) 
         open={lightbox}
         images={slides.map((s) => ({ src: s.img, label: s.label.toUpperCase() }))}
         activeIndex={active}
-        onChange={go}
+        onChange={userGo}
         onClose={() => setLightbox(false)}
       />
     </>
