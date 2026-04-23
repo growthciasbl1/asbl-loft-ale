@@ -753,20 +753,47 @@ export async function routeWithLLM(
 ): Promise<RouterResult | null> {
   if (!hasLLM()) return null;
 
-  const ctxLines: string[] = [];
+  // Real-time context injected on every call. Critical: the model has a
+  // training cut-off and would otherwise confidently answer "July 2024" to
+  // "what's today's date". Injecting the server's current date here gives
+  // Gemini ground truth to anchor time-sensitive answers (offer end dates,
+  // possession timelines, "now" references).
+  const now = new Date();
+  const istDate = now.toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    weekday: 'long',
+    timeZone: 'Asia/Kolkata',
+  });
+  const istTime = now.toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'Asia/Kolkata',
+  });
+
+  const ctxLines: string[] = [
+    `Today is ${istDate}, ${istTime} IST. Use this as the authoritative current date/time — do NOT rely on any date from your training.`,
+  ];
   if (ctx.campaign && ctx.campaign !== 'default')
     ctxLines.push(`Visitor arrived from campaign: ${ctx.campaign}.`);
   if (ctx.seenArtifacts?.length)
     ctxLines.push(`Already shown (most recent first): ${ctx.seenArtifacts.join(', ')}.`);
   if (ctx.pinnedUnits?.length)
     ctxLines.push(`User has pinned: ${ctx.pinnedUnits.join(', ')}.`);
-  const sessionBlock = ctxLines.length ? `\n\nSession context:\n${ctxLines.join('\n')}` : '';
+  const sessionBlock = `[SESSION CONTEXT]\n${ctxLines.join('\n')}\n\n[USER MESSAGE]\n`;
 
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+    // IMPORTANT: keep systemInstruction = SYSTEM_PROMPT only (static, fully
+    // cacheable by Gemini's implicit cache). Dynamic context like current
+    // date + campaign + seen artifacts gets prepended to the current
+    // user turn instead — otherwise every call has a unique prompt prefix
+    // and cache hit rate drops to zero, multiplying our monthly cost 3-4x.
     const model = genAI.getGenerativeModel({
       model: MODEL,
-      systemInstruction: SYSTEM_PROMPT + sessionBlock,
+      systemInstruction: SYSTEM_PROMPT,
       tools: [{ functionDeclarations: [renderArtifactDecl, emitBuyerSignalDecl] }],
       toolConfig: { functionCallingConfig: { mode: FunctionCallingMode.AUTO } },
       generationConfig: { temperature: 0.35 },
@@ -786,7 +813,7 @@ export async function routeWithLLM(
 
     const contents = [
       ...priorTurns,
-      { role: 'user', parts: [{ text: query }] },
+      { role: 'user', parts: [{ text: sessionBlock + query }] },
     ];
 
     const result = await model.generateContent({ contents });
