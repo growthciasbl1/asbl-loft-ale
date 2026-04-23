@@ -12,11 +12,15 @@ interface Props {
   reason: string;
   preview?: React.ReactNode;
   preferredChannel?: Channel;
+  /** When true, drop LeadGate's own card chrome (border / radius / shadow / bg).
+   *  Use when nesting LeadGate inside another tile that already has the
+   *  container (e.g. PriceTile inline unlock) to avoid a double-card look. */
+  flush?: boolean;
 }
 
 type Step = 'form' | 'otp' | 'done';
 
-export default function LeadGate({ children, reason, preview, preferredChannel = 'whatsapp' }: Props) {
+export default function LeadGate({ children, reason, preview, preferredChannel = 'whatsapp', flush = false }: Props) {
   const lead = useChatStore((s) => s.lead);
   const setLead = useChatStore((s) => s.setLead);
 
@@ -170,13 +174,17 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
   // ───── RENDER ─────
   return (
     <div
-      style={{
-        background: '#fff',
-        border: '1px solid var(--border)',
-        borderRadius: 16,
-        overflow: 'hidden',
-        boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
-      }}
+      style={
+        flush
+          ? { overflow: 'hidden' }
+          : {
+              background: '#fff',
+              border: '1px solid var(--border)',
+              borderRadius: 16,
+              overflow: 'hidden',
+              boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
+            }
+      }
     >
       {preview && (
         <div style={{ position: 'relative' }}>

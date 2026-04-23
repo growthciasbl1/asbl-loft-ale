@@ -159,7 +159,7 @@ function BudgetHomeInner() {
           {[
             {
               t: '10% booking',
-              b: 'Just ₹1.94L (Bajaj) or ₹2.15L to lock your unit. Rest follows a fixed 5-milestone schedule.',
+              b: 'Just ₹10 L with Bajaj Housing Finance, or 10% (₹19.4 L for 1,695 sqft / ₹21.5 L for 1,870 sqft) with standard banks. Rest follows a fixed 5-milestone schedule.',
             },
             {
               t: 'Pre-EMI till handover',

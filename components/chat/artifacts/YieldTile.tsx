@@ -7,7 +7,7 @@ export default function YieldTile() {
     <TileShell
       eyebrow="Rental yield · realistic"
       title="₹75K – ₹85K/month · ~5% gross"
-      sub="FD 3BHKs today · plus ASBL's ₹50/sqft rental offer till Dec 2026"
+      sub="FD 3BHKs today · plus ASBL's Assured Rental Offer of ₹85,000/mo (1,695 sqft) till Dec 2026"
       icon={
         <TileIcon>
           <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--plum)" strokeWidth={1.5}>
@@ -69,16 +69,17 @@ export default function YieldTile() {
                 fontWeight: 500,
               }}
             >
-              ASBL rental offer
+              ASBL Assured Rental Offer
             </div>
             <div
               className="serif"
               style={{ fontSize: 22, marginTop: 4, fontWeight: 500, color: 'var(--plum-dark)' }}
             >
-              ₹50/sqft <span style={{ fontSize: 13 }}>/mo</span>
+              ₹85K <span style={{ fontSize: 13, color: 'var(--mid-gray)' }}>/</span> ₹95K
+              <span style={{ fontSize: 13 }}>/mo</span>
             </div>
             <div style={{ fontSize: 11, color: 'var(--plum-dark)', marginTop: 4 }}>
-              Till 31 Dec 2026 · direct from ASBL
+              1,695 / 1,870 sqft · till 31 Dec 2026 · direct from ASBL
             </div>
           </div>
         </div>

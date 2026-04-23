@@ -75,7 +75,7 @@ export default function PriceTile() {
 
       {/* Inline-gated: GST + Other charges + All-in */}
       <div style={{ padding: '6px 0 0' }}>
-        <LeadGate reason="Unlock full cost breakdown" preview={basePreview}>
+        <LeadGate reason="Unlock full cost breakdown" preview={basePreview} flush>
           <div style={{ padding: '6px 26px' }}>
             <TileRow label="GST (5%)" value="₹9,70,000" note="₹9.70 L" />
             <TileRow

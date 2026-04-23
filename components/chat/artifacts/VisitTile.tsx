@@ -1100,15 +1100,22 @@ export default function VisitTile({
               opacity: canSubmit && !submitting ? 1 : 0.5,
             }}
           >
-            {submitting
-              ? alreadyVerified && !editingIdentity
-                ? 'Confirming…'
-                : 'Sending OTP…'
-              : selectedSlot
-                ? alreadyVerified && !editingIdentity
-                  ? `Confirm ${bookingLabelFor(bookingType).toLowerCase()} · ${selectedSlot.label}`
-                  : `Verify & confirm ${bookingLabelFor(bookingType).toLowerCase()} · ${selectedSlot.label}`
-                : 'Pick a date & time'}
+            {(() => {
+              if (submitting) {
+                return alreadyVerified && !editingIdentity ? 'Confirming…' : 'Sending OTP…';
+              }
+              // Call-back path: no slot required, callPref always set.
+              if (bookingType === 'call_back') {
+                const label = callPrefLabel(callPref).toLowerCase();
+                return alreadyVerified && !editingIdentity
+                  ? `Confirm · ${label}`
+                  : `Verify & confirm · ${label}`;
+              }
+              if (!selectedSlot) return 'Pick a date & time';
+              return alreadyVerified && !editingIdentity
+                ? `Confirm ${bookingLabelFor(bookingType).toLowerCase()} · ${selectedSlot.label}`
+                : `Verify & confirm ${bookingLabelFor(bookingType).toLowerCase()} · ${selectedSlot.label}`;
+            })()}
           </button>
         </form>
       ) : (

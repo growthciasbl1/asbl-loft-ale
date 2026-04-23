@@ -39,6 +39,9 @@ export interface RouterResult {
   preferredChannel?: 'whatsapp' | 'call';
   /** For visit artifact: pre-select booking type. */
   initialBookingType?: 'site_visit' | 'call_back';
+  /** For schools artifact: whether the query is hospital-first so the tile can
+   *  surface healthcare before schools (doc 2.25). */
+  focus?: 'schools' | 'hospitals';
   /** Parsed <signal> payload from LLM. API-layer saves this to Mongo and strips before returning to frontend. */
   signal?: Record<string, unknown> | null;
   /** Token usage metadata from LLM. API-layer saves this to llm_usage collection and strips before returning to frontend. */
@@ -235,12 +238,24 @@ export function routeQuery(q: string): RouterResult {
     };
   }
 
+  // Hospitals — runs BEFORE schools so "hospital" / "doctor" / "medical"
+  // queries surface the healthcare strip first (doc 2.25).
+  if (/hospital|doctor|clinic|medical|emergency|healthcare|health\s*care/.test(ql)) {
+    return {
+      text: `<p>Continental, Apollo and Star Hospitals are all 5 minutes away. Care and AIG reach in 15.</p>`,
+      artifact: 'schools',
+      artifactLabel: 'Hospitals · 5-min radius',
+      focus: 'hospitals',
+    };
+  }
+
   // Schools
   if (/school|kid|children|cbse|ib\b|icse|education|kg\b|creche|day[-\s]?care/.test(ql)) {
     return {
       text: `<p>Six K–12 schools within a 12-minute drive. Honest fee brackets below so you can shortlist.</p>`,
       artifact: 'schools',
       artifactLabel: 'Schools · 12-min radius',
+      focus: 'schools',
     };
   }
 
@@ -282,7 +297,7 @@ export function routeQuery(q: string): RouterResult {
 
   if (/yield|rent|roi|return|cash\s*flow|rental\s*income/.test(ql)) {
     return {
-      text: `<p>FD 3BHKs lease in the <strong>₹75,000 – ₹85,000/mo</strong> range. At ₹1.94 Cr base for 1,695 sqft, that&apos;s roughly <strong>5% gross yield</strong> — and our <strong>₹50/sqft rental guarantee till Dec 2026</strong> locks ~₹85K/mo on top of whatever the open market pays. Book with just ₹10 L.</p>`,
+      text: `<p>FD 3BHKs lease in the <strong>₹75,000 – ₹85,000/mo</strong> range. At ₹1.94 Cr base for 1,695 sqft, that&apos;s roughly <strong>5% gross yield</strong> — and ASBL&apos;s Assured Rental Offer pays a direct <strong>₹85,000/month</strong> (1,695 sqft) or <strong>₹95,000/month</strong> (1,870 sqft) till 31 December 2026 on top of open-market potential. Book with just ₹10 L.</p>`,
       artifact: 'rental_offer',
       artifactLabel: 'Rental yield · with rental offer',
     };

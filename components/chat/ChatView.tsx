@@ -50,6 +50,7 @@ interface Message {
   originalQuery?: string;
   preferredChannel?: 'whatsapp' | 'call';
   initialBookingType?: 'site_visit' | 'call_back';
+  focus?: 'schools' | 'hospitals';
 }
 
 function renderArtifact(m: Message) {
@@ -87,7 +88,7 @@ function renderArtifact(m: Message) {
     case 'plans':
       return <PlansTile />;
     case 'schools':
-      return <SchoolsTile />;
+      return <SchoolsTile focus={m.focus} />;
     case 'visit':
       return (
         <VisitTile
@@ -283,6 +284,7 @@ export default function ChatView() {
       originalQuery: result.originalQuery,
       preferredChannel: result.preferredChannel,
       initialBookingType: result.initialBookingType,
+      focus: result.focus,
     };
     setMessages((m) => [...m, botMsg]);
     track('view', 'bot_response', {
