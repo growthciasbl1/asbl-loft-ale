@@ -22,7 +22,7 @@ export default function PlansTile() {
       eyebrow="Payment plans · decoded"
       title="Start smallest, win biggest"
       sub="Bajaj starts at 5.5% down — lowest on any premium FD project."
-      footer={<>Schedule is construction-linked. Pre-EMI applies on disbursed portion only.</>}
+      footer={<>Fixed 5-milestone schedule (both BHFL and standard banks). Pre-EMI applies on disbursed portion only.</>}
       askMore={{
         label: 'Start pre-approval',
         query: 'Start 3-minute pre-approval with HDFC, SBI and Bajaj',

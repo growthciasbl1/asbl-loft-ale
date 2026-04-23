@@ -57,7 +57,7 @@ const CATALOG: ShareAsset[] = [
     title: 'Bajaj Housing Finance Payment Plan',
     url: '/share/Loft-Payment-Bajaj.pdf',
     keywords: /bajaj|bhfl|housing\s*finance|10\s*l(akh)?\s*booking|low\s*entry|bhajaj/i,
-    caption: 'BHFL payment plan - Rs.10 L booking, construction-linked.',
+    caption: 'BHFL payment plan - Rs.10 L booking, fixed 5-milestone schedule.',
   },
   {
     id: 'payment_other',

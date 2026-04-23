@@ -229,7 +229,7 @@ export function routeQuery(q: string): RouterResult {
   // Payment schedule
   if (/payment\s*plan|payment\s*schedule|first\s*cheque|bajaj|booking\s*amount|installment|construction[-\s]?linked/.test(ql)) {
     return {
-      text: `<p>Two approved structures. <strong>Bajaj starts at 5.5% down</strong>, standard banks at 10%. Rest is construction-linked.</p>`,
+      text: `<p>Two approved structures. <strong>Bajaj starts at 5.5% down (₹10 L)</strong>, standard banks at 10% (₹19.4 L). Both follow a fixed 5-milestone schedule till handover.</p>`,
       artifact: 'plans',
       artifactLabel: 'Payment schedule',
     };
@@ -274,7 +274,7 @@ export function routeQuery(q: string): RouterResult {
   // Rental offer — headline, ₹85K/mo guaranteed on ₹10L booking till Dec 2026
   if (/rental\s*offer|guaranteed\s*rent|rent\s*offer|85k|85,000|assured\s*rent|rental\s*scheme|10l.*book|book.*10l|10\s*lakh.*book/i.test(q)) {
     return {
-      text: `<p>Here&apos;s the headline: book at just <strong>₹10 L</strong> and earn a guaranteed <strong>₹50/sqft/month</strong> till 31 December 2026. For a 1,695 sqft East, that&apos;s <strong>~₹84,750/mo</strong>; for 1,870 sqft it&apos;s ~₹93,500/mo.</p>`,
+      text: `<p>Here&apos;s the headline: book at just <strong>₹10 L</strong> and earn a guaranteed rental income directly from ASBL till 31 December 2026. For a 1,695 sqft unit, that&apos;s <strong>₹85,000/month</strong>; for 1,870 sqft it&apos;s <strong>₹95,000/month</strong>. TDS applicable as per government rules.</p>`,
       artifact: 'rental_offer',
       artifactLabel: 'Rental offer · ₹85K/mo till Dec 2026',
     };

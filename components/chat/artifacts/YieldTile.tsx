@@ -109,7 +109,7 @@ export default function YieldTile() {
             ~5.0% – 5.3% <span style={{ fontSize: 13, color: 'var(--mid-gray)' }}>per annum</span>
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--mid-gray)', marginTop: 4 }}>
-            Before appreciation. The ₹50/sqft offer alone pays ~₹84,750/mo on 1,695 sqft.
+            Before appreciation. The ASBL offer pays ₹85,000/month on 1,695 sqft (₹95,000 on 1,870) till 31 December 2026.
           </div>
         </div>
       </div>
