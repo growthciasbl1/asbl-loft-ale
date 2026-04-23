@@ -4,6 +4,7 @@ import type { LeadBooking, LeadGeo } from '@/lib/db/schemas';
 import { wasRecentlyVerified, getLastOtpSender } from '@/lib/otp/store';
 import { normalisePhone, sendWhatsApp } from '@/lib/wa/periskope';
 import { resolveVisitor, attachLeadToVisitor } from '@/lib/db/visitors';
+import { getPersonByPhone, attachLeadToPerson } from '@/lib/db/persons';
 import { ObjectId } from 'mongodb';
 
 export const runtime = 'nodejs';
@@ -96,25 +97,30 @@ export async function POST(req: NextRequest) {
       ? body.webTracker as WebTrackerPayload
       : {};
 
-    // Visitor attribution — read UTM from the visitors collection if this
-    // browser has one. Priority order for each field:
-    //   form-supplied > client webTracker > visitor.lastUtm > visitor.firstUtm
-    // This means if visitor came in via a paid WhatsApp campaign, browsed,
-    // then converted via direct return — the paid campaign still gets the
-    // attribution (because it's captured in firstUtm / lastUtm from the
-    // earliest visits).
+    // Attribution reconciliation — priority order:
+    //   form-supplied > client webTracker > person.lastUtm > person.firstUtm
+    //     > visitor.lastUtm > visitor.firstUtm
+    //
+    // The `persons` collection is the authoritative cross-device source for
+    // a phone-identified human. It accumulates UTM history across every
+    // browser they've ever used. Falls back to visitor-level data only when
+    // the person record doesn't exist yet (first-ever submission).
     const visitorId = typeof body?.visitorId === 'string' ? body.visitorId : null;
     const visitor = visitorId ? await resolveVisitor(visitorId) : null;
-    const visitorUtm = visitor?.lastUtm ?? visitor?.firstUtm ?? null;
+    const phoneForPerson = normalisePhone(String(body?.phone ?? ''));
+    const person = phoneForPerson ? await getPersonByPhone(phoneForPerson) : null;
+
+    const utmLast = person?.lastUtm ?? visitor?.lastUtm ?? null;
+    const utmFirst = person?.firstUtm ?? visitor?.firstUtm ?? null;
 
     const utmSource =
-      body.utmSource ?? tracker.utm_source ?? visitorUtm?.source ?? null;
+      body.utmSource ?? tracker.utm_source ?? utmLast?.source ?? utmFirst?.source ?? null;
     const utmCampaign =
-      body.utmCampaign ?? tracker.utm_campaign ?? visitorUtm?.campaign ?? null;
+      body.utmCampaign ?? tracker.utm_campaign ?? utmLast?.campaign ?? utmFirst?.campaign ?? null;
     const utmMedium =
-      body.utmMedium ?? tracker.utm_medium ?? visitorUtm?.medium ?? null;
-    const utmContent = tracker.utm_content ?? visitorUtm?.content ?? null;
-    const utmTerm = tracker.utm_term ?? visitorUtm?.term ?? null;
+      body.utmMedium ?? tracker.utm_medium ?? utmLast?.medium ?? utmFirst?.medium ?? null;
+    const utmContent = tracker.utm_content ?? utmLast?.content ?? utmFirst?.content ?? null;
+    const utmTerm = tracker.utm_term ?? utmLast?.term ?? utmFirst?.term ?? null;
 
     const booking =
       body.booking && typeof body.booking === 'object'
@@ -168,10 +174,19 @@ export async function POST(req: NextRequest) {
     });
 
     // Link the visitor record to this lead so analytics can pivot the
-    // other way (visitorId \u2192 leadId). Best-effort, non-blocking.
+    // other way (visitorId → leadId). Best-effort, non-blocking.
     if (leadId && visitorId) {
       attachLeadToVisitor(visitorId, new ObjectId(leadId)).catch((err) =>
         console.warn('[webhook] attachLeadToVisitor failed:', err),
+      );
+    }
+
+    // Also attach to the phone-scoped Person (cross-device aggregation).
+    // This is what makes a sales dashboard able to say "Rahul (phone X) has
+    // submitted 3 leads, across 2 browsers, from these campaigns..."
+    if (leadId && phoneForPerson) {
+      attachLeadToPerson(phoneForPerson, new ObjectId(leadId)).catch((err) =>
+        console.warn('[webhook] attachLeadToPerson failed:', err),
       );
     }
 
@@ -191,19 +206,26 @@ export async function POST(req: NextRequest) {
       utm_campaign: utmCampaign,
       utm_content: utmContent,
       utm_term: utmTerm,
-      // First-touch attribution from the visitors collection \u2014 where did
-      // they ORIGINALLY come in from? Useful for multi-touch dashboards.
-      first_touch_source: visitor?.firstUtm?.source ?? null,
-      first_touch_medium: visitor?.firstUtm?.medium ?? null,
-      first_touch_campaign: visitor?.firstUtm?.campaign ?? null,
-      first_touch_content: visitor?.firstUtm?.content ?? null,
-      first_touch_term: visitor?.firstUtm?.term ?? null,
-      first_touch_landing_path: visitor?.firstUtm?.landingPath ?? null,
-      first_touch_at: visitor?.firstUtm?.at ?? null,
+      // First-touch attribution at the PERSON level (cross-device) \u2014
+      // preferred over visitor-level because it accumulates across all
+      // browsers the same phone has ever used.
+      first_touch_source: utmFirst?.source ?? null,
+      first_touch_medium: utmFirst?.medium ?? null,
+      first_touch_campaign: utmFirst?.campaign ?? null,
+      first_touch_content: utmFirst?.content ?? null,
+      first_touch_term: utmFirst?.term ?? null,
+      first_touch_landing_path: utmFirst?.landingPath ?? null,
+      first_touch_at: utmFirst?.at ?? null,
       visitor_id: visitorId ?? null,
-      visitor_global_id: visitor?.globalId ?? null,
+      visitor_global_id: person?.globalId ?? visitor?.globalId ?? null,
       visitor_visit_count: visitor?.visitCount ?? null,
       visitor_first_seen_at: visitor?.firstSeenAt ?? null,
+      // Person-level aggregation \u2014 "How many times has this human shown up?"
+      person_total_visits: person?.visitCount ?? null,
+      person_first_seen_at: person?.firstSeenAt ?? null,
+      person_device_count: person?.visitorIds?.length ?? null,
+      person_prior_lead_count: person?.leadIds?.length ?? null,
+      person_utm_history_count: person?.utmHistory?.length ?? null,
       first_page_visited: tracker.first_page_visited ?? null,
       last_page_visited: tracker.last_page_visited ?? null,
       total_page_views: tracker.total_page_views ?? null,

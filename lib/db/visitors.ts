@@ -116,6 +116,20 @@ export async function touchVisitor(input: {
             : {}),
         },
       );
+
+      // Cross-device attribution: if this browser is already linked to a
+      // known person (phoneE164 + globalId set from a prior OTP verify),
+      // push the fresh UTM up to the person level too — so when they later
+      // submit another lead, the full campaign journey is available.
+      if (snap && existing.phoneE164 && existing.globalId) {
+        try {
+          const { appendPersonUtm } = await import('./persons');
+          await appendPersonUtm(existing.phoneE164, snap);
+        } catch (err) {
+          console.error('[db/visitors] appendPersonUtm failed:', err);
+        }
+      }
+
       return { ...existing, lastSeenAt: now, visitCount: existing.visitCount + 1 };
     }
 
@@ -147,6 +161,9 @@ export async function touchVisitor(input: {
 /**
  * Called when a visitor verifies their phone — links visitorId → phone/globalId.
  * If another visitor already exists with the same phone, they share the globalId.
+ * ALSO upserts the phone-scoped `persons` record so cross-device attribution
+ * works: all browsers for the same phone merge into one Person with the
+ * full utmHistory across sessions.
  */
 export async function linkVisitorPhone(input: {
   visitorId: string;
@@ -169,6 +186,10 @@ export async function linkVisitorPhone(input: {
   } else {
     globalId = `g-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
   }
+
+  // Read THIS visitor's UTM state before we write — we'll propagate it up
+  // to the person-level record so the cross-device utmHistory builds up.
+  const thisVisitor = await col.findOne({ visitorId: input.visitorId });
 
   await col.updateOne(
     { visitorId: input.visitorId },
@@ -195,6 +216,23 @@ export async function linkVisitorPhone(input: {
     },
     { upsert: true },
   );
+
+  // Upsert the person-level record. Import lazily to avoid circular import.
+  try {
+    const { upsertPerson } = await import('./persons');
+    await upsertPerson({
+      globalId,
+      phoneE164: input.phoneE164,
+      name: input.name,
+      email: input.email ?? null,
+      preferredChannel: input.preferredChannel ?? null,
+      visitorId: input.visitorId,
+      visitorFirstUtm: thisVisitor?.firstUtm ?? null,
+      visitorLastUtm: thisVisitor?.lastUtm ?? null,
+    });
+  } catch (err) {
+    console.error('[db/visitors] upsertPerson failed:', err);
+  }
 
   return { globalId, isReturningUser };
 }
