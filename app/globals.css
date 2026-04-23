@@ -86,12 +86,18 @@ textarea {
 ::-webkit-scrollbar-thumb:hover { background: var(--light-gray); }
 
 /* ── Typography utilities ───────────────────── */
+/* color intentionally inherits — when these classes appear inside a dark
+   parent (plum / ink / sienna-soft), the parent's color cascades through.
+   If a component wants explicit charcoal, set color: var(--charcoal)
+   inline. Previously this rule hardcoded charcoal, causing dark text on
+   dark backgrounds in several hero tiles (rental offer, commute pick,
+   resale cards). */
 .serif,
 .display {
   font-family: 'Playfair Display', Georgia, serif;
   font-weight: 500;
   letter-spacing: -0.01em;
-  color: var(--charcoal);
+  color: inherit;
 }
 .mono {
   font-family: 'DM Sans', sans-serif;

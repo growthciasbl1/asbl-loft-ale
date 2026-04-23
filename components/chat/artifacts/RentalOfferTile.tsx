@@ -106,7 +106,7 @@ export default function RentalOfferTile() {
           </div>
           <div
             className="serif"
-            style={{ fontSize: 34, fontWeight: 500, lineHeight: 1, marginTop: 4 }}
+            style={{ fontSize: 34, fontWeight: 500, lineHeight: 1, marginTop: 4, color: '#fff' }}
           >
             ₹{monthly.toLocaleString('en-IN')}
           </div>
@@ -127,7 +127,7 @@ export default function RentalOfferTile() {
           </div>
           <div
             className="serif"
-            style={{ fontSize: 34, fontWeight: 500, lineHeight: 1, marginTop: 4 }}
+            style={{ fontSize: 34, fontWeight: 500, lineHeight: 1, marginTop: 4, color: '#fff' }}
           >
             31 Dec 26
           </div>

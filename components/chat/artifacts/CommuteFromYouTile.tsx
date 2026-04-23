@@ -271,7 +271,10 @@ export default function CommuteFromYouTile() {
                 >
                   ASBL Loft
                 </div>
-                <div className="display" style={{ fontSize: 28, lineHeight: 1, marginTop: 4 }}>
+                <div
+                  className="display"
+                  style={{ fontSize: 28, lineHeight: 1, marginTop: 4, color: '#f5f1e8' }}
+                >
                   {math.toLoft}
                   <span style={{ fontSize: 12, opacity: 0.7, marginLeft: 3 }}>min</span>
                 </div>
