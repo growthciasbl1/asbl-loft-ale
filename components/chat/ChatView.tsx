@@ -31,6 +31,7 @@ import LeadGate from './LeadGate';
 import { AskContext, useAsk } from './AskContext';
 import { track } from '@/lib/analytics/tracker';
 import { useTrackView } from '@/lib/analytics/useTrackView';
+import { getOrCreateVisitorId } from '@/lib/analytics/visitorId';
 
 type MessageRole = 'user' | 'bot';
 
@@ -136,6 +137,44 @@ export default function ChatView() {
     track('view', 'chat_view', { campaign: campaign.key, initialQuery: initialQ || null });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [campaign.key, setCampaign]);
+
+  // Resolve visitor identity on chat load — if returning and verified, auto-fill the lead
+  // so LeadGate never prompts again. Also bumps lastSeenAt + visitCount.
+  const setLead = useChatStore((s) => s.setLead);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const visitorId = getOrCreateVisitorId();
+    const urlParams = new URLSearchParams(params?.toString() ?? '');
+    fetch('/api/visitor/resolve', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        visitorId,
+        utm: {
+          source: urlParams.get('utm_source'),
+          campaign: urlParams.get('utm_campaign'),
+          medium: urlParams.get('utm_medium'),
+        },
+      }),
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data?.verified && data.lead?.phoneE164 && data.lead?.name) {
+          setLead({
+            name: data.lead.name,
+            phone: data.lead.phoneE164,
+            email: data.lead.email ?? undefined,
+            source: 'returning-user',
+          });
+          track('view', 'returning_user_auto_unlocked', {
+            visitCount: data.visitCount,
+            globalId: data.lead.globalId,
+          });
+        }
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (initRef.current) return;

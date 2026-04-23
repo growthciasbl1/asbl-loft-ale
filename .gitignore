@@ -10,3 +10,8 @@ npm-debug.log*
 .vercel
 next-env.d.ts
 tsconfig.tsbuildinfo
+
+# Firebase Admin SDK service account keys — NEVER commit
+*firebase-adminsdk*.json
+serviceAccountKey.json
+*-service-account*.json
