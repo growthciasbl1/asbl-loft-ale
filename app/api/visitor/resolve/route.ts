@@ -1,16 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { touchVisitor, resolveVisitor } from '@/lib/db/visitors';
+import { touchVisitor, resolveVisitor, type UtmInput } from '@/lib/db/visitors';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+function pickString(v: unknown): string | null {
+  if (typeof v !== 'string') return null;
+  const trimmed = v.trim();
+  return trimmed && trimmed.length <= 200 ? trimmed : null;
+}
+
 /**
- * Called when the chat loads. Given a browser-scoped visitorId, returns the
- * persisted lead data (if any) so the UI can skip the lead form for
- * returning users. Also updates lastSeenAt + visit count.
+ * Called on every page load (homepage, chat, variant routes). Given a
+ * browser-scoped visitorId + current URL UTM params + referrer, touches
+ * the visitors collection.
  *
- * Body: { visitorId: string, utm?: {...}, conversationId?: string }
- * Response: { exists: boolean, verified: boolean, lead?: {name, phoneE164, ...} }
+ * Attribution model is first-touch + last-touch + full history (see
+ * touchVisitor in lib/db/visitors.ts).
+ *
+ * Body: {
+ *   visitorId: string,
+ *   utm?: { source, medium, campaign, content, term },
+ *   referrer?: string,
+ *   landingPath?: string,
+ *   conversationId?: string,
+ * }
  */
 export async function POST(req: NextRequest) {
   try {
@@ -20,20 +34,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'invalid visitorId' }, { status: 400 });
     }
 
-    const utm = body?.utm && typeof body.utm === 'object' ? body.utm : undefined;
-    const conversationId =
-      typeof body?.conversationId === 'string' ? body.conversationId : null;
+    const utmRaw = body?.utm && typeof body.utm === 'object' ? body.utm : {};
+    const utm: UtmInput = {
+      source: pickString(utmRaw.source),
+      medium: pickString(utmRaw.medium),
+      campaign: pickString(utmRaw.campaign),
+      content: pickString(utmRaw.content),
+      term: pickString(utmRaw.term),
+      referrer: pickString(body?.referrer),
+      landingPath: pickString(body?.landingPath),
+    };
 
-    // Touch first so a brand-new visitor gets inserted.
+    const conversationId = pickString(body?.conversationId);
+
     await touchVisitor({
       visitorId,
-      utm: utm
-        ? {
-            source: typeof utm.source === 'string' ? utm.source : null,
-            campaign: typeof utm.campaign === 'string' ? utm.campaign : null,
-            medium: typeof utm.medium === 'string' ? utm.medium : null,
-          }
-        : undefined,
+      utm,
       conversationId,
     });
 
@@ -48,6 +64,8 @@ export async function POST(req: NextRequest) {
       verified: !!visitor.verifiedAt,
       visitCount: visitor.visitCount,
       firstSeenAt: visitor.firstSeenAt,
+      firstUtm: visitor.firstUtm,
+      lastUtm: visitor.lastUtm,
       lead: visitor.verifiedAt
         ? {
             name: visitor.name,

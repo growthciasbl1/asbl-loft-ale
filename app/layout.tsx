@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import VisitorBootstrap from '@/components/VisitorBootstrap';
 
 export const metadata: Metadata = {
   title: 'ASBL LOFT — Ask Anything',
@@ -21,7 +22,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             Forms then read `asbl_track` and forward to our /api/webhook → Zoho CRM. */}
         <script src="https://asbl-crm-api.vercel.app/tracker.js" defer />
       </head>
-      <body>{children}</body>
+      <body>
+        <VisitorBootstrap />
+        {children}
+      </body>
     </html>
   );
 }

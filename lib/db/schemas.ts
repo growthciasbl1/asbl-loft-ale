@@ -56,14 +56,27 @@ export interface LeadDoc {
   reason?: string;
   initialQuery?: string;
   currentQuery?: string;
+  // Attribution — reconciled across form input, client tracker, and the
+  // visitors collection's first-touch/last-touch record
   utmSource?: string;
-  utmCampaign?: string;
   utmMedium?: string;
+  utmCampaign?: string;
+  utmContent?: string;
+  utmTerm?: string;
+  referrer?: string;
+  landingPath?: string;
+  firstPageVisited?: string;
+  lastPageVisited?: string;
+  totalPageViews?: number;
+  timeSpentMinutes?: number;
   preferredChannel?: 'whatsapp' | 'call';
   booking?: LeadBooking | null;
   geo?: LeadGeo | null;
   pinnedUnitIds?: string[];
   conversationId?: string;
+  visitorId?: string;
+  globalId?: string | null;
+  otpVerified?: boolean;
   crmPushedAt?: Date;
   crmResponse?: unknown;
   createdAt: Date;

@@ -3,6 +3,8 @@ import { insertLead, markLeadCrmPushed } from '@/lib/db/leads';
 import type { LeadBooking, LeadGeo } from '@/lib/db/schemas';
 import { wasRecentlyVerified, getLastOtpSender } from '@/lib/otp/store';
 import { normalisePhone, sendWhatsApp } from '@/lib/wa/periskope';
+import { resolveVisitor, attachLeadToVisitor } from '@/lib/db/visitors';
+import { ObjectId } from 'mongodb';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -94,12 +96,25 @@ export async function POST(req: NextRequest) {
       ? body.webTracker as WebTrackerPayload
       : {};
 
-    // UTMs: form-supplied beats tracker-supplied beats empty
-    const utmSource = body.utmSource ?? tracker.utm_source ?? null;
-    const utmCampaign = body.utmCampaign ?? tracker.utm_campaign ?? null;
-    const utmMedium = body.utmMedium ?? tracker.utm_medium ?? null;
-    const utmContent = tracker.utm_content ?? null;
-    const utmTerm = tracker.utm_term ?? null;
+    // Visitor attribution — read UTM from the visitors collection if this
+    // browser has one. Priority order for each field:
+    //   form-supplied > client webTracker > visitor.lastUtm > visitor.firstUtm
+    // This means if visitor came in via a paid WhatsApp campaign, browsed,
+    // then converted via direct return — the paid campaign still gets the
+    // attribution (because it's captured in firstUtm / lastUtm from the
+    // earliest visits).
+    const visitorId = typeof body?.visitorId === 'string' ? body.visitorId : null;
+    const visitor = visitorId ? await resolveVisitor(visitorId) : null;
+    const visitorUtm = visitor?.lastUtm ?? visitor?.firstUtm ?? null;
+
+    const utmSource =
+      body.utmSource ?? tracker.utm_source ?? visitorUtm?.source ?? null;
+    const utmCampaign =
+      body.utmCampaign ?? tracker.utm_campaign ?? visitorUtm?.campaign ?? null;
+    const utmMedium =
+      body.utmMedium ?? tracker.utm_medium ?? visitorUtm?.medium ?? null;
+    const utmContent = tracker.utm_content ?? visitorUtm?.content ?? null;
+    const utmTerm = tracker.utm_term ?? visitorUtm?.term ?? null;
 
     const booking =
       body.booking && typeof body.booking === 'object'
@@ -130,15 +145,35 @@ export async function POST(req: NextRequest) {
       reason: body.reason ?? body.query ?? undefined,
       initialQuery: body.initialQuery,
       currentQuery: body.query,
+      // Attribution — all 5 UTM fields + referrer + landing path + journey
       utmSource: utmSource ?? undefined,
-      utmCampaign: utmCampaign ?? undefined,
       utmMedium: utmMedium ?? undefined,
+      utmCampaign: utmCampaign ?? undefined,
+      utmContent: utmContent ?? undefined,
+      utmTerm: utmTerm ?? undefined,
+      referrer: tracker.referrer_url ?? referer ?? undefined,
+      landingPath: visitor?.firstUtm?.landingPath ?? undefined,
+      firstPageVisited: tracker.first_page_visited ?? undefined,
+      lastPageVisited: tracker.last_page_visited ?? undefined,
+      totalPageViews: tracker.total_page_views,
+      timeSpentMinutes: tracker.time_spent_minutes,
       preferredChannel: body.preferredChannel === 'call' ? 'call' : 'whatsapp',
       booking: booking as LeadBooking | null,
       geo: geo as LeadGeo | null,
       pinnedUnitIds: Array.isArray(body.pinnedUnitIds) ? body.pinnedUnitIds : undefined,
       conversationId: body.conversationId,
+      visitorId: visitorId ?? undefined,
+      globalId: visitor?.globalId ?? null,
+      otpVerified: body.otpVerified === true,
     });
+
+    // Link the visitor record to this lead so analytics can pivot the
+    // other way (visitorId \u2192 leadId). Best-effort, non-blocking.
+    if (leadId && visitorId) {
+      attachLeadToVisitor(visitorId, new ObjectId(leadId)).catch((err) =>
+        console.warn('[webhook] attachLeadToVisitor failed:', err),
+      );
+    }
 
     // 2) Push to Zoho CRM ingest — tracker fields mirror the payload shape the
     //    ASBL web-tracker would auto-inject elsewhere, so Zoho fields line up.
@@ -152,14 +187,27 @@ export async function POST(req: NextRequest) {
       query: body.query ?? null,
       preferred_channel: body.preferredChannel ?? 'whatsapp',
       utm_source: utmSource,
-      utm_campaign: utmCampaign,
       utm_medium: utmMedium,
+      utm_campaign: utmCampaign,
       utm_content: utmContent,
       utm_term: utmTerm,
+      // First-touch attribution from the visitors collection \u2014 where did
+      // they ORIGINALLY come in from? Useful for multi-touch dashboards.
+      first_touch_source: visitor?.firstUtm?.source ?? null,
+      first_touch_medium: visitor?.firstUtm?.medium ?? null,
+      first_touch_campaign: visitor?.firstUtm?.campaign ?? null,
+      first_touch_content: visitor?.firstUtm?.content ?? null,
+      first_touch_term: visitor?.firstUtm?.term ?? null,
+      first_touch_landing_path: visitor?.firstUtm?.landingPath ?? null,
+      first_touch_at: visitor?.firstUtm?.at ?? null,
+      visitor_id: visitorId ?? null,
+      visitor_global_id: visitor?.globalId ?? null,
+      visitor_visit_count: visitor?.visitCount ?? null,
+      visitor_first_seen_at: visitor?.firstSeenAt ?? null,
       first_page_visited: tracker.first_page_visited ?? null,
       last_page_visited: tracker.last_page_visited ?? null,
       total_page_views: tracker.total_page_views ?? null,
-      referrer_url: tracker.referrer_url ?? referer ?? null,
+      referrer_url: tracker.referrer_url ?? visitor?.firstUtm?.referrer ?? referer ?? null,
       time_spent_minutes: tracker.time_spent_minutes ?? null,
       booking_type: booking?.type ?? null,
       booking_slot_local: booking?.slotIsoLocal ?? null,
