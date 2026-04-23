@@ -38,7 +38,7 @@ export default function AmenityTile() {
         { label: 'Compare projects', query: 'Compare ASBL Loft with other FD projects' },
         { label: 'Schools nearby', query: 'What schools are within 12 minutes?' },
         { label: 'Commute time', query: 'How long to Hitech City?' },
-        { label: 'Book a visit', query: 'Book a weekend tour slot' },
+        { label: 'Book a visit', query: 'Book a site visit' },
       ]}
     >
       <div style={{ padding: 26 }}>

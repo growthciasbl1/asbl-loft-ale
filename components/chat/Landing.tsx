@@ -179,7 +179,7 @@ export default function Landing() {
         <button
           onClick={() => {
             track('click', 'header_book_site_visit', { from: 'landing' });
-            go('Book a site visit this weekend', 'header_cta');
+            go('Book a site visit', 'header_cta');
           }}
           style={{
             background: COLOR.plum,

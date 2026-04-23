@@ -28,6 +28,9 @@ export default function ShareRequestTile({
   const lead = useChatStore((s) => s.lead);
   const setLead = useChatStore((s) => s.setLead);
 
+  const alreadyVerified = Boolean(lead?.phone && lead?.name);
+  const [editingIdentity, setEditingIdentity] = useState(!alreadyVerified);
+
   const [step, setStep] = useState<Step>('form');
   const [name, setName] = useState(lead?.name ?? '');
   const [phone, setPhone] = useState(lead?.phone ?? '');
@@ -38,6 +41,14 @@ export default function ShareRequestTile({
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
   const [resendIn, setResendIn] = useState(0);
   const [sentCount, setSentCount] = useState(0);
+
+  // Stay in sync if another tile verifies the lead mid-session.
+  useEffect(() => {
+    if (lead?.phone && lead?.name && !editingIdentity) {
+      setName(lead.name);
+      setPhone(lead.phone);
+    }
+  }, [lead?.phone, lead?.name, editingIdentity]);
 
   const displaySubject = subject || 'the document you asked for';
 
@@ -252,7 +263,7 @@ export default function ShareRequestTile({
       relatedAsks={
         step === 'done'
           ? [
-              { label: 'Book a site visit', query: 'Book a weekend site visit' },
+              { label: 'Book a site visit', query: 'Book a site visit' },
               { label: 'Pricing', query: 'What is the pricing for ASBL Loft?' },
               { label: 'Floor plans', query: 'Tell me about the floor plans' },
             ]
@@ -308,29 +319,82 @@ export default function ShareRequestTile({
             gap: 12,
           }}
         >
-          <div>
-            <label style={labelStyle}>Your name</label>
-            <input
-              type="text"
-              autoComplete="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Full name"
-              style={inputStyle}
-            />
-          </div>
+          {alreadyVerified && !editingIdentity ? (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 10,
+                padding: '11px 14px',
+                borderRadius: 10,
+                border: '1px solid var(--plum-border, var(--border))',
+                background: 'var(--plum-pale)',
+                flexWrap: 'wrap',
+              }}
+            >
+              <div style={{ fontSize: 13, color: 'var(--charcoal)' }}>
+                <div
+                  style={{
+                    fontSize: 10,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.12em',
+                    color: 'var(--plum-dark)',
+                    fontWeight: 600,
+                    marginBottom: 2,
+                  }}
+                >
+                  Sending to · verified
+                </div>
+                <b>{lead?.name}</b>{' '}
+                <span style={{ color: 'var(--mid-gray)' }}>· {lead?.phone}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingIdentity(true);
+                  track('click', 'share_change_identity');
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--plum-dark)',
+                  fontSize: 12,
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  padding: 0,
+                }}
+              >
+                Change details →
+              </button>
+            </div>
+          ) : (
+            <>
+              <div>
+                <label style={labelStyle}>Your name</label>
+                <input
+                  type="text"
+                  autoComplete="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Full name"
+                  style={inputStyle}
+                />
+              </div>
 
-          <div>
-            <label style={labelStyle}>Phone number</label>
-            <input
-              type="tel"
-              autoComplete="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="+91 98XXXXXXXX"
-              style={inputStyle}
-            />
-          </div>
+              <div>
+                <label style={labelStyle}>Phone number</label>
+                <input
+                  type="tel"
+                  autoComplete="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+91 98XXXXXXXX"
+                  style={inputStyle}
+                />
+              </div>
+            </>
+          )}
 
           <ChannelToggle value={channel} onChange={setChannel} />
 
@@ -343,7 +407,13 @@ export default function ShareRequestTile({
             className="btn-plum"
             style={{ justifyContent: 'center', padding: '12px 20px', opacity: busy ? 0.6 : 1 }}
           >
-            {busy ? 'Sending OTP…' : `Verify & send on WhatsApp →`}
+            {busy
+              ? alreadyVerified && !editingIdentity
+                ? 'Sending…'
+                : 'Sending OTP…'
+              : alreadyVerified && !editingIdentity
+                ? `Send on WhatsApp →`
+                : `Verify & send on WhatsApp →`}
           </button>
         </div>
       )}

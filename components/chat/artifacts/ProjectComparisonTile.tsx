@@ -117,7 +117,7 @@ export default function ProjectComparisonTile() {
       relatedAsks={[
         { label: 'Rental offer', query: 'Tell me about the rental offer' },
         { label: 'Price trends', query: 'Show me FD price trends' },
-        { label: 'Book a site visit', query: 'Book a weekend site visit' },
+        { label: 'Book a site visit', query: 'Book a site visit' },
       ]}
     >
       <div style={{ overflowX: 'auto', margin: '0 -4px' }}>

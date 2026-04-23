@@ -43,7 +43,7 @@ export default function SchoolsTile() {
       relatedAsks={[
         { label: 'Amenities', query: 'What amenities does ASBL Loft offer?' },
         { label: 'Commute to offices', query: "What's the commute to Hitech City?" },
-        { label: 'Book a tour', query: 'Book a weekend site visit' },
+        { label: 'Book a tour', query: 'Book a site visit' },
       ]}
     >
       <div

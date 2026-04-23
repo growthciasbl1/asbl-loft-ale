@@ -63,7 +63,7 @@ export default function RoiCalculatorTile() {
       relatedAsks={[
         { label: 'Rental offer details', query: 'Tell me about the rental offer' },
         { label: 'Full price breakdown', query: 'Show full price breakdown 1695 East' },
-        { label: 'Book a site visit', query: 'Book a weekend site visit' },
+        { label: 'Book a site visit', query: 'Book a site visit' },
       ]}
       footer={
         <span style={{ fontSize: 11, color: 'var(--mid-gray)' }}>

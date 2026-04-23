@@ -58,50 +58,84 @@ export function generate7DaySlots(now: Date = new Date()): DaySlots[] {
     const date = new Date(now);
     date.setDate(now.getDate() + offsetDays + i);
     date.setHours(0, 0, 0, 0);
-
-    const isToday = date.toDateString() === now.toDateString();
-    const soonWindowMs = 60 * 60 * 1000; // don't allow slots starting inside the next hour
-    const slots: TimeSlot[] = [];
-
-    for (let h = START_HOUR; h <= END_HOUR; h++) {
-      const slotDate = new Date(date);
-      slotDate.setHours(h, 0, 0, 0);
-
-      let disabled = false;
-      let reason: TimeSlot['disabledReason'];
-      if (isToday) {
-        if (slotDate.getTime() <= now.getTime()) {
-          disabled = true;
-          reason = 'past';
-        } else if (slotDate.getTime() - now.getTime() < soonWindowMs) {
-          disabled = true;
-          reason = 'too_soon';
-        }
-      }
-
-      const y = slotDate.getFullYear();
-      const m = padIso(slotDate.getMonth() + 1);
-      const day = padIso(slotDate.getDate());
-      const hh = padIso(h);
-
-      slots.push({
-        hour: h,
-        isoLocal: `${y}-${m}-${day}T${hh}:00:00`,
-        label: formatHour(h),
-        disabled,
-        disabledReason: reason,
-      });
-    }
-
-    days.push({
-      date,
-      shortLabel: formatDay(date, 'short'),
-      longLabel: formatDay(date, 'long'),
-      slots,
-    });
+    days.push(buildDaySlots(date, now));
   }
 
   return days;
+}
+
+/**
+ * Build a DaySlots entry for a specific date (used by the calendar picker for
+ * dates beyond the default 7-day window). Past and too-soon slots are disabled
+ * using the same rules as the 7-day generator.
+ */
+export function generateSlotsForDate(date: Date, now: Date = new Date()): DaySlots {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return buildDaySlots(d, now);
+}
+
+function buildDaySlots(date: Date, now: Date): DaySlots {
+  const isToday = date.toDateString() === now.toDateString();
+  const soonWindowMs = 60 * 60 * 1000;
+  const slots: TimeSlot[] = [];
+
+  for (let h = START_HOUR; h <= END_HOUR; h++) {
+    const slotDate = new Date(date);
+    slotDate.setHours(h, 0, 0, 0);
+
+    let disabled = false;
+    let reason: TimeSlot['disabledReason'];
+    if (isToday) {
+      if (slotDate.getTime() <= now.getTime()) {
+        disabled = true;
+        reason = 'past';
+      } else if (slotDate.getTime() - now.getTime() < soonWindowMs) {
+        disabled = true;
+        reason = 'too_soon';
+      }
+    }
+
+    const y = slotDate.getFullYear();
+    const m = padIso(slotDate.getMonth() + 1);
+    const day = padIso(slotDate.getDate());
+    const hh = padIso(h);
+
+    slots.push({
+      hour: h,
+      isoLocal: `${y}-${m}-${day}T${hh}:00:00`,
+      label: formatHour(h),
+      disabled,
+      disabledReason: reason,
+    });
+  }
+
+  return {
+    date,
+    shortLabel: formatDay(date, 'short'),
+    longLabel: formatDay(date, 'long'),
+    slots,
+  };
+}
+
+/**
+ * Earliest date the calendar picker allows: day 8 (one beyond the default 7-day
+ * pill row). Returned as YYYY-MM-DD (local, not UTC) so `<input type="date">`'s
+ * `min` attribute works predictably.
+ */
+export function calendarMinDateISO(now: Date = new Date()): string {
+  const offsetDays = now.getHours() >= CUTOFF_HOUR ? 1 : 0;
+  const min = new Date(now);
+  min.setDate(now.getDate() + offsetDays + 7);
+  min.setHours(0, 0, 0, 0);
+  return `${min.getFullYear()}-${padIso(min.getMonth() + 1)}-${padIso(min.getDate())}`;
+}
+
+/** Max calendar window — 90 days out is enough for real-world site planning. */
+export function calendarMaxDateISO(now: Date = new Date()): string {
+  const max = new Date(now);
+  max.setDate(now.getDate() + 90);
+  return `${max.getFullYear()}-${padIso(max.getMonth() + 1)}-${padIso(max.getDate())}`;
 }
 
 /* ─── Timezone ─────────────────────────────────────────── */

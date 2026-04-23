@@ -86,7 +86,7 @@ export default function ResaleFrameworkTile() {
       relatedAsks={[
         { label: 'See full trend data', query: 'Show me the FD price trend data' },
         { label: 'Explain the rental offer', query: 'Walk me through the rental offer' },
-        { label: 'Book a site visit', query: 'Book a weekend site visit' },
+        { label: 'Book a site visit', query: 'Book a site visit' },
       ]}
     >
       {/* ───── 1. FD Appreciation ───── */}

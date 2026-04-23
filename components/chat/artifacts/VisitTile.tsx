@@ -7,6 +7,9 @@ import { track } from '@/lib/analytics/tracker';
 import { readWebTracker } from '@/lib/analytics/leadTracking';
 import {
   generate7DaySlots,
+  generateSlotsForDate,
+  calendarMinDateISO,
+  calendarMaxDateISO,
   getBrowserTimezone,
   requestGeolocation,
   resolveTimezoneFromGeo,
@@ -17,7 +20,7 @@ import {
 } from '@/lib/utils/booking';
 import { getOrCreateVisitorId } from '@/lib/analytics/visitorId';
 
-type BookingType = 'site_visit' | 'call_back';
+type BookingType = 'site_visit' | 'virtual_visit' | 'call_back';
 
 interface VisitTileProps {
   intro?: 'default' | 'no_model_flat' | 'live_inventory';
@@ -38,15 +41,73 @@ const INTROS = {
   },
 };
 
+function eyebrowFor(type: BookingType): string {
+  if (type === 'site_visit') return 'Site visits · 45 minutes';
+  if (type === 'virtual_visit') return 'Virtual visit · 30 minutes on video';
+  return 'Call back from Loft team';
+}
+
+function titleFor(type: BookingType): string {
+  if (type === 'site_visit') return 'Pick a date + time. Our RM meets you.';
+  if (type === 'virtual_visit') return 'Pick a slot — RM walks you through on video.';
+  return 'Pick when you want the call.';
+}
+
+function subFor(type: BookingType): string {
+  if (type === 'site_visit')
+    return '20 min at experience centre · 25 min walking the actual tower.';
+  if (type === 'virtual_visit')
+    return 'RM joins on Google Meet · shares master plan, unit walkthrough, payment plans, and your floor-band view.';
+  return 'One of our RMs will call at the slot you pick, no earlier, no later.';
+}
+
+function successEyebrowFor(type: BookingType): string {
+  if (type === 'site_visit') return 'Site visit confirmed';
+  if (type === 'virtual_visit') return 'Virtual visit confirmed';
+  return 'Call back confirmed';
+}
+
+function successTitleFor(type: BookingType): string {
+  if (type === 'site_visit') return 'See you at Loft.';
+  if (type === 'virtual_visit') return "We'll send a Meet link 15 min before.";
+  return "You'll hear from us soon.";
+}
+
+function reasonFor(type: BookingType): string {
+  if (type === 'site_visit') return 'site_visit_booking';
+  if (type === 'virtual_visit') return 'virtual_visit_booking';
+  return 'call_booking';
+}
+
+function channelFor(type: BookingType): 'whatsapp' | 'call' {
+  if (type === 'call_back') return 'call';
+  return 'whatsapp';
+}
+
+function bookingLabelFor(type: BookingType): string {
+  if (type === 'site_visit') return 'Site visit';
+  if (type === 'virtual_visit') return 'Virtual visit';
+  return 'Call back';
+}
+
 export default function VisitTile({
   intro = 'default',
   initialBookingType = 'site_visit',
 }: VisitTileProps) {
+  const lead = useChatStore((s) => s.lead);
+  const setLead = useChatStore((s) => s.setLead);
+
   const [bookingType, setBookingType] = useState<BookingType>(initialBookingType);
   const [dayIndex, setDayIndex] = useState(0);
   const [slotIdx, setSlotIdx] = useState<number | null>(null);
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
+
+  // Identity comes from zustand lead if already verified this session. Visitor
+  // can still hit "Change details" to override — tracked via editingIdentity.
+  const alreadyVerified = Boolean(lead?.phone && lead?.name);
+  const [editingIdentity, setEditingIdentity] = useState(!alreadyVerified);
+  const [name, setName] = useState(lead?.name ?? '');
+  const [phone, setPhone] = useState(lead?.phone ?? '');
+
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -57,17 +118,25 @@ export default function VisitTile({
   const [otpInfo, setOtpInfo] = useState<string | null>(null);
   const [resendIn, setResendIn] = useState(0);
 
+  // Calendar-picker state for dates beyond the 7-day pill row
+  const [customDay, setCustomDay] = useState<DaySlots | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [customDateInput, setCustomDateInput] = useState('');
+
   const [geo, setGeo] = useState<GeoPosition | null>(null);
   const [geoStatus, setGeoStatus] = useState<'idle' | 'requesting' | 'granted' | 'denied'>('idle');
   const [detectedTz, setDetectedTz] = useState<string>('Asia/Kolkata');
   const [userTz, setUserTz] = useState<string>('Asia/Kolkata');
   const [userTzOverridden, setUserTzOverridden] = useState(false);
 
-  const days = useMemo(() => generate7DaySlots(), []);
-  const selectedDay: DaySlots | undefined = days[dayIndex];
+  const baseDays = useMemo(() => generate7DaySlots(), []);
+  const allDays: DaySlots[] = useMemo(
+    () => (customDay ? [...baseDays, customDay] : baseDays),
+    [baseDays, customDay],
+  );
+  const selectedDay: DaySlots | undefined = allDays[dayIndex];
   const selectedSlot = slotIdx != null && selectedDay ? selectedDay.slots[slotIdx] : null;
 
-  const setLead = useChatStore((s) => s.setLead);
   const note = INTROS[intro];
 
   // Browser tz instantly; then upgrade to geo-based tz if visitor grants permission
@@ -102,14 +171,46 @@ export default function VisitTile({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const canSubmit = Boolean(
-    selectedSlot && !selectedSlot.disabled && name.trim() && phone.trim(),
-  );
+  // If lead changes under us (e.g. another tile completes OTP), adopt it and
+  // collapse the form — unless visitor is already editing.
+  useEffect(() => {
+    if (lead?.phone && lead?.name && !editingIdentity) {
+      setName(lead.name);
+      setPhone(lead.phone);
+    }
+  }, [lead?.phone, lead?.name, editingIdentity]);
 
-  /** Step 1 of 2: send an OTP to the phone. Does NOT book yet.
-   *  Shows the OTP input panel immediately (optimistic) so the user can pull
-   *  up their phone while Periskope (2–5s WhatsApp Web latency) delivers.
-   *  If the server returns an error we roll back to the form. */
+  const canSubmit = Boolean(selectedSlot && !selectedSlot.disabled && name.trim() && phone.trim());
+
+  /** On custom-date pick from the native date picker — build the DaySlots and
+   *  select it. Resets the slot selection so visitor picks a fresh time. */
+  const onPickCustomDate = (iso: string) => {
+    if (!iso) return;
+    const [y, m, d] = iso.split('-').map(Number);
+    if (!y || !m || !d) return;
+    const date = new Date(y, m - 1, d);
+    const slots = generateSlotsForDate(date);
+    setCustomDay(slots);
+    setShowDatePicker(false);
+    setCustomDateInput(iso);
+    // Select the newly-added custom day (it's appended at the end of allDays)
+    setDayIndex(baseDays.length);
+    setSlotIdx(null);
+    track('click', 'custom_date_pick', { iso });
+  };
+
+  /** Extracted: the actual book path, used by both submit() and the already-
+   *  verified identity quick-book path. */
+  const bookDirectly = () => {
+    setLead({ name, phone, source: bookingType });
+    setOtpStep('idle');
+    setDone(true);
+    fireBookingWebhook();
+  };
+
+  /** Step 1 of 2: send an OTP to the phone. If identity is already verified in
+   *  this session AND visitor hasn't edited details, skip OTP entirely.
+   *  Otherwise show the OTP input panel optimistically while Periskope delivers. */
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit || !selectedSlot || !selectedDay) return;
@@ -117,8 +218,12 @@ export default function VisitTile({
     setSubmitting(true);
     setOtpError(null);
 
-    // First check if phone is already recently verified — user may have
-    // verified on a prior tile in this session. Skip OTP in that case.
+    // Fast path: if visitor is a returning verified lead and hasn't edited
+    // identity, book immediately without OTP. The zustand lead acts as the
+    // in-session trust marker; server-side /api/otp/status is the authority.
+    const identityUnchanged =
+      alreadyVerified && !editingIdentity && name.trim() === lead?.name && phone.trim() === lead?.phone;
+
     try {
       const statusRes = await fetch('/api/otp/status', {
         method: 'POST',
@@ -127,16 +232,16 @@ export default function VisitTile({
       });
       const statusJson = await statusRes.json();
       if (statusJson?.verified) {
-        track('view', 'visit_otp_skipped_recently_verified', { bookingType });
-        setLead({ name, phone, source: bookingType });
-        setOtpStep('idle');
-        setDone(true);
-        fireBookingWebhook();
+        track('view', 'visit_otp_skipped_recently_verified', {
+          bookingType,
+          identityUnchanged,
+        });
+        bookDirectly();
         setSubmitting(false);
         return;
       }
     } catch {
-      // network hiccup — continue with OTP send
+      // Network hiccup — fall through to OTP send.
     }
 
     // ─── Optimistic UI: show OTP panel immediately ───
@@ -159,7 +264,7 @@ export default function VisitTile({
         body: JSON.stringify({
           name,
           phone,
-          reason: bookingType === 'site_visit' ? 'site_visit_booking' : 'call_booking',
+          reason: reasonFor(bookingType),
           form: 'visit_tile',
           artifactKind: 'visit',
           visitorId,
@@ -167,7 +272,6 @@ export default function VisitTile({
       });
       const json = await res.json();
       if (!res.ok || !json.ok) {
-        // Roll back to form with error
         setOtpStep('idle');
         setOtpError(
           json.error === 'invalid phone'
@@ -176,7 +280,6 @@ export default function VisitTile({
         );
         return;
       }
-      // Successful send — update info message with confirmed state
       setOtpInfo(`OTP WhatsApp pe bhej diya hai ${phone}. Code valid 5 minutes.`);
     } catch {
       setOtpStep('idle');
@@ -186,9 +289,7 @@ export default function VisitTile({
     }
   };
 
-  /** Step 2 of 2: verify OTP then show success immediately. Webhook fires
-   *  in background — user doesn't wait for Zoho CRM / WhatsApp confirmation
-   *  (those take 2\u20135s each and aren't critical for the user's UX). */
+  /** Step 2 of 2: verify OTP then show success immediately. */
   const verifyAndBook = async () => {
     const clean = otpCode.replace(/\D/g, '').trim();
     if (clean.length !== 6 || !selectedSlot || !selectedDay) {
@@ -215,14 +316,11 @@ export default function VisitTile({
         return;
       }
 
-      // OTP OK \u2014 immediately show success. Webhook + Zoho + WhatsApp confirmation
-      // run in background, not awaited. This keeps the perceived verify\u2192book
-      // latency to just the /api/otp/verify roundtrip (~200ms).
       setLead({ name, phone, source: bookingType });
       setOtpStep('idle');
       setDone(true);
       track('view', 'lead_success', { form: bookingType, verified: true });
-      fireBookingWebhook(); // non-blocking
+      fireBookingWebhook();
     } catch {
       setOtpError('Network error — please retry.');
     } finally {
@@ -230,11 +328,15 @@ export default function VisitTile({
     }
   };
 
-  /** Fire the booking webhook without awaiting. The user is already on the
-   *  success screen; this just persists the lead + triggers CRM + confirmation. */
   const fireBookingWebhook = () => {
     if (!selectedSlot || !selectedDay) return;
-    track('submit', bookingType === 'site_visit' ? 'visit_booking' : 'call_booking', {
+    const webhookEvent =
+      bookingType === 'site_visit'
+        ? 'visit_booking'
+        : bookingType === 'virtual_visit'
+          ? 'virtual_visit_booking'
+          : 'call_booking';
+    track('submit', webhookEvent, {
       slotIso: selectedSlot.isoLocal,
       timezone: userTz,
       tzOverridden: userTzOverridden,
@@ -248,12 +350,9 @@ export default function VisitTile({
       body: JSON.stringify({
         name,
         phone,
-        query:
-          bookingType === 'site_visit'
-            ? `Site visit · ${selectedDay.longLabel} · ${selectedSlot.label}`
-            : `Call back · ${selectedDay.longLabel} · ${selectedSlot.label}`,
-        reason: bookingType === 'site_visit' ? 'site_visit_booking' : 'call_booking',
-        preferredChannel: bookingType === 'site_visit' ? 'whatsapp' : 'call',
+        query: `${bookingLabelFor(bookingType)} · ${selectedDay.longLabel} · ${selectedSlot.label}`,
+        reason: reasonFor(bookingType),
+        preferredChannel: channelFor(bookingType),
         webTracker: readWebTracker(),
         otpVerified: true,
         visitorId: getOrCreateVisitorId(),
@@ -273,7 +372,6 @@ export default function VisitTile({
     });
   };
 
-  // Resend cooldown countdown
   useEffect(() => {
     if (resendIn <= 0) return;
     const id = setTimeout(() => setResendIn((n) => n - 1), 1000);
@@ -284,8 +382,8 @@ export default function VisitTile({
   if (done && selectedSlot && selectedDay) {
     return (
       <TileShell
-        eyebrow={bookingType === 'site_visit' ? 'Site visit confirmed' : 'Call back confirmed'}
-        title={bookingType === 'site_visit' ? 'See you at Loft.' : 'You’ll hear from us soon.'}
+        eyebrow={successEyebrowFor(bookingType)}
+        title={successTitleFor(bookingType)}
         sub={formatSlotInTimezone(selectedSlot.isoLocal, userTz)}
         icon={
           <TileIcon>
@@ -327,15 +425,18 @@ export default function VisitTile({
             </svg>
           </div>
           <div className="serif" style={{ fontSize: 22, color: 'var(--charcoal)', fontWeight: 500 }}>
-            {bookingType === 'site_visit'
-              ? `Site visit · ${selectedDay.shortLabel} · ${selectedSlot.label}`
-              : `Call-back · ${selectedDay.shortLabel} · ${selectedSlot.label}`}
+            {bookingLabelFor(bookingType)} · {selectedDay.shortLabel} · {selectedSlot.label}
           </div>
           <div style={{ fontSize: 13, color: 'var(--gray-2)', maxWidth: 460, lineHeight: 1.55 }}>
             {bookingType === 'site_visit' ? (
               <>
                 One of our RMs will WhatsApp <b>{phone}</b> with the meeting point + their direct
                 number. Shown here in <b>{tzShortLabel(userTz)}</b>.
+              </>
+            ) : bookingType === 'virtual_visit' ? (
+              <>
+                One of our RMs will WhatsApp <b>{phone}</b> with the Google Meet link ~15 min before
+                your slot. Shown here in <b>{tzShortLabel(userTz)}</b>.
               </>
             ) : (
               <>
@@ -363,17 +464,9 @@ export default function VisitTile({
   /* ─── BOOKING FORM ─── */
   return (
     <TileShell
-      eyebrow={bookingType === 'site_visit' ? 'Site visits · 45 minutes' : 'Call back from Loft team'}
-      title={
-        bookingType === 'site_visit'
-          ? 'Pick a date + time. Our RM meets you.'
-          : 'Pick when you want the call.'
-      }
-      sub={
-        bookingType === 'site_visit'
-          ? '20 min at experience centre · 25 min walking the actual tower.'
-          : 'One of our RMs will call at the slot you pick, no earlier, no later.'
-      }
+      eyebrow={eyebrowFor(bookingType)}
+      title={titleFor(bookingType)}
+      sub={subFor(bookingType)}
       icon={
         <TileIcon>
           <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--plum)" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
@@ -382,7 +475,7 @@ export default function VisitTile({
           </svg>
         </TileIcon>
       }
-      footer={<>Available every day 9 AM – 9 PM · next 7 days.</>}
+      footer={<>Available every day 9 AM – 9 PM · next 7 days + any future date.</>}
       relatedAsks={[
         { label: 'What to expect on-site', query: 'What happens on a site visit?' },
         { label: 'Prep checklist', query: 'What documents should I bring to a site visit?' },
@@ -443,6 +536,7 @@ export default function VisitTile({
             background: 'var(--cream)',
             border: '1px solid var(--border)',
             borderRadius: 100,
+            flexWrap: 'wrap',
           }}
         >
           <BookingTypePill
@@ -452,6 +546,14 @@ export default function VisitTile({
               track('click', 'booking_type_select', { type: 'site_visit' });
             }}
             label="Visit the site"
+          />
+          <BookingTypePill
+            active={bookingType === 'virtual_visit'}
+            onClick={() => {
+              setBookingType('virtual_visit');
+              track('click', 'booking_type_select', { type: 'virtual_visit' });
+            }}
+            label="Virtual visit"
           />
           <BookingTypePill
             active={bookingType === 'call_back'}
@@ -486,10 +588,11 @@ export default function VisitTile({
             gap: 6,
           }}
         >
-          {days.map((day, i) => {
+          {allDays.map((day, i) => {
             const active = i === dayIndex;
             const weekday = day.shortLabel.split(',')[0];
             const rest = day.shortLabel.replace(weekday + ',', '').trim();
+            const isCustom = customDay != null && i === allDays.length - 1 && i >= baseDays.length;
             return (
               <button
                 key={i}
@@ -503,7 +606,13 @@ export default function VisitTile({
                   borderRadius: 12,
                   background: active ? 'var(--plum)' : 'white',
                   color: active ? '#fff' : 'var(--charcoal)',
-                  border: '1px solid ' + (active ? 'var(--plum)' : 'var(--border)'),
+                  border:
+                    '1px solid ' +
+                    (active
+                      ? 'var(--plum)'
+                      : isCustom
+                        ? 'var(--plum-dark)'
+                        : 'var(--border)'),
                   transition: 'all 160ms',
                   textAlign: 'center',
                   cursor: 'pointer',
@@ -517,7 +626,7 @@ export default function VisitTile({
                     opacity: active ? 0.85 : 0.55,
                   }}
                 >
-                  {weekday}
+                  {isCustom ? 'Custom' : weekday}
                 </div>
                 <div className="serif" style={{ fontSize: 16, fontWeight: 500, marginTop: 3 }}>
                   {rest || day.shortLabel}
@@ -525,7 +634,79 @@ export default function VisitTile({
               </button>
             );
           })}
+
+          {/* "+ More dates" trigger — opens the native date picker */}
+          <button
+            type="button"
+            onClick={() => setShowDatePicker((v) => !v)}
+            style={{
+              padding: '10px 8px',
+              borderRadius: 12,
+              background: showDatePicker ? 'var(--plum-pale)' : 'white',
+              color: 'var(--plum-dark)',
+              border: '1px dashed var(--plum-dark)',
+              textAlign: 'center',
+              cursor: 'pointer',
+              fontSize: 12,
+              fontWeight: 500,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 9.5,
+                textTransform: 'uppercase',
+                letterSpacing: '0.12em',
+                opacity: 0.65,
+              }}
+            >
+              Other
+            </div>
+            <div className="serif" style={{ fontSize: 15, fontWeight: 500, marginTop: 3 }}>
+              + More dates
+            </div>
+          </button>
         </div>
+
+        {showDatePicker && (
+          <div
+            style={{
+              marginTop: 10,
+              padding: 12,
+              background: 'var(--cream)',
+              border: '1px solid var(--border)',
+              borderRadius: 10,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              flexWrap: 'wrap',
+            }}
+          >
+            <label
+              style={{
+                fontSize: 12,
+                color: 'var(--gray-2)',
+                fontWeight: 500,
+              }}
+            >
+              Pick any date up to 90 days out:
+            </label>
+            <input
+              type="date"
+              min={calendarMinDateISO()}
+              max={calendarMaxDateISO()}
+              value={customDateInput}
+              onChange={(e) => onPickCustomDate(e.target.value)}
+              style={{
+                padding: '8px 10px',
+                borderRadius: 8,
+                border: '1px solid var(--border)',
+                background: 'white',
+                fontSize: 13,
+                color: 'var(--charcoal)',
+              }}
+            />
+          </div>
+        )}
       </div>
 
       {/* Time picker */}
@@ -601,40 +782,91 @@ export default function VisitTile({
             gap: 10,
           }}
         >
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Your name"
-              autoComplete="name"
-              required
+          {alreadyVerified && !editingIdentity ? (
+            <div
               style={{
-                flex: '1 1 160px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 10,
                 padding: '11px 14px',
                 borderRadius: 10,
-                border: '1px solid var(--border)',
-                background: 'var(--cream)',
-                fontSize: 14,
+                border: '1px solid var(--plum-border, var(--border))',
+                background: 'var(--plum-pale)',
+                flexWrap: 'wrap',
               }}
-            />
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="+91 98XXXXXXXX"
-              autoComplete="tel"
-              required
-              style={{
-                flex: '1 1 160px',
-                padding: '11px 14px',
-                borderRadius: 10,
-                border: '1px solid var(--border)',
-                background: 'var(--cream)',
-                fontSize: 14,
-              }}
-            />
-          </div>
+            >
+              <div style={{ fontSize: 13, color: 'var(--charcoal)' }}>
+                <div
+                  style={{
+                    fontSize: 10,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.12em',
+                    color: 'var(--plum-dark)',
+                    fontWeight: 600,
+                    marginBottom: 2,
+                  }}
+                >
+                  Booking as · verified
+                </div>
+                <b>{lead?.name}</b>{' '}
+                <span style={{ color: 'var(--mid-gray)' }}>· {lead?.phone}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingIdentity(true);
+                  track('click', 'visit_change_identity');
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--plum-dark)',
+                  fontSize: 12,
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  padding: 0,
+                }}
+              >
+                Change details →
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Your name"
+                autoComplete="name"
+                required
+                style={{
+                  flex: '1 1 160px',
+                  padding: '11px 14px',
+                  borderRadius: 10,
+                  border: '1px solid var(--border)',
+                  background: 'var(--cream)',
+                  fontSize: 14,
+                }}
+              />
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+91 98XXXXXXXX"
+                autoComplete="tel"
+                required
+                style={{
+                  flex: '1 1 160px',
+                  padding: '11px 14px',
+                  borderRadius: 10,
+                  border: '1px solid var(--border)',
+                  background: 'var(--cream)',
+                  fontSize: 14,
+                }}
+              />
+            </div>
+          )}
 
           <TimezoneEditor
             current={userTz}
@@ -672,14 +904,14 @@ export default function VisitTile({
             }}
           >
             {submitting
-              ? 'Sending OTP…'
-              : bookingType === 'site_visit'
-                ? selectedSlot
-                  ? `Verify & confirm visit · ${selectedSlot.label}`
-                  : 'Pick a date & time'
-                : selectedSlot
-                  ? `Verify & confirm call · ${selectedSlot.label}`
-                  : 'Pick a date & time'}
+              ? alreadyVerified && !editingIdentity
+                ? 'Confirming…'
+                : 'Sending OTP…'
+              : selectedSlot
+                ? alreadyVerified && !editingIdentity
+                  ? `Confirm ${bookingLabelFor(bookingType).toLowerCase()} · ${selectedSlot.label}`
+                  : `Verify & confirm ${bookingLabelFor(bookingType).toLowerCase()} · ${selectedSlot.label}`
+                : 'Pick a date & time'}
           </button>
         </form>
       ) : (
@@ -747,9 +979,7 @@ export default function VisitTile({
           >
             {submitting
               ? 'Verifying…'
-              : bookingType === 'site_visit'
-                ? 'Verify & book visit →'
-                : 'Verify & book call →'}
+              : `Verify & book ${bookingLabelFor(bookingType).toLowerCase()} →`}
           </button>
           <div
             style={{

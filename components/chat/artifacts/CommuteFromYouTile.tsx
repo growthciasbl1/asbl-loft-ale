@@ -97,8 +97,8 @@ export default function CommuteFromYouTile() {
       askMore={{
         label: 'Book a visit from this side of town',
         query: data
-          ? `Book a weekend visit · I'm coming from ${data.origin.label}`
-          : 'Book a weekend site visit',
+          ? `Book a site visit · I'm coming from ${data.origin.label}`
+          : 'Book a site visit',
       }}
       relatedAsks={[
         { label: 'Urban corridors', query: 'Show me the urban corridors and location map' },

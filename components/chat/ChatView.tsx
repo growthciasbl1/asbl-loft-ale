@@ -120,7 +120,7 @@ const DEFAULT_CHIPS: { label: string; query: string }[] = [
   { label: 'Pricing', query: 'What is the pricing for ASBL Loft?' },
   { label: 'Amenities', query: 'What amenities does ASBL Loft offer?' },
   { label: 'Location', query: 'Where is ASBL Loft and what is nearby?' },
-  { label: 'Book a site visit', query: 'Book a weekend site visit' },
+  { label: 'Book a site visit', query: 'Book a site visit' },
 ];
 
 export default function ChatView() {

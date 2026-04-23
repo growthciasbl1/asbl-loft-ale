@@ -987,7 +987,7 @@ function heuristicSuggestions(ctx: LLMContext): { label: string; query: string }
     { key: 'finance', label: 'Cash-on-cash', query: 'Open the levered finance calculator' },
     { key: 'yield', label: 'Rental yield', query: 'What rental yield can I expect?' },
     { key: 'schools', label: 'Schools nearby', query: 'What schools are within 12 minutes?' },
-    { key: 'visit', label: 'Book a visit', query: 'Book a weekend site visit' },
+    { key: 'visit', label: 'Book a visit', query: 'Book a site visit' },
   ];
   return all.filter((x) => !seen.has(x.key)).slice(0, 3);
 }
