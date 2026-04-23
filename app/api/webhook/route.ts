@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { insertLead, markLeadCrmPushed } from '@/lib/db/leads';
 import type { LeadBooking, LeadGeo } from '@/lib/db/schemas';
+import { wasRecentlyVerified } from '@/lib/otp/store';
+import { normalisePhone, sendWhatsApp } from '@/lib/wa/periskope';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -42,6 +44,34 @@ async function pushToCrm(payload: Record<string, unknown>, timeoutMs = 12000) {
   } finally {
     clearTimeout(t);
   }
+}
+
+function buildConfirmationMessage(input: {
+  name?: string;
+  reason?: string;
+  booking?: { type: string; slotIsoLocal: string; timezone: string } | null;
+}): string {
+  const firstName = input.name?.split(/\s+/)[0] ?? 'there';
+  const when = input.booking
+    ? `${input.booking.slotIsoLocal.replace('T', ' at ').replace(/:00$/, '')} (${input.booking.timezone})`
+    : null;
+
+  if (input.booking?.type === 'site_visit' && when) {
+    return (
+      `Hi ${firstName} — your *ASBL Loft site visit* is confirmed for ${when}.\n\n` +
+      `One of our RMs will WhatsApp you the exact meeting point + their direct number.\n\n` +
+      `Questions? Just reply to this chat.\n\n— ASBL Loft`
+    );
+  }
+  if (input.booking?.type === 'call_back' && when) {
+    return (
+      `Hi ${firstName} — a call-back is booked for ${when}.\n\n` +
+      `One of our RMs will ring you on the dot.\n\n— ASBL Loft`
+    );
+  }
+  return (
+    `Hi ${firstName} — got it. One of our RMs will reach out on WhatsApp shortly regarding "${input.reason ?? 'your request'}".\n\n— ASBL Loft`
+  );
 }
 
 export async function POST(req: NextRequest) {
@@ -152,10 +182,33 @@ export async function POST(req: NextRequest) {
       console.warn('[webhook] CRM push failed:', crm);
     }
 
+    // 4) Send a WhatsApp confirmation via Periskope — best effort, non-blocking.
+    //    Runs only when the lead came through the verified-OTP path so we don't
+    //    ping unverified numbers (WhatsApp ToS + avoids spam-flag risk).
+    let whatsappConfirmationSent = false;
+    const wasVerified =
+      body.otpVerified === true && (await wasRecentlyVerified(String(body.phone)));
+    if (wasVerified) {
+      const toE164 = normalisePhone(String(body.phone));
+      if (toE164) {
+        const message = buildConfirmationMessage({
+          name: body.name,
+          reason: body.reason ?? body.query,
+          booking: booking as { type: string; slotIsoLocal: string; timezone: string } | null,
+        });
+        const waResult = await sendWhatsApp({ toE164, message });
+        whatsappConfirmationSent = waResult.ok;
+        if (!waResult.ok) {
+          console.warn('[webhook] confirmation WhatsApp send failed', waResult.error);
+        }
+      }
+    }
+
     return NextResponse.json({
       success: true,
       leadId,
       crm: { ok: crm.ok, status: crm.status },
+      whatsappConfirmationSent,
     });
   } catch (err) {
     console.error('[api/webhook] error:', err);

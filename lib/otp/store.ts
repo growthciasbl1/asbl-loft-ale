@@ -17,6 +17,14 @@ export interface OtpDoc {
   createdAt: Date;
   expiresAt: Date;
   verifiedAt?: Date;
+
+  // Audit context — filled by /api/otp/send from LeadGate
+  reason?: string; // e.g. "brochure download", "site visit booking", "share price sheet"
+  form?: string; // e.g. "lead_gate", "share_request_tile", "visit_tile"
+  name?: string; // captured at send time (for readability in admin dashboard)
+  visitorId?: string; // browser-scoped id — joins to visitors collection
+  campaign?: string; // UTM campaign bucket
+  artifactKind?: string; // which tile was the gate on (price / visit / share_request / etc.)
 }
 
 function hashOtp(otp: string, salt: string): string {
@@ -34,15 +42,37 @@ export async function saveOtp(input: {
   otp: string;
   sentVia: ('whatsapp' | 'sms')[];
   lastSenderE164?: string;
+  // audit context
+  reason?: string;
+  form?: string;
+  name?: string;
+  visitorId?: string;
+  campaign?: string;
+  artifactKind?: string;
 }): Promise<boolean> {
   if (!hasMongo()) return false;
   try {
     const db = await getDb();
     const col = db.collection<OtpDoc>('otp_codes');
 
-    // TTL index — created idempotently. Mongo auto-deletes past expiresAt.
-    await col.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }).catch(() => {});
+    // One-time migration: drop the legacy TTL index on expiresAt if present
+    // (earlier the collection auto-deleted docs 5 min after creation, which
+    // broke the audit log). Now we keep docs forever and rely on
+    // verifyOtp()'s expiresAt check for security.
+    try {
+      const indexes = await col.indexes();
+      const ttl = indexes.find(
+        (i: { name?: string; expireAfterSeconds?: number }) =>
+          typeof i.expireAfterSeconds === 'number',
+      );
+      if (ttl?.name) await col.dropIndex(ttl.name);
+    } catch {
+      // no-op — safe to skip if collection is new or index already gone
+    }
+
     await col.createIndex({ phoneE164: 1, createdAt: -1 }).catch(() => {});
+    await col.createIndex({ visitorId: 1, createdAt: -1 }).catch(() => {});
+    await col.createIndex({ createdAt: -1 }).catch(() => {});
 
     const salt = crypto.randomBytes(16).toString('hex');
     const now = new Date();
@@ -56,6 +86,12 @@ export async function saveOtp(input: {
       lastSenderE164: input.lastSenderE164,
       createdAt: now,
       expiresAt: new Date(now.getTime() + OTP_TTL_SECONDS * 1000),
+      reason: input.reason,
+      form: input.form,
+      name: input.name,
+      visitorId: input.visitorId,
+      campaign: input.campaign,
+      artifactKind: input.artifactKind,
     });
     return true;
   } catch (err) {
@@ -67,6 +103,31 @@ export async function saveOtp(input: {
 export interface VerifyResult {
   ok: boolean;
   reason?: 'not_found' | 'expired' | 'too_many_attempts' | 'wrong_code' | 'already_verified' | 'db_error';
+}
+
+/**
+ * Check if a given phone recently completed OTP verification. Used by the
+ * webhook to confirm a form submission is backed by a verified OTP rather
+ * than trusting the client's `otpVerified: true` flag blindly.
+ */
+export async function wasRecentlyVerified(
+  phoneE164: string,
+  withinMs = 10 * 60 * 1000,
+): Promise<boolean> {
+  if (!hasMongo()) return false;
+  try {
+    const db = await getDb();
+    const col = db.collection<OtpDoc>('otp_codes');
+    const cutoff = new Date(Date.now() - withinMs);
+    const doc = await col.findOne({
+      phoneE164,
+      verified: true,
+      verifiedAt: { $gte: cutoff },
+    });
+    return !!doc;
+  } catch {
+    return false;
+  }
 }
 
 export async function verifyOtp(phoneE164: string, code: string): Promise<VerifyResult> {

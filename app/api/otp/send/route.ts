@@ -21,6 +21,14 @@ export async function POST(req: NextRequest) {
     const phoneRaw = typeof body?.phone === 'string' ? body.phone : '';
     const name = typeof body?.name === 'string' ? body.name : null;
 
+    // Audit-trail context — captured at send time so the admin dashboard
+    // can show WHY this OTP was sent and to whom.
+    const reason = typeof body?.reason === 'string' ? body.reason : undefined;
+    const form = typeof body?.form === 'string' ? body.form : undefined;
+    const visitorId = typeof body?.visitorId === 'string' ? body.visitorId : undefined;
+    const campaign = typeof body?.campaign === 'string' ? body.campaign : undefined;
+    const artifactKind = typeof body?.artifactKind === 'string' ? body.artifactKind : undefined;
+
     const phoneE164 = normalisePhone(phoneRaw);
     if (!phoneE164) {
       return NextResponse.json({ ok: false, error: 'invalid phone' }, { status: 400 });
@@ -59,6 +67,12 @@ export async function POST(req: NextRequest) {
       otp,
       sentVia,
       lastSenderE164: waResult.fromE164 ?? undefined,
+      reason,
+      form,
+      name: name ?? undefined,
+      visitorId,
+      campaign,
+      artifactKind,
     });
 
     if (!saved) {

@@ -15,6 +15,7 @@ import {
   type DaySlots,
   type GeoPosition,
 } from '@/lib/utils/booking';
+import { getOrCreateVisitorId } from '@/lib/analytics/visitorId';
 
 type BookingType = 'site_visit' | 'call_back';
 
@@ -48,6 +49,13 @@ export default function VisitTile({
   const [phone, setPhone] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+
+  // OTP verification state — form gate before booking
+  const [otpStep, setOtpStep] = useState<'idle' | 'otp'>('idle');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [otpInfo, setOtpInfo] = useState<string | null>(null);
+  const [resendIn, setResendIn] = useState(0);
 
   const [geo, setGeo] = useState<GeoPosition | null>(null);
   const [geoStatus, setGeoStatus] = useState<'idle' | 'requesting' | 'granted' | 'denied'>('idle');
@@ -98,22 +106,101 @@ export default function VisitTile({
     selectedSlot && !selectedSlot.disabled && name.trim() && phone.trim(),
   );
 
+  /** Step 1 of 2: send an OTP to the phone. Does NOT book yet. */
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit || !selectedSlot || !selectedDay) return;
-    setSubmitting(true);
 
-    track(
-      'submit',
-      bookingType === 'site_visit' ? 'visit_booking' : 'call_booking',
-      {
-        slotIso: selectedSlot.isoLocal,
-        timezone: userTz,
-        tzOverridden: userTzOverridden,
-        bookingType,
-        geoGranted: geoStatus === 'granted',
-      },
-    );
+    // If lead is already verified in this browser session, skip the OTP step.
+    const zustandLead = useChatStore.getState().lead;
+    if (zustandLead?.phone === phone) {
+      await commitBooking();
+      return;
+    }
+
+    setSubmitting(true);
+    setOtpError(null);
+    track('submit', 'visit_otp_send_click', {
+      bookingType,
+      slotIso: selectedSlot.isoLocal,
+    });
+
+    try {
+      const visitorId = getOrCreateVisitorId();
+      const res = await fetch('/api/otp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          phone,
+          reason: bookingType === 'site_visit' ? 'site_visit_booking' : 'call_booking',
+          form: 'visit_tile',
+          artifactKind: 'visit',
+          visitorId,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        setOtpError(
+          json.error === 'invalid phone'
+            ? 'Ye phone number sahi nahi lag raha — please check.'
+            : 'OTP bhej nahi paye. Try again in a moment.',
+        );
+        return;
+      }
+      setOtpStep('otp');
+      setOtpInfo(`OTP WhatsApp pe bhej diya hai ${phone}. Code valid 5 minutes.`);
+      setResendIn(30);
+    } catch {
+      setOtpError('Network error — please retry.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  /** Step 2 of 2: verify OTP then do the actual booking + confirmation. */
+  const verifyAndBook = async () => {
+    const clean = otpCode.replace(/\D/g, '').trim();
+    if (clean.length !== 6 || !selectedSlot || !selectedDay) {
+      setOtpError('Please enter the 6-digit code.');
+      return;
+    }
+    setSubmitting(true);
+    setOtpError(null);
+    try {
+      const v = await fetch('/api/otp/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, code: clean }),
+      });
+      const vJson = await v.json();
+      if (!v.ok || !vJson.ok) {
+        setOtpError(
+          vJson.error === 'wrong_code'
+            ? 'Galat code. Try again.'
+            : vJson.error === 'expired'
+              ? 'Code expire ho gaya — resend karo.'
+              : 'Verification fail ho gaya.',
+        );
+        return;
+      }
+      await commitBooking();
+    } catch {
+      setOtpError('Network error — please retry.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const commitBooking = async () => {
+    if (!selectedSlot || !selectedDay) return;
+    track('submit', bookingType === 'site_visit' ? 'visit_booking' : 'call_booking', {
+      slotIso: selectedSlot.isoLocal,
+      timezone: userTz,
+      tzOverridden: userTzOverridden,
+      bookingType,
+      geoGranted: geoStatus === 'granted',
+    });
 
     try {
       await fetch('/api/webhook', {
@@ -129,6 +216,8 @@ export default function VisitTile({
           reason: bookingType === 'site_visit' ? 'site_visit_booking' : 'call_booking',
           preferredChannel: bookingType === 'site_visit' ? 'whatsapp' : 'call',
           webTracker: readWebTracker(),
+          otpVerified: true,
+          visitorId: getOrCreateVisitorId(),
           booking: {
             type: bookingType,
             slotIsoLocal: selectedSlot.isoLocal,
@@ -146,10 +235,17 @@ export default function VisitTile({
     }
 
     setLead({ name, phone, source: bookingType });
-    setSubmitting(false);
+    setOtpStep('idle');
     setDone(true);
-    track('view', 'lead_success', { form: bookingType });
+    track('view', 'lead_success', { form: bookingType, verified: true });
   };
+
+  // Resend cooldown countdown
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const id = setTimeout(() => setResendIn((n) => n - 1), 1000);
+    return () => clearTimeout(id);
+  }, [resendIn]);
 
   /* ─── SUCCESS VIEW ─── */
   if (done && selectedSlot && selectedDay) {
@@ -462,80 +558,216 @@ export default function VisitTile({
         </div>
       )}
 
-      {/* Name + phone + timezone + submit */}
-      <form
-        onSubmit={submit}
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 10,
-        }}
-      >
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Your name"
-            required
-            style={{
-              flex: '1 1 160px',
-              padding: '11px 14px',
-              borderRadius: 10,
-              border: '1px solid var(--border)',
-              background: 'var(--cream)',
-              fontSize: 14,
-            }}
-          />
-          <input
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="+91 98XXXXXXXX"
-            required
-            style={{
-              flex: '1 1 160px',
-              padding: '11px 14px',
-              borderRadius: 10,
-              border: '1px solid var(--border)',
-              background: 'var(--cream)',
-              fontSize: 14,
-            }}
-          />
-        </div>
-
-        <TimezoneEditor
-          current={userTz}
-          overridden={userTzOverridden}
-          geoStatus={geoStatus}
-          onChange={(tz) => {
-            setUserTz(tz);
-            setUserTzOverridden(true);
-            track('click', 'timezone_override', { from: detectedTz, to: tz });
-          }}
-        />
-
-        <button
-          type="submit"
-          disabled={!canSubmit || submitting}
-          className="btn-plum"
+      {/* Name + phone + timezone + submit OR OTP verification */}
+      {otpStep === 'idle' ? (
+        <form
+          onSubmit={submit}
           style={{
-            justifyContent: 'center',
-            padding: '12px 20px',
-            opacity: canSubmit && !submitting ? 1 : 0.5,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10,
           }}
         >
-          {submitting
-            ? 'Confirming…'
-            : bookingType === 'site_visit'
-              ? selectedSlot
-                ? `Confirm visit · ${selectedSlot.label}`
-                : 'Pick a date & time'
-              : selectedSlot
-                ? `Confirm call · ${selectedSlot.label}`
-                : 'Pick a date & time'}
-        </button>
-      </form>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Your name"
+              autoComplete="name"
+              required
+              style={{
+                flex: '1 1 160px',
+                padding: '11px 14px',
+                borderRadius: 10,
+                border: '1px solid var(--border)',
+                background: 'var(--cream)',
+                fontSize: 14,
+              }}
+            />
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+91 98XXXXXXXX"
+              autoComplete="tel"
+              required
+              style={{
+                flex: '1 1 160px',
+                padding: '11px 14px',
+                borderRadius: 10,
+                border: '1px solid var(--border)',
+                background: 'var(--cream)',
+                fontSize: 14,
+              }}
+            />
+          </div>
+
+          <TimezoneEditor
+            current={userTz}
+            overridden={userTzOverridden}
+            geoStatus={geoStatus}
+            onChange={(tz) => {
+              setUserTz(tz);
+              setUserTzOverridden(true);
+              track('click', 'timezone_override', { from: detectedTz, to: tz });
+            }}
+          />
+
+          {otpError && (
+            <div
+              style={{
+                fontSize: 12,
+                color: '#b42318',
+                background: '#fef3f2',
+                padding: '8px 12px',
+                borderRadius: 8,
+              }}
+            >
+              {otpError}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={!canSubmit || submitting}
+            className="btn-plum"
+            style={{
+              justifyContent: 'center',
+              padding: '12px 20px',
+              opacity: canSubmit && !submitting ? 1 : 0.5,
+            }}
+          >
+            {submitting
+              ? 'Sending OTP…'
+              : bookingType === 'site_visit'
+                ? selectedSlot
+                  ? `Verify & confirm visit · ${selectedSlot.label}`
+                  : 'Pick a date & time'
+                : selectedSlot
+                  ? `Verify & confirm call · ${selectedSlot.label}`
+                  : 'Pick a date & time'}
+          </button>
+        </form>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div
+            style={{
+              fontSize: 12.5,
+              color: 'var(--gray-2)',
+              background: 'var(--plum-pale)',
+              padding: '10px 14px',
+              borderRadius: 10,
+              border: '1px solid var(--plum-border)',
+            }}
+          >
+            {otpInfo ?? `6-digit OTP enter karo (WhatsApp check karo).`}
+          </div>
+          <input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            autoComplete="one-time-code"
+            placeholder="6-digit code"
+            value={otpCode}
+            maxLength={6}
+            autoFocus
+            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && otpCode.length === 6) verifyAndBook();
+            }}
+            style={{
+              width: '100%',
+              padding: '12px 14px',
+              borderRadius: 10,
+              border: '1px solid var(--border)',
+              background: 'var(--cream)',
+              fontSize: 20,
+              textAlign: 'center',
+              letterSpacing: '0.5em',
+              fontWeight: 600,
+            }}
+          />
+          {otpError && (
+            <div
+              style={{
+                fontSize: 12,
+                color: '#b42318',
+                background: '#fef3f2',
+                padding: '8px 12px',
+                borderRadius: 8,
+              }}
+            >
+              {otpError}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={verifyAndBook}
+            disabled={submitting || otpCode.length !== 6}
+            className="btn-plum"
+            style={{
+              justifyContent: 'center',
+              padding: '12px 20px',
+              opacity: submitting || otpCode.length !== 6 ? 0.5 : 1,
+            }}
+          >
+            {submitting
+              ? 'Verifying…'
+              : bookingType === 'site_visit'
+                ? 'Verify & book visit →'
+                : 'Verify & book call →'}
+          </button>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              fontSize: 12,
+              color: 'var(--mid-gray)',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setOtpStep('idle');
+                setOtpCode('');
+                setOtpError(null);
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--plum)',
+                cursor: 'pointer',
+                fontSize: 12,
+                padding: 0,
+              }}
+            >
+              ← Change details
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (resendIn > 0 || submitting) return;
+                setOtpCode('');
+                setOtpError(null);
+                submit(new Event('submit') as unknown as React.FormEvent);
+              }}
+              disabled={resendIn > 0 || submitting}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: resendIn > 0 ? 'var(--light-gray)' : 'var(--plum)',
+                cursor: resendIn > 0 ? 'default' : 'pointer',
+                fontSize: 12,
+                padding: 0,
+              }}
+            >
+              {resendIn > 0 ? `Resend in ${resendIn}s` : 'Resend OTP'}
+            </button>
+          </div>
+        </div>
+      )}
     </TileShell>
   );
 }
