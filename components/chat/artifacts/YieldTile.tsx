@@ -27,7 +27,7 @@ export default function YieldTile() {
         query: 'Tell me about the rental offer',
       }}
       relatedAsks={[
-        { label: 'Tenant demographics', query: 'Who rents in Financial District?' },
+        { label: 'Nearby offices, schools & hospitals', query: 'What facilities are near ASBL Loft?' },
         { label: 'Why FD not Gachibowli', query: 'Why FD and not Gachibowli or Kokapet?' },
         { label: 'Unit plans', query: 'Show me the 3BHK unit plans' },
       ]}

@@ -9,9 +9,22 @@ export interface LeadData {
   source?: string;
 }
 
+/** Persisted booking snapshot so VisitTile can surface an "already scheduled"
+ *  state on re-entry instead of restarting the date/time/name/phone flow. */
+export interface BookingData {
+  type: 'site_visit' | 'virtual_visit' | 'call_back';
+  slotIsoLocal: string;
+  slotLabel: string;
+  dayShortLabel: string;
+  dayLongLabel: string;
+  timezone: string;
+  capturedAt: number;
+}
+
 export interface ChatState {
   pinnedUnitIds: string[];
   lead: LeadData | null;
+  booking: BookingData | null;
   sessionCampaign: string | null;
   conversationId: string | null;
 
@@ -22,6 +35,9 @@ export interface ChatState {
 
   setLead: (l: LeadData) => void;
   hasLead: () => boolean;
+
+  setBooking: (b: Omit<BookingData, 'capturedAt'> | null) => void;
+  clearBooking: () => void;
 
   setCampaign: (c: string | null) => void;
   setConversationId: (id: string | null) => void;
@@ -44,6 +60,7 @@ export const useChatStore = create<ChatState>()(
     (set, get) => ({
       pinnedUnitIds: [],
       lead: null,
+      booking: null,
       sessionCampaign: null,
       conversationId: null,
 
@@ -63,10 +80,20 @@ export const useChatStore = create<ChatState>()(
       setLead: (l) => set({ lead: { ...l, capturedAt: Date.now() } }),
       hasLead: () => !!get().lead?.phone,
 
+      setBooking: (b) =>
+        set({ booking: b ? { ...b, capturedAt: Date.now() } : null }),
+      clearBooking: () => set({ booking: null }),
+
       setCampaign: (c) => set({ sessionCampaign: c }),
       setConversationId: (id) => set({ conversationId: id }),
       reset: () =>
-        set({ pinnedUnitIds: [], lead: null, sessionCampaign: null, conversationId: null }),
+        set({
+          pinnedUnitIds: [],
+          lead: null,
+          booking: null,
+          sessionCampaign: null,
+          conversationId: null,
+        }),
     }),
     {
       name: 'asbl-loft-chat',

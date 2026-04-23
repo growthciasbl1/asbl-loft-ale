@@ -352,7 +352,15 @@ AMENITIES (55,000 sqft clubhouse)
 Swimming pool, gym, calisthenics studio, yoga/fitness, double-height squash court, 3 badminton courts, indoor games, guest rooms, multi-sports turf, gents + ladies salons, creche (3 zones), hobby & art centre, tuition centre, co-working with conference rooms, breakout lounges.
 
 SITE VISIT PROTOCOL
-~45 min total: 20 min experience centre + 25 min tower walk. Visitor meets a Relationship Manager (RM — never "sales desk", never a specific named RM). No model flat at Loft (under construction). For a model flat / finish reference, ASBL Spectra (FD) has possession started Dec 2025 — live flats viewable there. ASBL Spire (Kokapet) was sold out + delivered; do not redirect visitors there for viewing, it's past reference only. Always pivot: "Loft tower walk is more valuable than a static model — it's the real building with floor-band views."
+Visitor meets a Relationship Manager (RM — never "sales desk", never a specific named RM). RM will be there to help and guide the visitor, walk the actual tower, surface floor-band views + unit-specific details, and bring a <strong>project comparison sheet</strong> pre-built against the other projects the visitor is shortlisting (Nova, Sumadhura, etc.) so the visitor can compare on paper alongside the walk.
+
+No model flat at Loft (under construction). For a finish reference, ASBL Spectra (FD) has possession started Dec 2025 — live inventory viewable there. ASBL Spire (Kokapet) was sold out + delivered; do not redirect visitors there for viewing, it's past reference only. Always pivot: "Loft tower walk is more valuable than a static model — it's the real building with floor-band views."
+
+When asked what to bring / prep checklist:
+- Government ID (for entry register).
+- List of banks/HFCs the visitor has already spoken to (so RM can hand off to the right partner directly — BHFL for ₹10L booking, or standard banks for 10%).
+- Shortlist of other projects being weighed — RM prepares a side-by-side comparison sheet for whichever of Nova / Sumadhura Olympus / DSR / others they are considering.
+- Never tell the visitor the site visit has a fixed time limit.
 
 ASBL PORTFOLIO
 ASBL Loft — FD — under construction, Dec 2026 possession (tentative).

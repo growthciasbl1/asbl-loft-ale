@@ -116,7 +116,7 @@ export function routeQuery(q: string): RouterResult {
   if (SHARE_INTENT.test(q)) {
     const subject = extractShareSubject(q);
     return {
-      text: `<p>Drop your name and WhatsApp — we&apos;ll send <strong>${subject}</strong> over in under 2 minutes. Our RM follows up from there, no auto-dialers.</p>`,
+      text: `<p>Drop your name and WhatsApp — we&apos;ll send <strong>${subject}</strong> over in under 2 minutes. Our RM follows up from there.</p>`,
       artifact: 'share_request',
       artifactLabel: 'Share · WhatsApp',
       shareSubject: subject,
@@ -162,7 +162,7 @@ export function routeQuery(q: string): RouterResult {
   // Urban corridors / location / neighborhood
   if (/urban\s*corridor|connectivity|location\s*map|where is|which area|neighbour|neighborhood|micro[-\s]?market|nearby\s*area|area\s*around/.test(ql)) {
     return {
-      text: `<p>Financial District is the southern anchor of Hyderabad&apos;s IT corridor. Every catchment a 3BHK buyer weighs — IT hubs, schools, hospitals, airport — within 30 minutes.</p>`,
+      text: `<p><strong>ASBL Loft sits in Financial District, Hyderabad</strong> — the southern anchor of the IT corridor. 4 minutes to the Nanakramguda ORR exit, then IT hubs (Google / Apple / Amazon · 5 min), schools (6 in 12 min), hospitals (Continental / Apollo · 5 min), and RGI airport at 35 min.</p>`,
       artifact: 'urban_corridors',
       artifactLabel: 'Urban corridors · FD',
     };
@@ -171,7 +171,7 @@ export function routeQuery(q: string): RouterResult {
   // Model flat — none at Loft (all FD projects under construction). Pivot to site visit.
   if (/model\s*(flat|apartment|unit|home|house)|show\s*flat|sample\s*flat|experience\s*centre|experience\s*center/.test(ql)) {
     return {
-      text: `<p>There&apos;s no model flat at Loft yet — it&apos;s still under construction. The model flat with our finish spec sits at <strong>ASBL Spectra</strong>. The <strong>Loft site visit</strong> actually tells you more though — you&apos;ll walk the tower itself, check views from your floor band, and get unit-specific answers a sample flat can&apos;t give.</p>`,
+      text: `<p>A site visit at ASBL Loft is designed to be comprehensive yet efficient. While we don&apos;t have a model flat at Loft as it&apos;s under construction, we can arrange for you to see live inventory at <strong>ASBL Spectra</strong> in Financial District, where possession has already begun, to give you a sense of the finishes and quality. Schedule your visit to know more.</p>`,
       artifact: 'visit',
       artifactLabel: 'Site visit · Loft',
       visitIntro: 'no_model_flat',
@@ -191,7 +191,7 @@ export function routeQuery(q: string): RouterResult {
   // Visit booking
   if (/book.*visit|site\s*visit|schedule\s*tour|book\s*a\s*tour|book.*slot|slot\s*to\s*visit|saturday\s*tour|weekend\s*tour/.test(ql)) {
     return {
-      text: `<p>Pick any slot — <strong>one of our RMs</strong> meets you on arrival, not a sales desk. Visit takes ~45 minutes.</p>`,
+      text: `<p>Pick any slot — <strong>one of our RMs</strong> will be there to help and guide you, not a sales desk.</p>`,
       artifact: 'visit',
       artifactLabel: 'Pick a visit slot',
     };

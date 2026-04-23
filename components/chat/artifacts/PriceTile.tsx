@@ -14,12 +14,13 @@ export default function PriceTile() {
           TS RERA P02400006761.
         </>
       }
-      askMore={{ label: 'Show payment plans', query: 'Show me the payment plan schedule and first cheque amount' }}
+      askMore={{ label: 'Show payment plans', query: 'Show me the payment plan schedule and booking amount' }}
       relatedAsks={[
         { label: 'Rental offer', query: 'Tell me about the rental offer' },
+        { label: 'Payment structure', query: 'Show me the payment plan schedule and booking amount' },
+        { label: 'FOIR check', query: 'Check affordability using FOIR' },
         { label: 'Price trend', query: 'How has FD price trend moved?' },
-        { label: 'Compare with other FD projects', query: 'Compare ASBL Loft with other FD projects' },
-        { label: 'Can I afford this?', query: 'Check affordability · ₹25L salary' },
+        { label: 'Compare projects', query: 'Compare ASBL Loft with other FD projects' },
         { label: 'Unit plan', query: 'Show me the 1695 East unit plan' },
       ]}
     >

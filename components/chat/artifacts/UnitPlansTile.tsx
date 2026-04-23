@@ -8,18 +8,19 @@ import { track } from '@/lib/analytics/tracker';
 
 type UnitSize = 1695 | 1870;
 
+// West first per doc 2.28 — east surfaces via auto-cycle or user click.
 const SLIDES_1695: PlanSlide[] = [
-  {
-    key: '1695-east',
-    img: '/assets/1695_east.webp',
-    label: '1,695 sq.ft — East facing',
-    sub: '3 BHK · Units 3, 4, 7, 8',
-  },
   {
     key: '1695-west',
     img: '/assets/1695_west.webp',
     label: '1,695 sq.ft — West facing',
     sub: '3 BHK · Units 5, 6',
+  },
+  {
+    key: '1695-east',
+    img: '/assets/1695_east.webp',
+    label: '1,695 sq.ft — East facing',
+    sub: '3 BHK · Units 3, 4, 7, 8',
   },
 ];
 

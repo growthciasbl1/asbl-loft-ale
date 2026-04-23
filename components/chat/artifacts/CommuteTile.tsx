@@ -32,8 +32,8 @@ export default function CommuteTile() {
       }
       footer={<>Midweek, 9 am departure · Google Distance Matrix · ±3 min variance.</>}
       askMore={{
-        label: 'Who actually rents in FD?',
-        query: 'Who rents in Financial District — professional demographics?',
+        label: 'Nearby schools, hospitals & offices',
+        query: 'What facilities are near ASBL Loft?',
       }}
       relatedAsks={[
         { label: 'Schools in 12 min', query: 'What schools are within 12 minutes?' },
@@ -96,9 +96,10 @@ export default function CommuteTile() {
           lineHeight: 1.55,
         }}
       >
-        <b style={{ color: 'var(--plum-dark)' }}>Why this is the dream tenant pool:</b>{' '}
-        Google / Apple / Amazon / Microsoft staff sit inside a 10-minute radius. They rent premium
-        3BHKs long-term and pay on time. That&apos;s what keeps yield stable here.
+        <b style={{ color: 'var(--plum-dark)' }}>FD&apos;s job market is deepening:</b>{' '}
+        GCC expansion (Google Phase 2, Apple R&amp;D centre), record commercial leasing in the FD
+        belt, and schools + hospitals within a 12-minute radius — liveability here isn&apos;t a
+        forecast, it&apos;s the day-to-day reality for residents in the immediate neighbourhood.
       </div>
     </TileShell>
   );

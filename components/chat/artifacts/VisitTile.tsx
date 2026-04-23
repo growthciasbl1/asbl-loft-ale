@@ -13,7 +13,6 @@ import {
   getBrowserTimezone,
   requestGeolocation,
   resolveTimezoneFromGeo,
-  formatSlotInTimezone,
   COMMON_TIMEZONES,
   type DaySlots,
   type GeoPosition,
@@ -37,13 +36,13 @@ const INTROS = {
   live_inventory: {
     title: "We don't publish live inventory in chat.",
     body:
-      "Pricing and unit availability change daily as construction progresses. One of our RMs will walk you through exactly what's open in your size and floor band — takes ~45 min on-site.",
+      "Pricing and unit availability change daily as construction progresses. One of our RMs will walk you through exactly what's open in your size and floor band.",
   },
 };
 
 function eyebrowFor(type: BookingType): string {
-  if (type === 'site_visit') return 'Site visits · 45 minutes';
-  if (type === 'virtual_visit') return 'Virtual visit · 30 minutes on video';
+  if (type === 'site_visit') return 'Site visits';
+  if (type === 'virtual_visit') return 'Virtual visit · on video';
   return 'Call back from Loft team';
 }
 
@@ -55,7 +54,7 @@ function titleFor(type: BookingType): string {
 
 function subFor(type: BookingType): string {
   if (type === 'site_visit')
-    return '20 min at experience centre · 25 min walking the actual tower.';
+    return 'Walk the actual tower, see views from your floor band, and get unit-specific answers.';
   if (type === 'virtual_visit')
     return 'RM joins on Google Meet · shares master plan, unit walkthrough, payment plans, and your floor-band view.';
   return 'One of our RMs will call at the slot you pick, no earlier, no later.';
@@ -96,6 +95,9 @@ export default function VisitTile({
 }: VisitTileProps) {
   const lead = useChatStore((s) => s.lead);
   const setLead = useChatStore((s) => s.setLead);
+  const existingBooking = useChatStore((s) => s.booking);
+  const setBookingStore = useChatStore((s) => s.setBooking);
+  const clearBookingStore = useChatStore((s) => s.clearBooking);
 
   const [bookingType, setBookingType] = useState<BookingType>(initialBookingType);
   const [dayIndex, setDayIndex] = useState(0);
@@ -203,9 +205,24 @@ export default function VisitTile({
    *  verified identity quick-book path. */
   const bookDirectly = () => {
     setLead({ name, phone, source: bookingType });
+    persistBookingToStore();
     setOtpStep('idle');
     setDone(true);
     fireBookingWebhook();
+  };
+
+  /** Persist the current selection to zustand so re-entering VisitTile shows
+   *  the "already scheduled" state (doc 4.11) and the Reschedule button (4.10). */
+  const persistBookingToStore = () => {
+    if (!selectedSlot || !selectedDay) return;
+    setBookingStore({
+      type: bookingType,
+      slotIsoLocal: selectedSlot.isoLocal,
+      slotLabel: selectedSlot.label,
+      dayShortLabel: selectedDay.shortLabel,
+      dayLongLabel: selectedDay.longLabel,
+      timezone: userTz,
+    });
   };
 
   /** Step 1 of 2: send an OTP to the phone. If identity is already verified in
@@ -317,6 +334,7 @@ export default function VisitTile({
       }
 
       setLead({ name, phone, source: bookingType });
+      persistBookingToStore();
       setOtpStep('idle');
       setDone(true);
       track('view', 'lead_success', { form: bookingType, verified: true });
@@ -378,13 +396,33 @@ export default function VisitTile({
     return () => clearTimeout(id);
   }, [resendIn]);
 
-  /* ─── SUCCESS VIEW ─── */
-  if (done && selectedSlot && selectedDay) {
+  /* ─── CONFIRMED VIEW ─── shown either right after booking (done=true) OR
+   *  when visitor returns and zustand has a persisted booking (doc 4.11). */
+  const confirmedType: BookingType | null = done
+    ? bookingType
+    : existingBooking
+      ? existingBooking.type
+      : null;
+  const confirmedSlotLabel = done ? selectedSlot?.label : existingBooking?.slotLabel;
+  const confirmedDayLabel = done ? selectedDay?.shortLabel : existingBooking?.dayShortLabel;
+  const confirmedSlotIso = done ? selectedSlot?.isoLocal : existingBooking?.slotIsoLocal;
+  const confirmedPhone = phone || lead?.phone;
+
+  if (confirmedType && confirmedSlotLabel && confirmedDayLabel && confirmedSlotIso) {
+    const resetForReschedule = () => {
+      clearBookingStore();
+      setDone(false);
+      setSlotIdx(null);
+      setDayIndex(0);
+      setOtpStep('idle');
+      track('click', 'visit_reschedule');
+    };
+
     return (
       <TileShell
-        eyebrow={successEyebrowFor(bookingType)}
-        title={successTitleFor(bookingType)}
-        sub={formatSlotInTimezone(selectedSlot.isoLocal, userTz)}
+        eyebrow={done ? successEyebrowFor(confirmedType) : 'Already scheduled'}
+        title={done ? successTitleFor(confirmedType) : "You're already booked."}
+        sub={`${confirmedDayLabel} · ${confirmedSlotLabel}`}
         icon={
           <TileIcon>
             <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--plum)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -425,37 +463,42 @@ export default function VisitTile({
             </svg>
           </div>
           <div className="serif" style={{ fontSize: 22, color: 'var(--charcoal)', fontWeight: 500 }}>
-            {bookingLabelFor(bookingType)} · {selectedDay.shortLabel} · {selectedSlot.label}
+            {bookingLabelFor(confirmedType)} · {confirmedDayLabel} · {confirmedSlotLabel}
           </div>
           <div style={{ fontSize: 13, color: 'var(--gray-2)', maxWidth: 460, lineHeight: 1.55 }}>
-            {bookingType === 'site_visit' ? (
+            {confirmedType === 'site_visit' ? (
               <>
-                One of our RMs will WhatsApp <b>{phone}</b> with the meeting point + their direct
-                number. Shown here in <b>{tzShortLabel(userTz)}</b>.
+                One of our RMs will WhatsApp <b>{confirmedPhone}</b> with the meeting point and
+                their direct number.
               </>
-            ) : bookingType === 'virtual_visit' ? (
+            ) : confirmedType === 'virtual_visit' ? (
               <>
-                One of our RMs will WhatsApp <b>{phone}</b> with the Google Meet link ~15 min before
-                your slot. Shown here in <b>{tzShortLabel(userTz)}</b>.
+                One of our RMs will WhatsApp <b>{confirmedPhone}</b> with the Google Meet link
+                ~15 min before your slot.
               </>
             ) : (
               <>
-                One of our RMs will call <b>{phone}</b> at this time in{' '}
-                <b>{tzShortLabel(userTz)}</b>. If you&apos;re travelling, adjust the timezone below
-                so we call at the right hour.
+                One of our RMs will call <b>{confirmedPhone}</b> at the slot you picked.
               </>
             )}
           </div>
 
-          <TimezoneEditor
-            current={userTz}
-            overridden={userTzOverridden}
-            onChange={(tz) => {
-              setUserTz(tz);
-              setUserTzOverridden(true);
-              track('click', 'timezone_override', { from: detectedTz, to: tz });
+          <button
+            type="button"
+            onClick={resetForReschedule}
+            style={{
+              background: 'transparent',
+              border: '1px solid var(--plum)',
+              color: 'var(--plum-dark)',
+              padding: '8px 18px',
+              borderRadius: 100,
+              fontSize: 12.5,
+              fontWeight: 500,
+              cursor: 'pointer',
             }}
-          />
+          >
+            Reschedule
+          </button>
         </div>
       </TileShell>
     );
@@ -723,7 +766,7 @@ export default function VisitTile({
               marginBottom: 8,
             }}
           >
-            Time · {tzShortLabel(userTz)}
+            Time
           </label>
           <div
             style={{
