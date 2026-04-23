@@ -3,6 +3,14 @@ import { pickNextSender } from './numbers';
 const BASE = process.env.PERISKOPE_API_BASE || 'https://api.periskope.app/v1';
 const TOKEN = process.env.PERISKOPE_API_TOKEN || '';
 
+/**
+ * Pinned sender number for share_request + the "Anandita assigned" handoff.
+ * The user wants a consistent RM face for document deliveries — so every
+ * share-request flow (OTP + docs + intro) goes through this number.
+ */
+export const ANANDITA_E164 = '917995284040';
+export const ANANDITA_NAME = 'Anandita';
+
 function hasPeriskope(): boolean {
   return !!TOKEN;
 }
@@ -68,6 +76,52 @@ async function sendViaNumber(
     return { ok: res.ok, fromE164, status: res.status, data };
   } catch (err) {
     return { ok: false, fromE164, status: 0, error: (err as Error).message };
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+/**
+ * Send a WhatsApp document (PDF/image) via Periskope. The `url` must be a
+ * publicly reachable HTTPS URL (Periskope fetches it on their side).
+ * Returns success once Periskope acknowledges the queue entry.
+ */
+export async function sendWhatsAppDocument(input: {
+  toE164: string;
+  fromE164: string;
+  url: string;
+  filename: string;
+  caption?: string;
+  timeoutMs?: number;
+}): Promise<SendMessageResult> {
+  if (!hasPeriskope()) {
+    return { ok: false, fromE164: input.fromE164, status: 0, error: 'PERISKOPE_API_TOKEN missing' };
+  }
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), input.timeoutMs ?? 20000);
+  try {
+    const res = await fetch(`${BASE}/message/send`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${TOKEN}`,
+        'Content-Type': 'application/json',
+        'x-phone': input.fromE164,
+      },
+      body: JSON.stringify({
+        chat_id: `${input.toE164}@c.us`,
+        message: input.caption ?? '',
+        media: {
+          type: 'document',
+          url: input.url,
+          filename: input.filename,
+        },
+      }),
+      signal: ctrl.signal,
+    });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, fromE164: input.fromE164, status: res.status, data };
+  } catch (err) {
+    return { ok: false, fromE164: input.fromE164, status: 0, error: (err as Error).message };
   } finally {
     clearTimeout(t);
   }

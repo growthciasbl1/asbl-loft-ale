@@ -29,6 +29,14 @@ export async function POST(req: NextRequest) {
     const campaign = typeof body?.campaign === 'string' ? body.campaign : undefined;
     const artifactKind = typeof body?.artifactKind === 'string' ? body.artifactKind : undefined;
 
+    // Optional explicit sender override — used by share_request flow so the
+    // visitor sees one continuous WhatsApp thread with Anandita (not a
+    // random round-robin number). Falls back to round-robin if omitted.
+    const forceSenderE164 =
+      typeof body?.senderE164 === 'string' && /^\d{11,14}$/.test(body.senderE164)
+        ? body.senderE164
+        : undefined;
+
     const phoneE164 = normalisePhone(phoneRaw);
     if (!phoneE164) {
       return NextResponse.json({ ok: false, error: 'invalid phone' }, { status: 400 });
@@ -39,7 +47,7 @@ export async function POST(req: NextRequest) {
 
     // Fire both channels in parallel — same OTP code
     const [waResult, smsResult] = await Promise.all([
-      sendWhatsApp({ toE164: phoneE164, message }),
+      sendWhatsApp({ toE164: phoneE164, message, fromE164: forceSenderE164 }),
       hasMsg91()
         ? sendMsg91Otp({ toE164: phoneE164, otp, name: name ?? undefined })
         : Promise.resolve({ ok: false, reason: 'not_configured' as const }),
