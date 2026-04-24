@@ -224,13 +224,20 @@ export default function ChatView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialQ]);
 
+  // Auto-scroll only when a new message actually lands. Previously this
+  // ran on BOTH `messages` and `typing` changes, so every Q&A cycle fired
+  // 4 scrollTo calls (user msg → typing on → bot msg → typing off). Each
+  // call crosses GA4's 90% scroll-depth threshold and emits a `scroll`
+  // event to GTM — that was the root cause of the "scroll firing 4 times
+  // per message" issue Kshitij flagged. Keying on messages.length skips
+  // the typing-indicator toggles.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const t = window.setTimeout(() => {
       window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     }, 80);
     return () => window.clearTimeout(t);
-  }, [messages, typing]);
+  }, [messages.length]);
 
   const submit = async (q: string) => {
     const text = q.trim();
