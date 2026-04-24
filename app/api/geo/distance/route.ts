@@ -155,9 +155,10 @@ function kmFromM(m: number | undefined | null): number | null {
 }
 
 export async function POST(req: NextRequest) {
-  // Rate limit: 10 commute lookups per minute. OpenRouteService free tier
-  // caps at 40 RPM globally — per-client 10 RPM leaves headroom.
-  const rl = checkRateLimit('geo:distance', getClientKey(req), { maxRequests: 10, windowMs: 60_000 });
+  // Rate limit: 500 commute lookups per minute per client. Loose cap;
+  // ORS upstream has its own 40 RPM global limit which is what actually
+  // protects us. This is just a runaway-loop guard.
+  const rl = checkRateLimit('geo:distance', getClientKey(req), { maxRequests: 500, windowMs: 60_000 });
   if (!rl.allowed) {
     return NextResponse.json(
       { error: 'rate_limited', retryAfter: Math.ceil((rl.resetAt - Date.now()) / 1000) },

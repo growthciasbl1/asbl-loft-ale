@@ -23,9 +23,10 @@ function coerceHistory(input: unknown): ChatHistoryMsg[] {
 }
 
 export async function POST(req: NextRequest) {
-  // Rate limit: 30 chat messages per minute per client. Gemini calls are
-  // the most expensive thing we do — a runaway client can blow our quota.
-  const rl = checkRateLimit('chat', getClientKey(req), { maxRequests: 30, windowMs: 60_000 });
+  // Rate limit: 1000 chat messages per minute per client. Loose cap —
+  // just a runaway-loop circuit breaker. Office NAT shares one IP across
+  // many users, so keep this generous.
+  const rl = checkRateLimit('chat', getClientKey(req), { maxRequests: 1000, windowMs: 60_000 });
   if (!rl.allowed) {
     return NextResponse.json(
       { error: 'rate_limited', retryAfter: Math.ceil((rl.resetAt - Date.now()) / 1000) },

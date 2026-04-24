@@ -85,9 +85,9 @@ function buildConfirmationMessage(input: {
 }
 
 export async function POST(req: NextRequest) {
-  // Rate limit: 10 form submissions per minute per client. Leads + Zoho
-  // push + WhatsApp confirmation + Mongo upsert fire here; easy to abuse.
-  const rl = checkRateLimit('webhook', getClientKey(req), { maxRequests: 10, windowMs: 60_000 });
+  // Rate limit: 500 form submissions per minute per client. Loose runaway-
+  // loop guard. Office NAT shares one IP, so keep this generous.
+  const rl = checkRateLimit('webhook', getClientKey(req), { maxRequests: 500, windowMs: 60_000 });
   if (!rl.allowed) {
     return NextResponse.json(
       { error: 'rate_limited', retryAfter: Math.ceil((rl.resetAt - Date.now()) / 1000) },

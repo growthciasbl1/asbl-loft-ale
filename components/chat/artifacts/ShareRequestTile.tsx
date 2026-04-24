@@ -70,10 +70,8 @@ export default function ShareRequestTile({
       setErrorMsg('Name and phone are both required.');
       return;
     }
-    if (!phoneValid) {
-      setErrorMsg(phoneHint ?? 'Please enter a valid 10-digit Indian mobile number.');
-      return;
-    }
+    // Phone-format gate intentionally disabled — was blocking real users
+    // with a 400 in production. Server-side normalisePhone is lenient.
     setBusy(true);
     setErrorMsg(null);
 
@@ -423,7 +421,7 @@ export default function ShareRequestTile({
           <button
             type="button"
             onClick={sendOtp}
-            disabled={busy || !name.trim() || !phone.trim() || !phoneValid}
+            disabled={busy || !name.trim() || !phone.trim()}
             className="btn-plum"
             style={{ justifyContent: 'center', padding: '12px 20px', opacity: busy ? 0.6 : 1 }}
           >

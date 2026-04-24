@@ -17,10 +17,9 @@ function hasPeriskope(): boolean {
 
 /**
  * Normalise a user-entered phone to Periskope's expected form.
- * - strips spaces, dashes, parens, leading +
- * - if starts with "0" and length 11 → assume India, replace 0 with 91
- * - if length 10 → prepend 91
- * Returns null on obvious garbage.
+ * Lenient mode — we only reject when there are zero digits. Anything
+ * else is best-effort-shaped and forwarded to Periskope, which has its
+ * own number validation. Strict regex was blocking real users in prod.
  */
 export function normalisePhone(raw: string): string | null {
   if (!raw) return null;
@@ -29,7 +28,9 @@ export function normalisePhone(raw: string): string | null {
   if (digits.length === 10) return `91${digits}`;
   if (digits.length === 11 && digits.startsWith('0')) return `91${digits.slice(1)}`;
   if (digits.length >= 11 && digits.length <= 14) return digits;
-  return null;
+  // Unusual length (e.g. 7, 8, 9, 15 digits) — forward anyway; Periskope
+  // will return a meaningful error and our frontend will surface it.
+  return digits;
 }
 
 interface SendMessageInput {

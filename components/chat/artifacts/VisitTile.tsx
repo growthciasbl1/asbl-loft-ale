@@ -205,11 +205,14 @@ export default function VisitTile({
   const phoneHint = phoneValidationHint(phone);
   const phoneValid = isValidIndiaPhone(phone);
 
+  // phoneValid gate intentionally disabled — was blocking real users in
+  // production with a 400 "invalid phone" at the server. Server-side
+  // normalisePhone is lenient enough; Periskope rejects undeliverable
+  // numbers downstream with an informative error.
   const canSubmit = Boolean(
-    (bookingType === 'call_back'
+    bookingType === 'call_back'
       ? name.trim() && phone.trim() && callPref
-      : selectedSlot && !selectedSlot.disabled && name.trim() && phone.trim()) &&
-      phoneValid,
+      : selectedSlot && !selectedSlot.disabled && name.trim() && phone.trim(),
   );
 
   /** Synthetic booking descriptor for call_back — gives the rest of the flow

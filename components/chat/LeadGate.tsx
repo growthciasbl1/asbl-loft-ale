@@ -68,10 +68,9 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
       setErrorMsg('Name and phone are both required.');
       return;
     }
-    if (!phoneValid) {
-      setErrorMsg(phoneHint ?? 'Please enter a valid 10-digit Indian mobile number.');
-      return;
-    }
+    // Phone-format validation intentionally disabled — the server's
+    // normalisePhone is lenient enough, and this gate was blocking real
+    // users while we diagnose the production 400 issue.
     setBusy(true);
     setErrorMsg(null);
     setInfoMsg(null);
@@ -84,11 +83,20 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
       });
       const json = await res.json();
       if (!res.ok || !json.ok) {
-        setErrorMsg(
-          json.error === 'invalid phone'
-            ? 'That phone number looks incorrect — please check.'
-            : 'Could not send the OTP. Please try again in a moment.',
-        );
+        // Surface the actual server reason so we can diagnose. Each error
+        // code maps to a precise root cause; the generic fallback was
+        // hiding rate-limits, channel failures, and Mongo issues.
+        const reasonMap: Record<string, string> = {
+          'invalid phone': 'That phone number looks incorrect — please check.',
+          rate_limited: `Too many attempts — try again in ${json.retryAfter ?? 30}s.`,
+          all_channels_failed: 'WhatsApp delivery is failing right now. Our team has been alerted — please try in 1–2 minutes.',
+          otp_store_failed: 'OTP was sent but we could not save it. Please request a new one.',
+          'invalid request': 'Invalid request — please refresh and try again.',
+        };
+        const friendly = reasonMap[json.error] ?? `Could not send OTP (${json.error ?? `HTTP ${res.status}`}). Please try again.`;
+        setErrorMsg(friendly);
+        // Log full payload for debug — visible in DevTools console for any user.
+        console.error('[LeadGate] otp/send failed', { status: res.status, body: json });
       } else {
         setStep('otp');
         setInfoMsg(`OTP sent on WhatsApp to ${phone}. Code valid for 5 minutes.`);
@@ -276,12 +284,12 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
               <button
                 type="button"
                 onClick={sendOtp}
-                disabled={busy || !phone.trim() || !name.trim() || !phoneValid}
+                disabled={busy || !phone.trim() || !name.trim()}
                 className="btn-plum"
                 style={{
                   justifyContent: 'center',
                   padding: '12px 20px',
-                  opacity: busy || !phoneValid ? 0.6 : 1,
+                  opacity: busy ? 0.6 : 1,
                 }}
               >
                 {busy ? 'Sending OTP…' : 'Unlock →'}

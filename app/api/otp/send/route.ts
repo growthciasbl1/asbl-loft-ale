@@ -17,9 +17,10 @@ export const dynamic = 'force-dynamic';
  * Response: { ok, sentVia: ['whatsapp'] | ['whatsapp', 'sms'], fromE164?, smsOk? }
  */
 export async function POST(req: NextRequest) {
-  // Rate limit: 5 OTP sends per minute per client. WhatsApp charges per
-  // outbound message + abusers can spam a target number. Hard cap.
-  const rl = checkRateLimit('otp:send', getClientKey(req), { maxRequests: 5, windowMs: 60_000 });
+  // Rate limit: 500 OTP sends per minute per client. Generous cap — only
+  // there to stop runaway loops, not to throttle real traffic. Office
+  // NAT means many users share one IP, so keep this loose.
+  const rl = checkRateLimit('otp:send', getClientKey(req), { maxRequests: 500, windowMs: 60_000 });
   if (!rl.allowed) {
     return NextResponse.json(
       { ok: false, error: 'rate_limited', retryAfter: Math.ceil((rl.resetAt - Date.now()) / 1000) },
@@ -69,11 +70,33 @@ export async function POST(req: NextRequest) {
     if (smsResult.ok) sentVia.push('sms');
 
     if (sentVia.length === 0) {
+      // Loud log — this is the most common silent failure (Periskope token
+      // expired, Mongo down so pickNextSender returns null, etc.). Without
+      // this log we end up guessing in production.
+      console.error('[api/otp/send] ALL CHANNELS FAILED', {
+        phoneE164,
+        whatsapp: {
+          ok: waResult.ok,
+          status: waResult.status,
+          fromE164: waResult.fromE164,
+          error: waResult.error,
+        },
+        sms: {
+          ok: smsResult.ok,
+          reason: (smsResult as { reason?: string }).reason,
+          error: (smsResult as { error?: string }).error,
+        },
+        envCheck: {
+          PERISKOPE_API_TOKEN_set: !!process.env.PERISKOPE_API_TOKEN,
+          MONGODB_URI_set: !!process.env.MONGODB_URI,
+          MSG91_TEMPLATE_ID_set: !!process.env.MSG91_TEMPLATE_ID,
+        },
+      });
       return NextResponse.json(
         {
           ok: false,
           error: 'all_channels_failed',
-          whatsapp: { error: waResult.error, status: waResult.status },
+          whatsapp: { error: waResult.error, status: waResult.status, fromE164: waResult.fromE164 },
           sms: { reason: (smsResult as { reason?: string }).reason, error: (smsResult as { error?: string }).error },
         },
         { status: 502 },
