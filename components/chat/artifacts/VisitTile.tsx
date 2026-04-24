@@ -18,6 +18,7 @@ import {
   type GeoPosition,
 } from '@/lib/utils/booking';
 import { getOrCreateVisitorId } from '@/lib/analytics/visitorId';
+import { isValidIndiaPhone, phoneValidationHint } from '@/lib/utils/phone';
 
 type BookingType = 'site_visit' | 'virtual_visit' | 'call_back';
 type CallPreference = 'now' | 'tomorrow' | 'later' | 'anytime';
@@ -201,10 +202,14 @@ export default function VisitTile({
     }
   }, [lead?.phone, lead?.name, editingIdentity]);
 
+  const phoneHint = phoneValidationHint(phone);
+  const phoneValid = isValidIndiaPhone(phone);
+
   const canSubmit = Boolean(
-    bookingType === 'call_back'
+    (bookingType === 'call_back'
       ? name.trim() && phone.trim() && callPref
-      : selectedSlot && !selectedSlot.disabled && name.trim() && phone.trim(),
+      : selectedSlot && !selectedSlot.disabled && name.trim() && phone.trim()) &&
+      phoneValid,
   );
 
   /** Synthetic booking descriptor for call_back — gives the rest of the flow
@@ -322,7 +327,7 @@ export default function VisitTile({
     // ─── Optimistic UI: show OTP panel immediately ───
     setOtpStep('otp');
     setOtpCode('');
-    setOtpInfo(`OTP ${phone} pe bhej rahe hain. WhatsApp check karo.`);
+    setOtpInfo(`Sending OTP to ${phone}. Please check your WhatsApp.`);
     setResendIn(30);
 
     track('submit', 'visit_otp_send_click', {
@@ -352,11 +357,11 @@ export default function VisitTile({
         setOtpError(
           json.error === 'invalid phone'
             ? 'Ye phone number sahi nahi lag raha — please check.'
-            : 'OTP bhej nahi paye. Try again in a moment.',
+            : 'Could not send the OTP. Please try again in a moment.',
         );
         return;
       }
-      setOtpInfo(`OTP WhatsApp pe bhej diya hai ${phone}. Code valid 5 minutes.`);
+      setOtpInfo(`OTP sent on WhatsApp to ${phone}. Code valid for 5 minutes.`);
     } catch {
       setOtpStep('idle');
       setOtpError('Network error — please retry.');
@@ -388,10 +393,10 @@ export default function VisitTile({
       if (!v.ok || !vJson.ok) {
         setOtpError(
           vJson.error === 'wrong_code'
-            ? 'Galat code. Try again.'
+            ? 'Wrong code. Please try again.'
             : vJson.error === 'expired'
-              ? 'Code expire ho gaya — resend karo.'
-              : 'Verification fail ho gaya.',
+              ? 'Code expired — please tap Resend.'
+              : 'Verification failed. Please try again.',
         );
         return;
       }
@@ -1119,12 +1124,15 @@ export default function VisitTile({
                   flex: '1 1 160px',
                   padding: '11px 14px',
                   borderRadius: 10,
-                  border: '1px solid var(--border)',
+                  border: '1px solid ' + (phoneHint ? '#b42318' : phoneValid ? '#15803d' : 'var(--border)'),
                   background: 'var(--cream)',
                   fontSize: 14,
                 }}
               />
             </div>
+          )}
+          {phoneHint && editingIdentity && (
+            <div style={{ fontSize: 11.5, color: '#b42318', marginTop: -2 }}>{phoneHint}</div>
           )}
 
           <TimezoneEditor
@@ -1192,7 +1200,7 @@ export default function VisitTile({
               border: '1px solid var(--plum-border)',
             }}
           >
-            {otpInfo ?? `6-digit OTP enter karo (WhatsApp check karo).`}
+            {otpInfo ?? `Enter the 6-digit OTP (check your WhatsApp).`}
           </div>
           <input
             type="text"

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { insertLead, markLeadCrmPushed } from '@/lib/db/leads';
+import { upsertLead, markLeadCrmPushed } from '@/lib/db/leads';
 import type { LeadBooking, LeadGeo } from '@/lib/db/schemas';
 import { wasRecentlyVerified, getLastOtpSender } from '@/lib/otp/store';
 import { normalisePhone, sendWhatsApp } from '@/lib/wa/periskope';
@@ -174,8 +174,11 @@ export async function POST(req: NextRequest) {
           }
         : null;
 
-    // 1) Persist lead in Mongo (no-op if MONGODB_URI missing)
-    const leadId = await insertLead({
+    // 1) Persist lead in Mongo (no-op if MONGODB_URI missing).
+    //    upsertLead merges by phone — resubmissions (reschedule / re-book /
+    //    re-share) become an UPDATE on the existing row with bumped
+    //    resubmissionCount + appended submissionHistory. No duplicate rows.
+    const upsert = await upsertLead({
       name: body.name,
       phone: body.phone,
       email: body.email,
@@ -203,6 +206,9 @@ export async function POST(req: NextRequest) {
       globalId: visitor?.globalId ?? null,
       otpVerified: body.otpVerified === true,
     });
+    const leadId = upsert.id;
+    const resubmissionCount = upsert.resubmissionCount;
+    const isReturningLead = !upsert.isNew;
 
     // Link the visitor record to this lead so analytics can pivot the
     // other way (visitorId → leadId). Best-effort, non-blocking.
@@ -290,6 +296,11 @@ export async function POST(req: NextRequest) {
       is_reschedule: booking?.isReschedule === true,
       previous_booking_slot: booking?.previousBooking?.slotIsoLocal ?? null,
       previous_booking_type: booking?.previousBooking?.type ?? null,
+      // Resubmission tracking — the same phone has now hit /api/webhook
+      // this many times. 0 on first capture, bumps on every reschedule /
+      // re-book / re-share via the same number.
+      resubmission_count: resubmissionCount,
+      is_returning_lead: isReturningLead,
       call_preference: booking?.callPreference ?? null,
     };
 

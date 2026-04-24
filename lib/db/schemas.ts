@@ -93,6 +93,22 @@ export interface LeadDoc {
   crmPushedAt?: Date;
   crmResponse?: unknown;
   createdAt: Date;
+  /** Bumped every time the same phone re-submits (reschedule / re-book /
+   *  doc re-share). Starts at 0 on first capture. Lets Zoho automations
+   *  + sales reps see how many attempts this lead has made. */
+  resubmissionCount?: number;
+  /** Timestamp of the most recent resubmission (updatedAt mirror). */
+  updatedAt?: Date;
+  /** Snapshot of every booking/resubmission this lead has ever done —
+   *  audit trail so we can see the full journey without hunting through
+   *  separate webhook logs. */
+  submissionHistory?: Array<{
+    at: Date;
+    reason?: string;
+    booking?: LeadBooking | null;
+    query?: string;
+    isReschedule?: boolean;
+  }>;
 }
 
 export interface ConversationDoc {

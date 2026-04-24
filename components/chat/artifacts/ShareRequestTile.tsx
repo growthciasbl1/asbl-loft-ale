@@ -7,6 +7,7 @@ import ChannelToggle, { Channel } from '../ChannelToggle';
 import { track } from '@/lib/analytics/tracker';
 import { readWebTracker } from '@/lib/analytics/leadTracking';
 import { getOrCreateVisitorId } from '@/lib/analytics/visitorId';
+import { isValidIndiaPhone, phoneValidationHint } from '@/lib/utils/phone';
 
 // Matches lib/wa/periskope.ts ANANDITA_E164 — the assigned RM for share flows.
 const ANANDITA_SENDER = '917995284040';
@@ -61,9 +62,16 @@ export default function ShareRequestTile({
 
   // Step 1: check if already verified in session → skip OTP and deliver
   // directly. Otherwise send a fresh OTP from Anandita's number.
+  const phoneHint = phoneValidationHint(phone);
+  const phoneValid = isValidIndiaPhone(phone);
+
   const sendOtp = async () => {
     if (!name.trim() || !phone.trim()) {
-      setErrorMsg('Name and phone both required.');
+      setErrorMsg('Name and phone are both required.');
+      return;
+    }
+    if (!phoneValid) {
+      setErrorMsg(phoneHint ?? 'Please enter a valid 10-digit Indian mobile number.');
       return;
     }
     setBusy(true);
@@ -94,7 +102,7 @@ export default function ShareRequestTile({
     // Optimistic UI — switch to OTP panel immediately
     setStep('otp');
     setCode('');
-    setInfoMsg(`OTP ${phone} pe bhej rahe hain. WhatsApp check karo.`);
+    setInfoMsg(`Sending OTP to ${phone}. Please check your WhatsApp.`);
     setResendIn(30);
 
     track('submit', 'share_otp_send_click', {
@@ -125,11 +133,11 @@ export default function ShareRequestTile({
         setErrorMsg(
           json.error === 'invalid phone'
             ? 'Phone number sahi nahi lag raha.'
-            : 'OTP bhej nahi paye. Try again.',
+            : 'Could not send the OTP. Please try again.',
         );
         return;
       }
-      setInfoMsg(`OTP WhatsApp pe bhej diya hai ${phone}. Code valid 5 minutes.`);
+      setInfoMsg(`OTP sent on WhatsApp to ${phone}. Code valid for 5 minutes.`);
     } catch {
       setStep('form');
       setErrorMsg('Network error. Please retry.');
@@ -195,10 +203,10 @@ export default function ShareRequestTile({
       if (!v.ok || !vJson.ok) {
         setErrorMsg(
           vJson.error === 'wrong_code'
-            ? 'Galat code. Try again.'
+            ? 'Wrong code. Please try again.'
             : vJson.error === 'expired'
-              ? 'Code expire ho gaya — resend karo.'
-              : 'Verification fail ho gaya.',
+              ? 'Code expired — please tap Resend.'
+              : 'Verification failed. Please try again.',
         );
         return;
       }
@@ -242,7 +250,7 @@ export default function ShareRequestTile({
         step === 'done'
           ? `${sentCount > 0 ? `${sentCount} document${sentCount === 1 ? '' : 's'} sent` : 'Documents sent'} to ${phone}. ${ANANDITA_NAME} is your assigned RM — reply in that thread for any follow-up.`
           : step === 'otp'
-            ? infoMsg ?? `6-digit OTP ${phone} pe bheja hai.`
+            ? infoMsg ?? `6-digit OTP sent to ${phone}.`
             : `You asked for: ${displaySubject}. Drop name + phone, verify via OTP, and ${ANANDITA_NAME} will send it over.`
       }
       icon={
@@ -305,7 +313,7 @@ export default function ShareRequestTile({
             Delivered
           </div>
           <div style={{ fontSize: 12.5, color: 'var(--mid-gray)', maxWidth: 420 }}>
-            Check your WhatsApp — <b>{ANANDITA_NAME}</b> ne <b>{displaySubject}</b> bhej diya. Usi thread me reply karke aap apna koi bhi question pooch sakte ho.
+            Check your WhatsApp — <b>{ANANDITA_NAME}</b> has sent over <b>{displaySubject}</b>. You can reply in the same thread with any follow-up questions.
           </div>
         </div>
       )}
@@ -396,8 +404,14 @@ export default function ShareRequestTile({
                   onChange={(e) => setPhone(e.target.value)}
                   onFocus={() => track('focus', 'share_phone_focus', { subject: displaySubject })}
                   placeholder="+91 98XXXXXXXX"
-                  style={inputStyle}
+                  style={{
+                    ...inputStyle,
+                    borderColor: phoneHint ? '#b42318' : phoneValid ? '#15803d' : 'var(--border)',
+                  }}
                 />
+                {phoneHint && (
+                  <div style={{ fontSize: 11.5, color: '#b42318', marginTop: 6 }}>{phoneHint}</div>
+                )}
               </div>
             </>
           )}
@@ -409,7 +423,7 @@ export default function ShareRequestTile({
           <button
             type="button"
             onClick={sendOtp}
-            disabled={busy || !name.trim() || !phone.trim()}
+            disabled={busy || !name.trim() || !phone.trim() || !phoneValid}
             className="btn-plum"
             style={{ justifyContent: 'center', padding: '12px 20px', opacity: busy ? 0.6 : 1 }}
           >
@@ -436,7 +450,7 @@ export default function ShareRequestTile({
               border: '1px solid var(--plum-border)',
             }}
           >
-            {infoMsg ?? `6-digit code enter karo.`}
+            {infoMsg ?? `Enter the 6-digit code.`}
           </div>
           <input
             type="text"

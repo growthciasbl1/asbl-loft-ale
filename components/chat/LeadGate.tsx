@@ -6,6 +6,7 @@ import ChannelToggle, { Channel } from './ChannelToggle';
 import { track } from '@/lib/analytics/tracker';
 import { readWebTracker } from '@/lib/analytics/leadTracking';
 import { getOrCreateVisitorId } from '@/lib/analytics/visitorId';
+import { isValidIndiaPhone, phoneValidationHint } from '@/lib/utils/phone';
 
 interface Props {
   children: React.ReactNode;
@@ -58,10 +59,17 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
   // Already verified via zustand lead → unlock immediately (AFTER all hooks)
   if (lead?.phone) return <>{children}</>;
 
+  const phoneHint = phoneValidationHint(phone);
+  const phoneValid = isValidIndiaPhone(phone);
+
   // ───── Step 1: send OTP ─────
   const sendOtp = async () => {
     if (!name.trim() || !phone.trim()) {
-      setErrorMsg('Name and phone both required.');
+      setErrorMsg('Name and phone are both required.');
+      return;
+    }
+    if (!phoneValid) {
+      setErrorMsg(phoneHint ?? 'Please enter a valid 10-digit Indian mobile number.');
       return;
     }
     setBusy(true);
@@ -78,12 +86,12 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
       if (!res.ok || !json.ok) {
         setErrorMsg(
           json.error === 'invalid phone'
-            ? 'Yeh phone number sahi nahi lag raha — please check.'
-            : 'OTP bhej nahi paye. Try again in a moment.',
+            ? 'That phone number looks incorrect — please check.'
+            : 'Could not send the OTP. Please try again in a moment.',
         );
       } else {
         setStep('otp');
-        setInfoMsg(`OTP WhatsApp pe bhej diya hai ${phone}. Code valid for 5 minutes.`);
+        setInfoMsg(`OTP sent on WhatsApp to ${phone}. Code valid for 5 minutes.`);
         setResendIn(30);
         track('view', 'otp_send_success', { form: 'lead_gate' });
       }
@@ -114,12 +122,12 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
         track('error', 'lead_gate_otp_verify_fail', { reason, err: vJson?.error ?? 'unknown' });
         setErrorMsg(
           vJson.error === 'wrong_code'
-            ? 'Galat code. Try again.'
+            ? 'Wrong code. Please try again.'
             : vJson.error === 'expired'
-              ? 'Code expire ho gaya — resend click karo.'
+              ? 'Code expired — please tap Resend.'
               : vJson.error === 'too_many_attempts'
-                ? 'Too many attempts — resend karke naye code se try karo.'
-                : 'Verification fail ho gaya.',
+                ? 'Too many attempts — please tap Resend to get a new code.'
+                : 'Verification failed. Please try again.',
         );
         return;
       }
@@ -253,16 +261,28 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
                 onChange={(e) => setPhone(e.target.value)}
                 onFocus={() => track('focus', 'lead_gate_phone_focus', { reason })}
                 autoComplete="tel"
-                style={inputStyle}
+                style={{
+                  ...inputStyle,
+                  borderColor: phoneHint ? '#b42318' : phoneValid ? '#15803d' : 'var(--border)',
+                }}
               />
+              {phoneHint && (
+                <div style={{ fontSize: 11.5, color: '#b42318', marginTop: -4 }}>
+                  {phoneHint}
+                </div>
+              )}
               {errorMsg && <div style={errStyle}>{errorMsg}</div>}
 
               <button
                 type="button"
                 onClick={sendOtp}
-                disabled={busy || !phone.trim() || !name.trim()}
+                disabled={busy || !phone.trim() || !name.trim() || !phoneValid}
                 className="btn-plum"
-                style={{ justifyContent: 'center', padding: '12px 20px', opacity: busy ? 0.6 : 1 }}
+                style={{
+                  justifyContent: 'center',
+                  padding: '12px 20px',
+                  opacity: busy || !phoneValid ? 0.6 : 1,
+                }}
               >
                 {busy ? 'Sending OTP…' : 'Unlock →'}
               </button>
@@ -312,7 +332,7 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
         {step === 'otp' && (
           <>
             <p style={{ fontSize: 13, color: 'var(--mid-gray)', marginBottom: 14 }}>
-              {infoMsg ?? `6-digit code aaya? Niche daalo.`}
+              {infoMsg ?? `Enter the 6-digit code we just sent.`}
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <input
