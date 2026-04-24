@@ -232,7 +232,7 @@ export function routeQuery(q: string): RouterResult {
   // Payment schedule
   if (/payment\s*plan|payment\s*schedule|first\s*cheque|bajaj|booking\s*amount|installment|construction[-\s]?linked/.test(ql)) {
     return {
-      text: `<p>Two approved structures. <strong>Bajaj starts at 5.5% down (₹10 L)</strong>, standard banks at 10% (₹19.4 L). Both follow a fixed 5-milestone schedule till handover.</p>`,
+      text: `<p>Two approved structures. <strong>Bajaj starts at 5.15% down (₹10 L)</strong>, standard banks at 10% (₹19.4 L). Both follow a fixed 5-milestone schedule till handover.</p>`,
       artifact: 'plans',
       artifactLabel: 'Payment schedule',
     };

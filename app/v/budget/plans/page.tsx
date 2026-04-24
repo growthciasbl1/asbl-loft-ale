@@ -26,7 +26,7 @@ export default function BudgetPlansPage() {
           The plan that <span className="accent-text">starts smallest</span> wins.
         </h1>
         <p className="muted-text mt-5 max-w-xl">
-          We have two approved structures. The Bajaj plan starts at 5.5% down — the lowest on any
+          We have two approved structures. The Bajaj plan starts at 5.15% down — the lowest on any
           premium FD project today.
         </p>
       </section>
