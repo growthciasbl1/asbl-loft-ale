@@ -163,6 +163,7 @@ export default function RoiCalculatorTile() {
 
       {/* Hero ROI band */}
       <div
+        className="tile-grid-flex"
         style={{
           marginTop: 18,
           padding: 22,

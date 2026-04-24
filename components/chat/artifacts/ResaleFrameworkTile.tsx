@@ -198,10 +198,13 @@ export default function ResaleFrameworkTile() {
               <div key={t.area} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div
                   style={{
-                    flex: '0 0 160px',
-                    fontSize: 11.5,
+                    flex: '0 0 clamp(96px, 28vw, 160px)',
+                    fontSize: 'clamp(10.5px, 2.8vw, 11.5px)',
                     color: t.isFd ? 'var(--plum)' : 'var(--gray-2)',
                     fontWeight: t.isFd ? 600 : 400,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
                   }}
                 >
                   {t.area}

@@ -145,7 +145,14 @@ export default function FinanceTile() {
               Standard banks
             </Pill>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
+          <div
+            className="tile-grid-flex-narrow"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(5, 1fr)',
+              gap: 8,
+            }}
+          >
             {[
               ['Booking', structure.booking],
               ['Install 1', structure.installment1],
@@ -185,7 +192,7 @@ export default function FinanceTile() {
         >
           Your cash-on-cash yield
         </div>
-        <div className="display" style={{ fontSize: 60, fontWeight: 400, lineHeight: 1 }}>
+        <div className="display" style={{ fontSize: 'clamp(36px, 14vw, 60px)', fontWeight: 400, lineHeight: 1 }}>
           {numbers.cocYield.toFixed(1)}
           <span style={{ fontSize: 24, opacity: 0.7 }}>%</span>
         </div>

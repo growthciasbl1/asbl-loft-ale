@@ -334,12 +334,16 @@ export default function ChatView() {
       >
         <Link href="/" onClick={() => track('click', 'header_logo_click', { from: 'chat' })}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/assets/logo.webp" alt="ASBL Loft" style={{ height: 44, display: 'block' }} />
+          <img
+            src="/assets/logo.webp"
+            alt="ASBL Loft"
+            style={{ height: 'clamp(32px, 9vw, 44px)', display: 'block' }}
+          />
         </Link>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <Link
             href="/"
-            className="btn-outline"
+            className="btn-outline chat-header-new"
             onClick={() => track('click', 'header_new_chat', { from: 'chat' })}
           >
             New Chat

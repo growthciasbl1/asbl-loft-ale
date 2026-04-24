@@ -23,9 +23,9 @@ export default function WhyFdTile() {
         { label: 'Unit plans', query: 'Show me the 3BHK unit plans' },
       ]}
     >
-      <div style={{ padding: 26 }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+      <div style={{ padding: '0' }}>
+        <div style={{ overflowX: 'auto', padding: '8px 4px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 540 }}>
             <thead>
               <tr>
                 <th

@@ -209,6 +209,45 @@ textarea {
     padding-right: 14px !important;
   }
 
+  /* Any tile sub-section using this utility class gets phone-friendly padding
+     even though its inline style had 22px/26px hardcoded. Use on any inner
+     <div> that looked padded too aggressively on narrow screens. */
+  .tile-inset-x {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+  .tile-inset-xy {
+    padding: 14px !important;
+  }
+
+  /* Hero/display numbers — keep them bold on mobile but stop them from
+     clipping. The `.display` class is used across tiles for serif-style
+     big numbers (e.g. '₹2.07 Cr', '₹3.26 Cr', COC yield %). This caps them
+     so 320–390px phones don't horizontal-scroll. */
+  .display {
+    font-size: clamp(26px, 9vw, 48px) !important;
+    line-height: 1.05 !important;
+    word-break: keep-all;
+  }
+
+  /* Any grid that was `repeat(N, 1fr)` in JSX — add class `tile-grid-flex`
+     on the wrapper to force auto-fit on mobile. Doesn't require removing
+     the inline style, just adds a media-query override. */
+  .tile-grid-flex {
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
+    gap: 10px !important;
+  }
+  .tile-grid-flex-narrow {
+    grid-template-columns: repeat(auto-fit, minmax(88px, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  /* Header CTAs in chat: hide 'New Chat' on very narrow phones — only
+     'Book Site Visit' stays as the primary CTA. */
+  .chat-header-new {
+    display: none !important;
+  }
+
   /* Carousel container: less inset + shorter height on phones */
   .asbl-carousel-frame {
     margin: 0 8px !important;

@@ -85,6 +85,7 @@ export default function RentalOfferTile() {
 
       {/* Hero numbers */}
       <div
+        className="tile-grid-flex"
         style={{
           background: 'var(--plum)',
           color: '#fff',
@@ -108,7 +109,13 @@ export default function RentalOfferTile() {
           </div>
           <div
             className="serif"
-            style={{ fontSize: 34, fontWeight: 500, lineHeight: 1, marginTop: 4, color: '#fff' }}
+            style={{
+              fontSize: 'clamp(22px, 8vw, 34px)',
+              fontWeight: 500,
+              lineHeight: 1.05,
+              marginTop: 4,
+              color: '#fff',
+            }}
           >
             ₹{monthly.toLocaleString('en-IN')}
           </div>
@@ -129,7 +136,13 @@ export default function RentalOfferTile() {
           </div>
           <div
             className="serif"
-            style={{ fontSize: 34, fontWeight: 500, lineHeight: 1, marginTop: 4, color: '#fff' }}
+            style={{
+              fontSize: 'clamp(22px, 8vw, 34px)',
+              fontWeight: 500,
+              lineHeight: 1.05,
+              marginTop: 4,
+              color: '#fff',
+            }}
           >
             31 Dec 2026
           </div>

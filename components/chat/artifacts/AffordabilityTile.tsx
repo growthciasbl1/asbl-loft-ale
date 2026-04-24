@@ -171,7 +171,12 @@ export default function AffordabilityTile({ initialSalary = 40, initialExistingE
         </div>
         <div
           className="display"
-          style={{ fontSize: 48, fontWeight: 400, lineHeight: 1, color: 'var(--sienna-dark)' }}
+          style={{
+            fontSize: 'clamp(30px, 11vw, 48px)',
+            fontWeight: 400,
+            lineHeight: 1,
+            color: 'var(--sienna-dark)',
+          }}
         >
           ₹{(result.maxTicket / 10000000).toFixed(2)}
           <span style={{ fontSize: 22, marginLeft: 4 }}>Cr</span>
@@ -185,7 +190,15 @@ export default function AffordabilityTile({ initialSalary = 40, initialExistingE
         </div>
       </div>
 
-      <div style={{ padding: '18px 26px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+      <div
+        className="tile-grid-flex"
+        style={{
+          padding: '18px 26px',
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: 10,
+        }}
+      >
         <UnitCheck
           label="1,695 sqft"
           price="₹1.94Cr"

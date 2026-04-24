@@ -29,7 +29,12 @@ export default function PriceTile() {
           </div>
           <div
             className="display"
-            style={{ fontSize: 40, lineHeight: 1, marginTop: 6, fontWeight: 400 }}
+            style={{
+              fontSize: 'clamp(28px, 9vw, 40px)',
+              lineHeight: 1,
+              marginTop: 6,
+              fontWeight: 400,
+            }}
           >
             ≈ ₹— <em style={{ color: 'var(--sienna)', fontStyle: 'italic' }}>Cr</em>
           </div>

@@ -228,7 +228,7 @@ export default function CommuteFromYouTile() {
             <div
               className="display"
               style={{
-                fontSize: 56,
+                fontSize: 'clamp(36px, 13vw, 56px)',
                 lineHeight: 1,
                 color: 'var(--sienna-dark)',
                 fontWeight: 400,
@@ -258,7 +258,10 @@ export default function CommuteFromYouTile() {
             >
               If you'd bought nearby instead
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+            <div
+              className="tile-grid-flex"
+              style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}
+            >
               <ComparisonCard label="Gachibowli" min={math.toGachi} baseline={math.toLoft} />
               <ComparisonCard label="Kokapet" min={math.toKokapet} baseline={math.toLoft} />
               <div

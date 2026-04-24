@@ -178,7 +178,11 @@ export default function Landing() {
           style={{ display: 'flex', alignItems: 'center' }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/assets/logo.webp" alt="ASBL Loft" style={{ height: 44, display: 'block' }} />
+          <img
+            src="/assets/logo.webp"
+            alt="ASBL Loft"
+            style={{ height: 'clamp(32px, 9vw, 44px)', display: 'block' }}
+          />
         </Link>
         <button
           onClick={() => {

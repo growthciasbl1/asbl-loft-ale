@@ -51,7 +51,7 @@ export default function UnitDetailTile({ unitId }: Props) {
         style={{
           padding: '20px 26px',
           display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
           gap: 12,
           background: 'var(--paper)',
           borderBottom: '1px solid var(--paper-2)',
