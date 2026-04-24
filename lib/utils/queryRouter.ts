@@ -279,7 +279,7 @@ export function routeQuery(q: string): RouterResult {
     };
   }
 
-  if (/price|cost|breakdown|all\s*in|gst|stamp|registration|ticket/.test(ql)) {
+  if (/pric(?:e|ing|es)|cost|breakdown|all\s*in|gst|stamp|registration|ticket/.test(ql)) {
     return {
       text: `<p>Full breakdown for <strong>1,695 sqft East-facing</strong> — the most common config. Stamp duty and registration are extra.</p>`,
       artifact: 'price',

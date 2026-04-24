@@ -148,8 +148,31 @@ export async function POST(req: NextRequest) {
           controller.enqueue(encoder.encode(payload));
         };
 
-        // Emit conversationId immediately so the client can scope follow-ups.
-        sendEvent('meta', { conversationId });
+        // Emit conversationId + any regex-predicted artifact immediately.
+        // If the regex router already matched a concrete artifact for this
+        // query, send it NOW so the client can render the tile while the
+        // LLM's text is still streaming in above. Gives a much smoother
+        // "tile + prose both appear together" experience instead of the
+        // previous "text streams in, then tile jumps in at the end".
+        sendEvent('meta', {
+          conversationId,
+          regexArtifact:
+            regex.artifact !== 'none'
+              ? {
+                  artifact: regex.artifact,
+                  artifactLabel: regex.artifactLabel,
+                  unitId: regex.unitId,
+                  salaryLakh: regex.salaryLakh,
+                  existingEmi: regex.existingEmi,
+                  visitIntro: regex.visitIntro,
+                  shareSubject: regex.shareSubject,
+                  initialBookingType: regex.initialBookingType,
+                  focus: regex.focus,
+                  preferredChannel: regex.preferredChannel,
+                  originalQuery: regex.originalQuery,
+                }
+              : null,
+        });
 
         try {
           let finalResult: RouterResult | null = null;

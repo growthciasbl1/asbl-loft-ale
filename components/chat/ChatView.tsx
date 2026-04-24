@@ -352,6 +352,58 @@ export default function ChatView() {
                 if (parsed.conversationId) {
                   useChatStore.getState().setConversationId(parsed.conversationId);
                 }
+                // Early artifact reveal: if the regex router already
+                // matched a concrete artifact for this query, the server
+                // ships it on the first event so the client can render
+                // the tile immediately — no waiting for LLM text to
+                // finish streaming. Text still flows in above the tile
+                // but both appear together from the start.
+                if (parsed.regexArtifact?.artifact) {
+                  const ra = parsed.regexArtifact;
+                  setMessages((prev) => {
+                    if (!streamStarted) {
+                      streamStarted = true;
+                      setPendingCount((c) => Math.max(0, c - 1));
+                      return [
+                        ...prev,
+                        {
+                          id: botMsgId,
+                          role: 'bot' as const,
+                          text: '',
+                          artifact: ra.artifact,
+                          artifactLabel: ra.artifactLabel,
+                          unitId: ra.unitId,
+                          salaryLakh: ra.salaryLakh,
+                          existingEmi: ra.existingEmi,
+                          visitIntro: ra.visitIntro,
+                          shareSubject: ra.shareSubject,
+                          originalQuery: ra.originalQuery,
+                          preferredChannel: ra.preferredChannel,
+                          initialBookingType: ra.initialBookingType,
+                          focus: ra.focus,
+                        } as Message,
+                      ];
+                    }
+                    return prev.map((m) =>
+                      m.id === botMsgId
+                        ? {
+                            ...m,
+                            artifact: ra.artifact,
+                            artifactLabel: ra.artifactLabel,
+                            unitId: ra.unitId,
+                            salaryLakh: ra.salaryLakh,
+                            existingEmi: ra.existingEmi,
+                            visitIntro: ra.visitIntro,
+                            shareSubject: ra.shareSubject,
+                            originalQuery: ra.originalQuery,
+                            preferredChannel: ra.preferredChannel,
+                            initialBookingType: ra.initialBookingType,
+                            focus: ra.focus,
+                          }
+                        : m,
+                    );
+                  });
+                }
               } else if (evName === 'error') {
                 // Stream errored mid-flight — keep whatever text we have,
                 // regex-route for the artifact.
