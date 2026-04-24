@@ -889,6 +889,158 @@ function stripHtml(s: string): string {
 }
 
 /**
+ * Streaming variant of routeWithLLM.
+ *
+ * Yields an AsyncGenerator of events:
+ *   { type: 'text',  chunk: string }     — incremental text as it arrives
+ *   { type: 'final', result: RouterResult } — artifact, signal, usage (once)
+ *   { type: 'error', message: string }   — on failure (caller should fall back)
+ *
+ * Generation parameters are IDENTICAL to routeWithLLM — streaming is pure
+ * transport, not a different call. No hallucination risk. The model does
+ * the same forward pass; we just pipe tokens out as they're produced so
+ * the user sees text within ~1-2s TTFT instead of waiting 15s for the
+ * full response.
+ */
+export type StreamEvent =
+  | { type: 'text'; chunk: string }
+  | { type: 'final'; result: RouterResult }
+  | { type: 'error'; message: string };
+
+export async function* routeWithLLMStream(
+  query: string,
+  ctx: LLMContext = {},
+): AsyncGenerator<StreamEvent, void, unknown> {
+  if (!hasLLM()) {
+    yield { type: 'error', message: 'no_llm_key' };
+    return;
+  }
+
+  const now = new Date();
+  const istDate = now.toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    weekday: 'long',
+    timeZone: 'Asia/Kolkata',
+  });
+  const istTime = now.toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'Asia/Kolkata',
+  });
+
+  const ctxLines: string[] = [
+    `Today is ${istDate}, ${istTime} IST. Use this as the authoritative current date/time — do NOT rely on any date from your training.`,
+  ];
+  if (ctx.campaign && ctx.campaign !== 'default')
+    ctxLines.push(`Visitor arrived from campaign: ${ctx.campaign}.`);
+  if (ctx.seenArtifacts?.length)
+    ctxLines.push(`Already shown (most recent first): ${ctx.seenArtifacts.join(', ')}.`);
+  if (ctx.pinnedUnits?.length)
+    ctxLines.push(`User has pinned: ${ctx.pinnedUnits.join(', ')}.`);
+  const sessionBlock = `[SESSION CONTEXT]\n${ctxLines.join('\n')}\n\n[USER MESSAGE]\n`;
+
+  try {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+    const model = genAI.getGenerativeModel({
+      model: MODEL,
+      systemInstruction: SYSTEM_PROMPT,
+      tools: [{ functionDeclarations: [renderArtifactDecl, emitBuyerSignalDecl] }],
+      toolConfig: { functionCallingConfig: { mode: FunctionCallingMode.AUTO } },
+      generationConfig: { temperature: 0.35 },
+    });
+
+    const priorTurns = (ctx.history ?? [])
+      .filter((m) => m.text && m.text.trim())
+      .slice(-20)
+      .map((m) => ({
+        role: m.role === 'bot' ? 'model' : 'user',
+        parts: [{ text: stripHtml(m.text) }],
+      }));
+
+    const contents = [
+      ...priorTurns,
+      { role: 'user', parts: [{ text: sessionBlock + query }] },
+    ];
+
+    // generateContentStream returns { stream, response } where stream is an
+    // async iterable yielding chunks and response is a Promise resolving to
+    // the full aggregated response after streaming finishes.
+    const result = await model.generateContentStream({ contents });
+
+    // Stream raw text chunks to the caller as they arrive. We emit ONLY the
+    // incremental text; the caller is responsible for accumulating and
+    // rendering. Function-call parts do NOT come out in the text stream.
+    let accumulatedText = '';
+    for await (const chunk of result.stream) {
+      const piece = chunk.text?.() ?? '';
+      if (piece) {
+        accumulatedText += piece;
+        yield { type: 'text', chunk: piece };
+      }
+    }
+
+    // Stream complete — now resolve the full aggregated response for
+    // function calls + usage metadata + the final parsed result.
+    const response = await result.response;
+    const rawText = accumulatedText || response.text?.() || '';
+    const usageMeta = (response.usageMetadata ?? null) as UsageMetadata | null;
+
+    const { cleanText: signalStripped, signal: textSignal } = extractSignal(rawText);
+    const text = normalizeText(signalStripped);
+
+    const calls = response.functionCalls?.() ?? [];
+    const artifactCall = calls.find((c) => c.name === 'render_artifact');
+    const signalCall = calls.find((c) => c.name === 'emit_buyer_signal');
+
+    const signal = signalCall
+      ? normalizeToolSignal(signalCall.args as Record<string, unknown>)
+      : textSignal;
+
+    if (!artifactCall) {
+      yield {
+        type: 'final',
+        result: {
+          text: text || '<p>Happy to dig deeper — what matters most to you?</p>',
+          artifact: 'none',
+          signal,
+          usage: usageMeta,
+          model: MODEL,
+        },
+      };
+      return;
+    }
+
+    const args = (artifactCall.args || {}) as ToolArgs;
+    const rawKind = (args.kind ?? 'none') as ArtifactKind;
+    const kind: ArtifactKind = ARTIFACT_KINDS.includes(rawKind) ? rawKind : 'none';
+
+    yield {
+      type: 'final',
+      result: {
+        text: text || '<p>Here you go.</p>',
+        artifact: kind,
+        artifactLabel: args.label,
+        unitId: args.unitId,
+        salaryLakh: args.salaryLakh,
+        existingEmi: args.existingEmi,
+        visitIntro: args.visitIntro,
+        shareSubject: args.shareSubject,
+        originalQuery: query,
+        signal,
+        usage: usageMeta,
+        model: MODEL,
+      },
+    };
+  } catch (err) {
+    console.error('[llm/gemini] stream failed:', err);
+    yield { type: 'error', message: (err as Error).message };
+  }
+}
+
+/**
  * Convert flat tool args from emit_buyer_signal into the nested signal schema
  * used by insertSignal() (and the original prose <signal> block).
  */

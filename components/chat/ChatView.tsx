@@ -262,7 +262,40 @@ export default function ChatView() {
 
     const existingConvId = useChatStore.getState().conversationId;
 
-    let result: RouterResult & { conversationId?: string };
+    // Reserve a bot message id up-front. We'll mutate this message's text
+    // as stream chunks arrive so the user sees text flowing in real time,
+    // then attach the artifact metadata when the 'final' SSE event fires.
+    const botMsgId = `b-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+
+    let finalResult: (RouterResult & { conversationId?: string }) | null = null;
+    let streamedText = ''; // plain-text accumulator (Gemini yields plain; we'll wrap once)
+    let streamStarted = false;
+
+    const applyText = (chunk: string) => {
+      streamedText += chunk;
+      const html = streamedText
+        ? streamedText
+            .split(/\n{2,}/)
+            .map((p) => `<p>${escapeHtmlInline(p.trim())}</p>`)
+            .join('')
+        : '';
+      setMessages((prev) => {
+        if (!streamStarted) {
+          streamStarted = true;
+          setPendingCount((c) => Math.max(0, c - 1));
+          return [
+            ...prev,
+            {
+              id: botMsgId,
+              role: 'bot' as const,
+              text: html,
+            },
+          ];
+        }
+        return prev.map((m) => (m.id === botMsgId ? { ...m, text: html } : m));
+      });
+    };
+
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
@@ -276,42 +309,110 @@ export default function ChatView() {
           conversationId: existingConvId,
         }),
       });
-      result = res.ok
-        ? ((await res.json()) as RouterResult & { conversationId?: string })
-        : routeQuery(text);
+
+      const contentType = res.headers.get('content-type') ?? '';
+
+      if (!res.ok) {
+        // Non-OK response — fall back to regex route.
+        finalResult = routeQuery(text);
+      } else if (contentType.includes('text/event-stream') && res.body) {
+        // STREAMING path — read SSE frames.
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          // SSE frames are separated by double newline. Parse any complete
+          // frames in the buffer; leave trailing partial frame for the
+          // next iteration.
+          let idx: number;
+          while ((idx = buffer.indexOf('\n\n')) !== -1) {
+            const frame = buffer.slice(0, idx);
+            buffer = buffer.slice(idx + 2);
+            const lines = frame.split('\n');
+            let evName = 'message';
+            let dataRaw = '';
+            for (const line of lines) {
+              if (line.startsWith('event:')) evName = line.slice(6).trim();
+              else if (line.startsWith('data:')) dataRaw += line.slice(5).trim();
+            }
+            if (!dataRaw) continue;
+            try {
+              const parsed = JSON.parse(dataRaw);
+              if (evName === 'text') {
+                applyText(String(parsed.chunk ?? ''));
+              } else if (evName === 'final') {
+                finalResult = parsed as RouterResult & { conversationId?: string };
+              } else if (evName === 'meta') {
+                if (parsed.conversationId) {
+                  useChatStore.getState().setConversationId(parsed.conversationId);
+                }
+              } else if (evName === 'error') {
+                // Stream errored mid-flight — keep whatever text we have,
+                // regex-route for the artifact.
+                finalResult = routeQuery(text);
+              }
+            } catch {
+              // Ignore malformed frame (shouldn't happen)
+            }
+          }
+        }
+      } else {
+        // Non-stream JSON response (e.g. regex-only path) — parse normally.
+        finalResult = (await res.json()) as RouterResult & { conversationId?: string };
+      }
     } catch {
-      result = routeQuery(text);
+      finalResult = routeQuery(text);
     }
 
-    // Persist conversationId so future turns append to same document
-    if (result.conversationId && result.conversationId !== existingConvId) {
-      useChatStore.getState().setConversationId(result.conversationId);
+    // Guarantee a final result even if everything failed.
+    if (!finalResult) finalResult = routeQuery(text);
+
+    if (finalResult.conversationId && finalResult.conversationId !== existingConvId) {
+      useChatStore.getState().setConversationId(finalResult.conversationId);
     }
 
-    setPendingCount((c) => Math.max(0, c - 1));
-    const botMsg: Message = {
-      id: `b-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      role: 'bot',
-      text: result.text,
-      artifact: result.artifact,
-      artifactLabel: result.artifactLabel,
-      unitId: result.unitId,
-      salaryLakh: result.salaryLakh,
-      existingEmi: result.existingEmi,
-      visitIntro: result.visitIntro,
-      shareSubject: result.shareSubject,
-      originalQuery: result.originalQuery,
-      preferredChannel: result.preferredChannel,
-      initialBookingType: result.initialBookingType,
-      focus: result.focus,
-    };
-    setMessages((m) => [...m, botMsg]);
+    // Commit the final message — use the server's text if we got one
+    // (it's already wrapped in <p>), otherwise keep our streamed HTML.
+    setPendingCount((c) => (streamStarted ? c : Math.max(0, c - 1)));
+    setMessages((prev) => {
+      const finalText = finalResult!.text || streamedText;
+      const botMsg: Message = {
+        id: botMsgId,
+        role: 'bot',
+        text: finalText,
+        artifact: finalResult!.artifact,
+        artifactLabel: finalResult!.artifactLabel,
+        unitId: finalResult!.unitId,
+        salaryLakh: finalResult!.salaryLakh,
+        existingEmi: finalResult!.existingEmi,
+        visitIntro: finalResult!.visitIntro,
+        shareSubject: finalResult!.shareSubject,
+        originalQuery: finalResult!.originalQuery,
+        preferredChannel: finalResult!.preferredChannel,
+        initialBookingType: finalResult!.initialBookingType,
+        focus: finalResult!.focus,
+      };
+      return streamStarted
+        ? prev.map((m) => (m.id === botMsgId ? botMsg : m))
+        : [...prev, botMsg];
+    });
     track('view', 'bot_response', {
       query: text,
-      artifact: result.artifact,
-      label: result.artifactLabel,
+      artifact: finalResult.artifact,
+      label: finalResult.artifactLabel,
     });
   };
+
+  // Inline HTML-escape for streamed prose. Prevents any stray `<`/`>` from
+  // breaking layout while we're still accumulating the response.
+  function escapeHtmlInline(s: string): string {
+    return s.replace(/[&<>"']/g, (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string),
+    );
+  }
 
   const autoGrow = () => {
     const el = composerRef.current;
