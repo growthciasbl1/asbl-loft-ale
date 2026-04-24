@@ -62,7 +62,7 @@ const DRIVERS: { title: string; body: string }[] = [
   },
   {
     title: 'Yield floor',
-    body: 'Assured Rental Offer of ₹85K/mo (1,695) · ₹95K/mo (1,870) till 31 Dec 2026 — ~5% gross yield vs 2–3% residential average.',
+    body: 'Assured Rental Offer of up to ₹85K/mo (both sizes) till 31 Dec 2026 — ~5% gross yield vs 2–3% residential average.',
   },
   {
     title: 'Infrastructure catalysts',

@@ -75,11 +75,10 @@ export default function YieldTile() {
               className="serif"
               style={{ fontSize: 22, marginTop: 4, fontWeight: 500, color: 'var(--plum-dark)' }}
             >
-              ₹85K <span style={{ fontSize: 13, color: 'var(--mid-gray)' }}>/</span> ₹95K
-              <span style={{ fontSize: 13 }}>/mo</span>
+              Up to ₹85K<span style={{ fontSize: 13 }}>/mo</span>
             </div>
             <div style={{ fontSize: 11, color: 'var(--plum-dark)', marginTop: 4 }}>
-              1,695 / 1,870 sqft · till 31 Dec 2026 · direct from ASBL
+              Both sizes · till 31 Dec 2026 · direct from ASBL
             </div>
           </div>
         </div>
@@ -110,7 +109,7 @@ export default function YieldTile() {
             ~5.0% – 5.3% <span style={{ fontSize: 13, color: 'var(--mid-gray)' }}>per annum</span>
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--mid-gray)', marginTop: 4 }}>
-            Before appreciation. The ASBL offer pays ₹85,000/month on 1,695 sqft (₹95,000 on 1,870) till 31 December 2026.
+            Before appreciation. The ASBL offer pays up to ₹85,000/month (same cap for both sizes) till 31 December 2026.
           </div>
         </div>
       </div>

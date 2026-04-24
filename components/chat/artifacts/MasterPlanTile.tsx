@@ -1,7 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import { TileShell } from './common';
 import BrandImage from './BrandImage';
+import Lightbox from '../Lightbox';
+import { track } from '@/lib/analytics/tracker';
+
+const MASTER_PLAN_IMG = '/asbl/master-plan.webp';
 
 const LEGEND = [
   { n: 1, label: 'Entry / Exit Dropoff' },
@@ -43,6 +48,11 @@ const LAND_STATS: { label: string; value: string; note?: string }[] = [
 ];
 
 export default function MasterPlanTile() {
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const openLightbox = () => {
+    track('click', 'master_plan_zoom');
+    setLightboxOpen(true);
+  };
   return (
     <TileShell
       eyebrow="Master plan · Tower A & B · 26 zones"
@@ -105,17 +115,53 @@ export default function MasterPlanTile() {
 
       <div
         style={{
-          padding: '20px 26px',
+          padding: '14px 18px',
           background: 'var(--paper-2)',
           borderBottom: '1px solid var(--hairline)',
+          position: 'relative',
         }}
       >
-        <BrandImage
-          src={['/asbl/master-plan.webp', '/asbl/master-plan.png', '/asbl/master-plan.jpg']}
-          alt="ASBL Loft master plan"
-          fallback={<SitePlanSvg />}
-          bg="#0b0b0f"
-        />
+        {/* Tap-to-zoom overlay — master plan image was rendering too tall;
+            now capped via maxHeight + cursor:zoom-in on the wrapper. */}
+        <button
+          type="button"
+          onClick={openLightbox}
+          aria-label="Open master plan full-screen"
+          style={{
+            display: 'block',
+            width: '100%',
+            maxHeight: 'clamp(240px, 48vh, 460px)',
+            overflow: 'hidden',
+            cursor: 'zoom-in',
+            background: '#0b0b0f',
+            borderRadius: 12,
+            border: 'none',
+            padding: 0,
+          }}
+        >
+          <BrandImage
+            src={['/asbl/master-plan.webp', '/asbl/master-plan.png', '/asbl/master-plan.jpg']}
+            alt="ASBL Loft master plan"
+            fallback={<SitePlanSvg />}
+            bg="#0b0b0f"
+          />
+        </button>
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 22,
+            right: 26,
+            padding: '4px 10px',
+            borderRadius: 100,
+            background: 'rgba(0,0,0,0.55)',
+            color: 'white',
+            fontSize: 10.5,
+            fontWeight: 500,
+            pointerEvents: 'none',
+          }}
+        >
+          Tap to zoom
+        </div>
       </div>
 
       <div style={{ padding: '18px 26px 22px', background: 'white' }}>
@@ -167,6 +213,13 @@ export default function MasterPlanTile() {
           ))}
         </div>
       </div>
+    <Lightbox
+        open={lightboxOpen}
+        images={[{ src: MASTER_PLAN_IMG, label: 'ASBL Loft · Master Plan' }]}
+        activeIndex={0}
+        onChange={() => {}}
+        onClose={() => setLightboxOpen(false)}
+      />
     </TileShell>
   );
 }

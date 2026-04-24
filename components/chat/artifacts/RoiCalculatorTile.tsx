@@ -22,18 +22,20 @@ const UNIT_PRICE: Record<Size, number> = {
   1870: 2.15 * 1e7, // ₹2.15 Cr
 };
 
-// Guaranteed ASBL rental during offer window (Dec 2026)
+// ASBL Assured Rental Offer during offer window (Dec 2026). Capped at
+// ₹85,000/month for BOTH sizes — 1,870 used to show ₹95K but policy
+// updated to a flat ₹85K ceiling.
 const GUARANTEED_MONTHLY: Record<Size, number> = {
   1695: 85000,
-  1870: 95000,
+  1870: 85000,
 };
 
-// Initial post-possession market rent (can be tuned via slider in v2).
-// We anchor to the current FD 3BHK upper band (₹85K) for 1695 and scale
-// proportionally for 1870.
+// Initial post-possession market rent. Both anchored to FD 3BHK upper
+// band (₹85K) since the Assured Rental Offer also caps here — keeps the
+// ROI math internally consistent.
 const POST_POSSESSION_MONTHLY: Record<Size, number> = {
   1695: 85000,
-  1870: 95000,
+  1870: 85000,
 };
 
 const POSSESSION_YEAR = 2026; // Dec 2026 handover
@@ -246,7 +248,7 @@ export default function RoiCalculatorTile() {
             lineHeight: 1.5,
           }}
         >
-          Note: ASBL&apos;s Assured Rental Offer (₹85K/mo for 1,695 · ₹95K/mo for 1,870 till 31 Dec
+          Note: ASBL&apos;s Assured Rental Offer (up to ₹85K/mo for both sizes till 31 Dec
           2026) is excluded from this ROI calculation — it&apos;s a separate direct payment and
           doesn&apos;t affect the investment math.
         </div>

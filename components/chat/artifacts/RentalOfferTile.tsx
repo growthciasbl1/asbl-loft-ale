@@ -6,11 +6,11 @@ import { track } from '@/lib/analytics/tracker';
 
 type Size = 1695 | 1870;
 
-// Rounded headline numbers per user direction (avoid ₹84,750 / ₹93,500 —
-// users see these as awkward; round to clean ₹85K / ₹95K).
+// Rounded headline: ₹85,000/month for BOTH sizes (per user direction —
+// 1,870 was showing ₹95K; capped at the same ₹85K).
 const MONTHLY_BY_SIZE: Record<Size, number> = {
   1695: 85000,
-  1870: 95000,
+  1870: 85000,
 };
 
 export default function RentalOfferTile() {
