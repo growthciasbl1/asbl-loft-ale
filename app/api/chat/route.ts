@@ -64,36 +64,64 @@ export async function POST(req: NextRequest) {
       if (llm) finalResult = llm;
     }
 
-    // 3. Extract signal + usage, save to Mongo, strip internals before returning.
+    // 3. Extract signal + usage, strip internals before returning.
     const { signal, usage, model: usedModel, ...publicResult } = finalResult;
 
-    // Await the Mongo writes — fire-and-forget was getting orphaned on Vercel
-    // Lambda cold starts (promises dropped when handler returned). Adds ~100-500ms
-    // but guarantees persistence. All calls are try/catch wrapped so failures log
-    // and return null without throwing.
-    await Promise.allSettled([
-      insertSignal(
-        conversationId,
-        turnNumber,
-        query,
-        publicResult.text,
-        signal ?? null,
-        publicResult.artifact,
+    // CRITICAL: Mongo writes are now non-blocking. Previously we awaited
+    // Promise.allSettled of 3 Mongo writes here — if Mongo stalled (sick
+    // cluster, IP-allowlist miss, paused Atlas) the user waited 30+ seconds
+    // on every chat reply. Now: race each write against a 2.5s budget, log
+    // if they time out, but DO NOT hold up the response. Each inner call
+    // is already try/catch wrapped, so the race loses silently.
+    const raceWrite = <T>(p: Promise<T>, label: string): Promise<T | null> =>
+      Promise.race([
+        p.catch((e) => {
+          console.warn(`[api/chat] mongo write failed (${label}):`, (e as Error).message);
+          return null;
+        }),
+        new Promise<null>((resolve) =>
+          setTimeout(() => {
+            console.warn(`[api/chat] mongo write timed out (${label})`);
+            resolve(null);
+          }, 2500),
+        ),
+      ]);
+
+    // Kick off — no await. Vercel will keep the lambda alive for these
+    // briefly after the response; they're expected to land within ~2.5s
+    // or be logged as timed-out and dropped.
+    void Promise.all([
+      raceWrite(
+        insertSignal(
+          conversationId,
+          turnNumber,
+          query,
+          publicResult.text,
+          signal ?? null,
+          publicResult.artifact,
+        ),
+        'insertSignal',
       ),
-      appendConversationTurn(conversationId, {
-        campaign: typeof body?.campaign === 'string' ? body.campaign : undefined,
-        userText: query,
-        botText: publicResult.text,
-        botArtifact: publicResult.artifact,
-        botArtifactLabel: publicResult.artifactLabel,
-      }),
+      raceWrite(
+        appendConversationTurn(conversationId, {
+          campaign: typeof body?.campaign === 'string' ? body.campaign : undefined,
+          userText: query,
+          botText: publicResult.text,
+          botArtifact: publicResult.artifact,
+          botArtifactLabel: publicResult.artifactLabel,
+        }),
+        'appendConversationTurn',
+      ),
       usage
-        ? insertUsage(
-            conversationId,
-            turnNumber,
-            usedModel ?? 'unknown',
-            usage,
-            publicResult.artifact,
+        ? raceWrite(
+            insertUsage(
+              conversationId,
+              turnNumber,
+              usedModel ?? 'unknown',
+              usage,
+              publicResult.artifact,
+            ),
+            'insertUsage',
           )
         : Promise.resolve(null),
     ]);

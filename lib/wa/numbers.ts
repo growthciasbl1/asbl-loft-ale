@@ -60,22 +60,37 @@ export async function ensureNumbersSeeded(): Promise<void> {
  * Atomically pick the least-recently-used active sender number and
  * bump its counter. Round-robin distribution via `sort: lastUsedAt asc`.
  * Returns the phoneE164 to use in the Periskope `x-phone` header.
+ *
+ * MONGO-DOWN SAFE: If Mongo is unreachable or slow, we fall back to a
+ * randomised pick from the seed list (which is the same source of truth)
+ * instead of returning null. OTP delivery keeps working even if the
+ * wa_numbers collection is offline — at the cost of losing the round-
+ * robin usage counter for that invocation.
  */
+function fallbackSender(): string {
+  return SEED_NUMBERS[Math.floor(Math.random() * SEED_NUMBERS.length)].phoneE164;
+}
+
 export async function pickNextSender(): Promise<string | null> {
-  if (!hasMongo()) return null;
-  await ensureNumbersSeeded();
-  const db = await getDb();
-  const col = db.collection<WaNumberDoc>('wa_numbers');
-  const picked = await col.findOneAndUpdate(
-    { active: true },
-    {
-      $inc: { usageCount: 1 },
-      $set: { lastUsedAt: new Date(), updatedAt: new Date() },
-    },
-    {
-      sort: { lastUsedAt: 1, usageCount: 1 }, // nulls sort first → brand-new numbers tried first
-      returnDocument: 'after',
-    },
-  );
-  return picked?.phoneE164 ?? null;
+  if (!hasMongo()) return fallbackSender();
+  try {
+    await ensureNumbersSeeded();
+    const db = await getDb();
+    const col = db.collection<WaNumberDoc>('wa_numbers');
+    const picked = await col.findOneAndUpdate(
+      { active: true },
+      {
+        $inc: { usageCount: 1 },
+        $set: { lastUsedAt: new Date(), updatedAt: new Date() },
+      },
+      {
+        sort: { lastUsedAt: 1, usageCount: 1 }, // nulls sort first → brand-new numbers tried first
+        returnDocument: 'after',
+      },
+    );
+    return picked?.phoneE164 ?? fallbackSender();
+  } catch (err) {
+    console.warn('[wa/numbers] pickNextSender Mongo failed, using seed fallback:', (err as Error).message);
+    return fallbackSender();
+  }
 }
