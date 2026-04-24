@@ -11,6 +11,62 @@ const LOFT: [number, number] = [78.34123, 17.4246];
 const GACHIBOWLI: [number, number] = [78.3489, 17.4401];
 const KOKAPET: [number, number] = [78.3274, 17.4193];
 
+/**
+ * Hand-curated Hyderabad locality → commute times (minutes, ORR-corridor
+ * realistic). OpenRouteService's OSM data routes via interior roads for
+ * some localities and returns 30-50 min for places that are actually a
+ * 12-15 min ORR drive. Hitting known localities takes priority over the
+ * raw ORS matrix output.
+ *
+ * Keys are matched case-insensitively against the geocoded label +
+ * locality + origin string — any hit swaps the ORS number for the
+ * curated one. Distances (km) stay from ORS since those reflect actual
+ * road geometry.
+ */
+const LOCALITY_COMMUTE_OVERRIDES: Record<
+  string,
+  { toLoft: number; toGachi: number; toKokapet: number }
+> = {
+  kondapur: { toLoft: 14, toGachi: 10, toKokapet: 18 },
+  madhapur: { toLoft: 16, toGachi: 12, toKokapet: 20 },
+  hitec: { toLoft: 15, toGachi: 11, toKokapet: 19 },
+  'hitech city': { toLoft: 15, toGachi: 11, toKokapet: 19 },
+  raidurg: { toLoft: 12, toGachi: 8, toKokapet: 16 },
+  'nanakramguda': { toLoft: 4, toGachi: 6, toKokapet: 10 },
+  gachibowli: { toLoft: 8, toGachi: 2, toKokapet: 14 },
+  kokapet: { toLoft: 12, toGachi: 14, toKokapet: 2 },
+  'jubilee hills': { toLoft: 22, toGachi: 18, toKokapet: 24 },
+  'banjara hills': { toLoft: 26, toGachi: 22, toKokapet: 28 },
+  begumpet: { toLoft: 32, toGachi: 28, toKokapet: 34 },
+  ameerpet: { toLoft: 30, toGachi: 25, toKokapet: 32 },
+  kukatpally: { toLoft: 28, toGachi: 22, toKokapet: 30 },
+  secunderabad: { toLoft: 40, toGachi: 36, toKokapet: 42 },
+  airport: { toLoft: 35, toGachi: 38, toKokapet: 32 },
+  'rajiv gandhi international airport': { toLoft: 35, toGachi: 38, toKokapet: 32 },
+  tolichowki: { toLoft: 18, toGachi: 14, toKokapet: 20 },
+  manikonda: { toLoft: 10, toGachi: 12, toKokapet: 12 },
+  nallagandla: { toLoft: 18, toGachi: 14, toKokapet: 22 },
+  attapur: { toLoft: 20, toGachi: 22, toKokapet: 18 },
+  khajaguda: { toLoft: 6, toGachi: 8, toKokapet: 10 },
+  puppalguda: { toLoft: 10, toGachi: 12, toKokapet: 8 },
+  narsingi: { toLoft: 14, toGachi: 16, toKokapet: 10 },
+  mehdipatnam: { toLoft: 28, toGachi: 30, toKokapet: 26 },
+};
+
+function findLocalityOverride(
+  origin: string,
+  label: string | null,
+  locality: string | null,
+): { toLoft: number; toGachi: number; toKokapet: number } | null {
+  const candidates = [origin, label, locality].filter(Boolean).map((s) => (s as string).toLowerCase());
+  for (const key of Object.keys(LOCALITY_COMMUTE_OVERRIDES)) {
+    for (const c of candidates) {
+      if (c.includes(key)) return LOCALITY_COMMUTE_OVERRIDES[key];
+    }
+  }
+  return null;
+}
+
 interface OrsGeocodeFeature {
   geometry: { coordinates: [number, number] };
   properties: {
@@ -141,15 +197,29 @@ export async function POST(req: NextRequest) {
     const [toLoftSec, toGachiSec, toKokapetSec] = mx.durations[0];
     const [toLoftM, toGachiM, toKokapetM] = mx.distances?.[0] ?? [null, null, null];
 
+    // If we recognise the locality, override the ORS minutes with hand-
+    // curated ORR-corridor times. ORS frequently routes via interior
+    // roads for places like Kondapur and returns 40-50 min for a real
+    // 12-15 min drive.
+    const override = findLocalityOverride(
+      origin,
+      label ?? null,
+      hit.properties.locality ?? null,
+    );
+    const toLoftMin = override ? override.toLoft : minFromSec(toLoftSec);
+    const toGachibowliMin = override ? override.toGachi : minFromSec(toGachiSec);
+    const toKokapetMin = override ? override.toKokapet : minFromSec(toKokapetSec);
+
     return NextResponse.json({
       ok: true,
       origin: { label, lat, lng, locality: hit.properties.locality ?? null },
-      toLoftMin: minFromSec(toLoftSec),
-      toGachibowliMin: minFromSec(toGachiSec),
-      toKokapetMin: minFromSec(toKokapetSec),
+      toLoftMin,
+      toGachibowliMin,
+      toKokapetMin,
       toLoftKm: kmFromM(toLoftM),
       toGachibowliKm: kmFromM(toGachiM),
       toKokapetKm: kmFromM(toKokapetM),
+      overrideSource: override ? 'locality_table' : 'ors',
     });
   } catch (err) {
     console.error('[api/geo/distance] error:', err);
