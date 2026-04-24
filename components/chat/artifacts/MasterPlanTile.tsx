@@ -39,7 +39,6 @@ const LAND_STATS: { label: string; value: string; note?: string }[] = [
   { label: 'Land parcel', value: '4.92 acres', note: '~21,410 sqm' },
   { label: 'Towers', value: '2', note: 'Tower A · Tower B · G+45' },
   { label: 'Units', value: '894', note: '10 per floor · 3 BHK only' },
-  { label: 'Density', value: '182 units/acre', note: 'FD average range' },
   { label: 'Clubhouse', value: '55,000 sqft', note: '26 landscape zones' },
 ];
 
@@ -49,7 +48,7 @@ export default function MasterPlanTile() {
       eyebrow="Master plan · Tower A & B · 26 zones"
       title="The site, walked from above."
       sub="4.92-acre parcel · long north–south strip · jogging loop runs the spine · clubhouse north-west."
-      footer={<>4.92 acres · 894 units on G+45 · 26-zone landscape · handover Dec 2026.</>}
+      footer={<>4.92 acres · 894 units on G+45 · 26-zone landscape · 55,000 sqft clubhouse · handover Dec 2026.</>}
       askMore={{
         label: 'A typical family day in these spaces',
         query: 'Show me a typical family day inside ASBL Loft',
