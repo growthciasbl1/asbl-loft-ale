@@ -127,18 +127,22 @@ export default function ShareRequestTile({
       });
       const json = await res.json();
       if (!res.ok || !json.ok) {
-        setStep('form');
-        setErrorMsg(
-          json.error === 'invalid phone'
-            ? 'Phone number sahi nahi lag raha.'
-            : 'Could not send the OTP. Please try again.',
-        );
-        return;
+        if (json.error === 'invalid phone') {
+          setStep('form');
+          setErrorMsg('Phone number sahi nahi lag raha.');
+        } else {
+          // WhatsApp leg may have delivered even though server reported
+          // error (saveOtp flake etc.). Stay on OTP step so user can
+          // enter the code they received; verify is source of truth.
+          setErrorMsg(
+            'Delivery hiccup — agar WhatsApp pe OTP aa gaya hai to enter kar do, warna Resend dabao.',
+          );
+        }
+      } else {
+        setInfoMsg(`OTP sent on WhatsApp to ${phone}. Code valid for 5 minutes.`);
       }
-      setInfoMsg(`OTP sent on WhatsApp to ${phone}. Code valid for 5 minutes.`);
     } catch {
-      setStep('form');
-      setErrorMsg('Network error. Please retry.');
+      setErrorMsg('Network hiccup — agar OTP aa gaya hai to enter kar do, warna Resend dabao.');
     } finally {
       setBusy(false);
     }

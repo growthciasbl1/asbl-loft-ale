@@ -356,18 +356,26 @@ export default function VisitTile({
       });
       const json = await res.json();
       if (!res.ok || !json.ok) {
-        setOtpStep('idle');
-        setOtpError(
-          json.error === 'invalid phone'
-            ? 'Ye phone number sahi nahi lag raha — please check.'
-            : 'Could not send the OTP. Please try again in a moment.',
-        );
-        return;
+        // Server returned an error — but the WhatsApp leg may still have
+        // delivered the OTP (we've seen this in prod when saveOtp to Mongo
+        // flaked after successful Periskope send). Keep the OTP input
+        // VISIBLE so the user can still enter the code they received.
+        // Verify will be the source of truth: if the code wasn't stored,
+        // verify returns wrong_code and user taps Resend.
+        if (json.error === 'invalid phone') {
+          setOtpStep('idle');
+          setOtpError('Ye phone number sahi nahi lag raha — please check.');
+        } else {
+          setOtpError(
+            'Delivery hiccup — agar WhatsApp pe OTP aa gaya hai to enter kar do, warna Resend OTP dabao.',
+          );
+        }
+      } else {
+        setOtpInfo(`OTP sent on WhatsApp to ${phone}. Code valid for 5 minutes.`);
       }
-      setOtpInfo(`OTP sent on WhatsApp to ${phone}. Code valid for 5 minutes.`);
     } catch {
-      setOtpStep('idle');
-      setOtpError('Network error — please retry.');
+      // Network error — don't hide the OTP input either; same reasoning.
+      setOtpError('Network hiccup — agar OTP aa gaya hai to enter kar do, ya Resend dabao.');
     } finally {
       setSubmitting(false);
     }

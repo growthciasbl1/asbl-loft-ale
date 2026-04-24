@@ -83,19 +83,28 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
       });
       const json = await res.json();
       if (!res.ok || !json.ok) {
-        // Surface the actual server reason so we can diagnose. Each error
-        // code maps to a precise root cause; the generic fallback was
-        // hiding rate-limits, channel failures, and Mongo issues.
+        // Server returned an error — but WhatsApp may still have delivered
+        // (seen in prod when saveOtp flaked after successful Periskope
+        // send). Key UX rule: advance to 'otp' step ANYWAY so user can
+        // enter the code they received. /api/otp/verify is the source of
+        // truth — if code wasn't saved, verify returns wrong_code and user
+        // taps Resend.
         const reasonMap: Record<string, string> = {
           'invalid phone': 'That phone number looks incorrect — please check.',
           rate_limited: `Too many attempts — try again in ${json.retryAfter ?? 30}s.`,
-          all_channels_failed: 'WhatsApp delivery is failing right now. Our team has been alerted — please try in 1–2 minutes.',
-          otp_store_failed: 'OTP was sent but we could not save it. Please request a new one.',
+          all_channels_failed: 'Delivery hiccup — agar WhatsApp pe OTP aa gaya hai to enter kar do, warna Resend dabao.',
+          otp_store_failed: 'Server flake — try entering the OTP you received; if verify fails, tap Resend.',
           'invalid request': 'Invalid request — please refresh and try again.',
         };
-        const friendly = reasonMap[json.error] ?? `Could not send OTP (${json.error ?? `HTTP ${res.status}`}). Please try again.`;
-        setErrorMsg(friendly);
-        // Log full payload for debug — visible in DevTools console for any user.
+        const friendly = reasonMap[json.error] ?? `Agar OTP aa gaya hai to enter kar do, warna Resend dabao. (${json.error ?? `HTTP ${res.status}`})`;
+        if (json.error === 'invalid phone' || json.error === 'invalid request') {
+          setErrorMsg(friendly);
+        } else {
+          // Advance to OTP step so user CAN enter the code
+          setStep('otp');
+          setErrorMsg(friendly);
+          setResendIn(30);
+        }
         console.error('[LeadGate] otp/send failed', { status: res.status, body: json });
       } else {
         setStep('otp');

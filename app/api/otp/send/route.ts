@@ -103,22 +103,37 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const saved = await saveOtp({
-      phoneE164,
-      otp,
-      sentVia,
+    // Retry saveOtp once on Mongo flake. WhatsApp was already delivered
+    // — we must persist the matching code to Mongo so /api/otp/verify has
+    // something to compare against. One quick retry handles transient
+    // cluster hiccups without bailing on a delivered OTP.
+    const saveOnce = () => saveOtp({
+      phoneE164, otp, sentVia,
       lastSenderE164: waResult.fromE164 ?? undefined,
-      reason,
-      form,
-      name: name ?? undefined,
-      visitorId,
-      campaign,
-      artifactKind,
+      reason, form, name: name ?? undefined, visitorId, campaign, artifactKind,
     });
+    let saved = await saveOnce();
+    if (!saved) {
+      console.warn('[api/otp/send] first saveOtp failed, retrying once', { phoneE164 });
+      await new Promise((r) => setTimeout(r, 400));
+      saved = await saveOnce();
+    }
 
     if (!saved) {
-      console.error('[api/otp/send] Channels OK but saveOtp failed', { phoneE164 });
-      return NextResponse.json({ ok: false, error: 'otp_store_failed' }, { status: 500 });
+      console.error('[api/otp/send] saveOtp failed twice', { phoneE164 });
+      // Return ok: true anyway — the WhatsApp was delivered, so hiding the
+      // OTP step would be worse UX than surfacing a soft warning. Client
+      // will try to verify; if the code truly wasn't persisted, verify
+      // returns wrong_code and user taps Resend. The alternative (500)
+      // locks the user out of a flow where they already have the code.
+      return NextResponse.json({
+        ok: true,
+        sentVia,
+        fromE164: waResult.fromE164 ?? null,
+        smsOk: smsResult.ok,
+        whatsappOk: waResult.ok,
+        warning: 'otp_store_flake',
+      });
     }
 
     return NextResponse.json({
