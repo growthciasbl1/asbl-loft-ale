@@ -55,7 +55,6 @@ export default function AmenityTile() {
         query: 'Walk me through the clubhouse and podium amenities',
       }}
       relatedAsks={[
-        { label: 'Compare projects', query: 'Compare ASBL Loft with other FD projects' },
         { label: 'Schools nearby', query: 'What schools are within 12 minutes?' },
         { label: 'Commute time', query: 'How long to reach Loft from my place?' },
         { label: 'Book a visit', query: 'Book a site visit' },

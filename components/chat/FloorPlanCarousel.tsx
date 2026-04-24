@@ -13,12 +13,16 @@ export interface PlanSlide {
 
 interface Props {
   slides: PlanSlide[];
+  /** Set to a positive number to enable auto-cycling (ms between slides).
+   *  Default 0 = no auto-play; visitor drives via arrows / dots / image
+   *  click. Per user direction: "should not change automatically, users
+   *  should be able to change it." */
   autoPlayMs?: number;
 }
 
 type SlideState = 'active' | 'exiting' | 'entering' | 'idle';
 
-export default function FloorPlanCarousel({ slides, autoPlayMs = 8000 }: Props) {
+export default function FloorPlanCarousel({ slides, autoPlayMs = 0 }: Props) {
   const [active, setActive] = useState(0);
   const [prev, setPrev] = useState<number | null>(null);
   const [lightbox, setLightbox] = useState(false);
@@ -43,6 +47,7 @@ export default function FloorPlanCarousel({ slides, autoPlayMs = 8000 }: Props) 
   const resetTimer = () => {
     if (timer.current) window.clearInterval(timer.current);
     if (paused) return;
+    if (!autoPlayMs || autoPlayMs <= 0) return; // auto-play off by default
     timer.current = window.setInterval(() => go(active + 1), autoPlayMs);
   };
 

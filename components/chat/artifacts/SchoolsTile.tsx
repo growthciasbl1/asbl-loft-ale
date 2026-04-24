@@ -62,6 +62,48 @@ export default function SchoolsTile({ focus = 'schools' }: Props) {
         { label: 'Book a visit', query: 'Book a site visit' },
       ]}
     >
+      {/* When focus === 'hospitals' the healthcare section renders FIRST so
+          the visitor who asked about hospitals doesn't have to scroll past
+          all eight schools to see the Continental / Apollo / Star list. */}
+      {isHospitalFocus && (
+        <>
+          <div
+            style={{
+              fontSize: 9.5,
+              textTransform: 'uppercase',
+              letterSpacing: '0.13em',
+              color: 'var(--mid-gray)',
+              fontWeight: 500,
+              marginBottom: 10,
+            }}
+          >
+            Hospitals
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
+            {HOSPITALS.map((h) => (
+              <div
+                key={h.name}
+                style={{
+                  padding: '7px 12px',
+                  background: 'var(--cream)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 100,
+                  fontSize: 12,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                <span style={{ color: 'var(--charcoal)', fontWeight: 500 }}>{h.name}</span>
+                <span className="mono" style={{ color: 'var(--plum-dark)', fontSize: 11 }}>
+                  {h.min} min
+                </span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
       <div
         style={{
           fontSize: 9.5,
@@ -99,6 +141,7 @@ export default function SchoolsTile({ focus = 'schools' }: Props) {
         ))}
       </div>
 
+      {!isHospitalFocus && (
       <div style={{ marginTop: 16 }}>
         <div
           style={{
@@ -135,6 +178,7 @@ export default function SchoolsTile({ focus = 'schools' }: Props) {
           ))}
         </div>
       </div>
+      )}
     </TileShell>
   );
 }

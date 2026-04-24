@@ -255,8 +255,6 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
                 autoComplete="tel"
                 style={inputStyle}
               />
-              <ChannelToggle value={channel} onChange={setChannel} />
-
               {errorMsg && <div style={errStyle}>{errorMsg}</div>}
 
               <button
@@ -268,6 +266,42 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
               >
                 {busy ? 'Sending OTP…' : 'Unlock →'}
               </button>
+
+              {/* Consent-framed channel choice — moved BELOW the Unlock button per
+                  doc 3.3 direction. Framed as follow-up preference, not a hurdle
+                  between the visitor and the unlock action. */}
+              <div
+                style={{
+                  marginTop: 4,
+                  padding: '10px 12px',
+                  background: 'var(--plum-pale)',
+                  border: '1px solid var(--plum-border, var(--border))',
+                  borderRadius: 10,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 500,
+                    color: 'var(--plum-dark)',
+                    marginBottom: 6,
+                  }}
+                >
+                  If we need to reach out, how should we?
+                </div>
+                <ChannelToggle value={channel} onChange={setChannel} />
+                <div
+                  style={{
+                    fontSize: 10.5,
+                    color: 'var(--mid-gray)',
+                    marginTop: 6,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  Only used to follow up on this enquiry — never for marketing blasts.
+                </div>
+              </div>
+
               <p style={{ fontSize: 10.5, color: 'var(--light-gray)' }}>
                 RERA TS P02400006761 · Data stays with ASBL. Opt out anytime.
               </p>

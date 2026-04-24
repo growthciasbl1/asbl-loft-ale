@@ -286,6 +286,20 @@ export function routeQuery(q: string): RouterResult {
     };
   }
 
+  // Tenant demographics / "who rents here" / job-market queries — route to
+  // WhyFdTile so visitor sees the job-growth + commercial-leasing angle,
+  // not the rental offer upsell. (Doc 2.23 — stop selling 'high rental
+  // property' angle; anchor on the roadshow's job-growth story instead.)
+  if (
+    /\bwho\s*(rents|lives|occup|stays)|tenant\s*(demograph|profile|pool|type|base)|who.{0,20}(FD|Financial\s*District|Loft)|what.{0,20}tenants|job\s*(market|growth|density)|GCC\s*(expansion|growth|hiring)|commercial\s*leasing|employer\s*(catchment|density|cluster)/i.test(q)
+  ) {
+    return {
+      text: `<p>Financial District's story isn't rental yield — it's <strong>job density</strong>. 200+ GCCs (Apple, Microsoft, Google Phase 2, Eli Lilly, Heineken) are hiring 10,000+ senior roles locally right now. Commercial leasing is at record highs and the next round of FD launches will sit 15–20% above Loft's current ticket on the back of TDR-led land scarcity. Who lives here is a by-product of where the jobs are going.</p>`,
+      artifact: 'why_fd',
+      artifactLabel: "FD's job-growth story",
+    };
+  }
+
   // Rental offer — headline, ₹85K/mo assured on ₹10L booking till Dec 2026
   if (/rental\s*offer|guaranteed\s*rent|rent\s*offer|85k|85,000|assured\s*rent|rental\s*scheme|10l.*book|book.*10l|10\s*lakh.*book/i.test(q)) {
     return {
