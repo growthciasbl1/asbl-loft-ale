@@ -32,13 +32,24 @@ const LEGEND = [
   { n: 26, label: 'Party Spill-out Area' },
 ];
 
+// Land parcel headline stats — sourced from the SYSTEM_PROMPT KB. Surface
+// these prominently because visitors keep asking "how big is the project"
+// without getting a clean number back (doc 2.13).
+const LAND_STATS: { label: string; value: string; note?: string }[] = [
+  { label: 'Land parcel', value: '4.92 acres', note: '~21,410 sqm' },
+  { label: 'Towers', value: '2', note: 'Tower A · Tower B · G+45' },
+  { label: 'Units', value: '894', note: '10 per floor · 3 BHK only' },
+  { label: 'Density', value: '182 units/acre', note: 'FD average range' },
+  { label: 'Clubhouse', value: '55,000 sqft', note: '26 landscape zones' },
+];
+
 export default function MasterPlanTile() {
   return (
     <TileShell
       eyebrow="Master plan · Tower A & B · 26 zones"
       title="The site, walked from above."
-      sub="Long north–south strip · jogging loop runs the whole spine · clubhouse north-west."
-      footer={<>26-zone landscape · Tower A &amp; B · handover Dec 2026.</>}
+      sub="4.92-acre parcel · long north–south strip · jogging loop runs the spine · clubhouse north-west."
+      footer={<>4.92 acres · 894 units on G+45 · 26-zone landscape · handover Dec 2026.</>}
       askMore={{
         label: 'A typical family day in these spaces',
         query: 'Show me a typical family day inside ASBL Loft',
@@ -49,6 +60,50 @@ export default function MasterPlanTile() {
         { label: 'Urban corridors', query: 'Show me the location and urban connectivity' },
       ]}
     >
+      {/* Land-parcel headline stats — visitors asking 'how big is the project'
+          get the core numbers up-front without waiting for the image to load. */}
+      <div
+        style={{
+          padding: '14px 22px',
+          background: 'var(--plum-pale)',
+          borderBottom: '1px solid var(--plum-border, var(--border))',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))',
+          gap: 12,
+        }}
+      >
+        {LAND_STATS.map((s) => (
+          <div key={s.label}>
+            <div
+              style={{
+                fontSize: 9.5,
+                textTransform: 'uppercase',
+                letterSpacing: '0.12em',
+                color: 'var(--plum-dark)',
+                fontWeight: 600,
+                marginBottom: 3,
+              }}
+            >
+              {s.label}
+            </div>
+            <div
+              className="serif"
+              style={{
+                fontSize: 17,
+                fontWeight: 500,
+                color: 'var(--charcoal)',
+                lineHeight: 1.15,
+              }}
+            >
+              {s.value}
+            </div>
+            {s.note && (
+              <div style={{ fontSize: 10, color: 'var(--mid-gray)', marginTop: 2 }}>{s.note}</div>
+            )}
+          </div>
+        ))}
+      </div>
+
       <div
         style={{
           padding: '20px 26px',
@@ -212,7 +267,7 @@ function SitePlanSvg() {
         TOWER A
       </text>
       <text x="260" y="243" textAnchor="middle" fontFamily="JetBrains Mono" fontSize="8" fill="#f5e6d5">
-        G + 50 · 10 units/floor
+        G + 45 · 10 units/floor
       </text>
 
       {/* Central spine / pedestrian boulevard */}
@@ -262,7 +317,7 @@ function SitePlanSvg() {
         TOWER B
       </text>
       <text x="260" y="533" textAnchor="middle" fontFamily="JetBrains Mono" fontSize="8" fill="#f5e6d5">
-        G + 50 · 10 units/floor
+        G + 45 · 10 units/floor
       </text>
 
       {/* Jogging loop — elegant curve wrapping both towers */}

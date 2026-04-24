@@ -140,12 +140,12 @@ export function routeQuery(q: string): RouterResult {
     };
   }
 
-  // Master plan / site plan / landscape
-  if (/master\s*plan|site\s*plan|landscape|site\s*layout|campus|overall\s*plan|where.*amenities/.test(ql)) {
+  // Master plan / site plan / landscape / land parcel / "how big is the project"
+  if (/master\s*plan|site\s*plan|landscape|site\s*layout|campus|overall\s*plan|where.*amenities|land\s*parcel|how\s*big.*(project|loft|site|land)|total\s*(acres|acre|area)|plot\s*size|\d+\s*acre|total\s*units|density|how\s*many\s*(units|flats|apartments|towers|floors)/.test(ql)) {
     return {
-      text: `<p>The site, walked from above. 26 zones — clubhouse, courts, water features, jogging loop — arranged around Tower A and Tower B.</p>`,
+      text: `<p>ASBL Loft sits on <strong>4.92 acres</strong> with <strong>2 towers (G+45, 10 units/floor)</strong> — 894 units total, ~182 units/acre which is the FD average. 26-zone landscape arranged around the towers + a 55,000 sqft clubhouse to the north-west.</p>`,
       artifact: 'master_plan',
-      artifactLabel: 'Master plan · 26 zones',
+      artifactLabel: 'Master plan · 4.92 acres',
     };
   }
 
