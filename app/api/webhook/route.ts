@@ -122,14 +122,45 @@ export async function POST(req: NextRequest) {
     const utmContent = tracker.utm_content ?? utmLast?.content ?? utmFirst?.content ?? null;
     const utmTerm = tracker.utm_term ?? utmLast?.term ?? utmFirst?.term ?? null;
 
+    const normalizeBookingType = (t: unknown): 'site_visit' | 'virtual_visit' | 'call_back' =>
+      t === 'call_back' ? 'call_back' : t === 'virtual_visit' ? 'virtual_visit' : 'site_visit';
+
     const booking =
       body.booking && typeof body.booking === 'object'
         ? {
-            type: body.booking.type === 'call_back' ? 'call_back' : 'site_visit',
+            type: normalizeBookingType(body.booking.type),
             slotIsoLocal: String(body.booking.slotIsoLocal ?? ''),
             timezone: String(body.booking.timezone ?? 'Asia/Kolkata'),
             timezoneDetected: String(body.booking.timezoneDetected ?? 'Asia/Kolkata'),
             timezoneUserOverridden: Boolean(body.booking.timezoneUserOverridden),
+            callPreference:
+              body.booking.callPreference === 'now' ||
+              body.booking.callPreference === 'tomorrow' ||
+              body.booking.callPreference === 'later' ||
+              body.booking.callPreference === 'anytime'
+                ? body.booking.callPreference
+                : undefined,
+            isReschedule: Boolean(body.booking.isReschedule),
+            previousBooking:
+              body.booking.previousBooking && typeof body.booking.previousBooking === 'object'
+                ? {
+                    type: normalizeBookingType(body.booking.previousBooking.type),
+                    slotIsoLocal: String(body.booking.previousBooking.slotIsoLocal ?? ''),
+                    slotLabel: body.booking.previousBooking.slotLabel
+                      ? String(body.booking.previousBooking.slotLabel)
+                      : undefined,
+                    dayShortLabel: body.booking.previousBooking.dayShortLabel
+                      ? String(body.booking.previousBooking.dayShortLabel)
+                      : undefined,
+                    timezone: body.booking.previousBooking.timezone
+                      ? String(body.booking.previousBooking.timezone)
+                      : undefined,
+                    capturedAt:
+                      typeof body.booking.previousBooking.capturedAt === 'number'
+                        ? body.booking.previousBooking.capturedAt
+                        : undefined,
+                  }
+                : undefined,
           }
         : null;
 
@@ -247,12 +278,19 @@ export async function POST(req: NextRequest) {
       captured_at: new Date().toISOString(),
       // Sales-friendly action flags so Zoho views can filter leads by intent
       site_visit_requested: booking?.type === 'site_visit',
+      virtual_visit_requested: booking?.type === 'virtual_visit',
       call_back_requested: booking?.type === 'call_back',
       share_requested:
         typeof body.reason === 'string' && /share|brochure|send|pdf|doc/i.test(body.reason),
       lead_type: booking?.type ? `${booking.type}_booking` : body.reason ?? 'chat_lead',
       otp_verified: body.otpVerified === true,
       booking_readable: body.query ?? null,
+      // Reschedule flags — Zoho can use these to update the matching existing
+      // booking record instead of creating a duplicate lead.
+      is_reschedule: booking?.isReschedule === true,
+      previous_booking_slot: booking?.previousBooking?.slotIsoLocal ?? null,
+      previous_booking_type: booking?.previousBooking?.type ?? null,
+      call_preference: booking?.callPreference ?? null,
     };
 
     // 3) Parallelise Zoho CRM push + WhatsApp confirmation send. These were

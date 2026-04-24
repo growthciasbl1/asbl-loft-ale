@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { TileShell, TileIcon } from './common';
-import { useChatStore } from '@/lib/store/chatStore';
+import { useChatStore, type BookingData } from '@/lib/store/chatStore';
 import { track } from '@/lib/analytics/tracker';
 import { readWebTracker } from '@/lib/analytics/leadTracking';
 import {
@@ -117,6 +117,10 @@ export default function VisitTile({
 
   // For bookingType === 'call_back' — replaces the date/slot picker per doc 2.22.
   const [callPref, setCallPref] = useState<CallPreference>('now');
+
+  // Snapshot of the PRIOR booking when visitor clicks Reschedule — so the
+  // fresh webhook we fire can tell Zoho this is an update, not a new lead.
+  const [previousBooking, setPreviousBooking] = useState<BookingData | null>(null);
 
   // Identity comes from zustand lead if already verified this session. Visitor
   // can still hit "Change details" to override — tracked via editingIdentity.
@@ -419,6 +423,7 @@ export default function VisitTile({
           : null;
     if (!descriptor) return;
 
+    const isReschedule = !!previousBooking;
     const webhookEvent =
       bookingType === 'site_visit'
         ? 'visit_booking'
@@ -432,6 +437,9 @@ export default function VisitTile({
       bookingType,
       geoGranted: geoStatus === 'granted',
       callPref: bookingType === 'call_back' ? callPref : undefined,
+      isReschedule,
+      previousSlotIso: previousBooking?.slotIsoLocal,
+      previousType: previousBooking?.type,
     });
 
     fetch('/api/webhook', {
@@ -440,7 +448,7 @@ export default function VisitTile({
       body: JSON.stringify({
         name,
         phone,
-        query: `${bookingLabelFor(bookingType)} · ${descriptor.dayLongLabel} · ${descriptor.slotLabel}`,
+        query: `${isReschedule ? 'Rescheduled — ' : ''}${bookingLabelFor(bookingType)} · ${descriptor.dayLongLabel} · ${descriptor.slotLabel}`,
         reason: reasonFor(bookingType),
         preferredChannel: channelFor(bookingType),
         webTracker: readWebTracker(),
@@ -453,6 +461,8 @@ export default function VisitTile({
           timezoneDetected: detectedTz,
           timezoneUserOverridden: userTzOverridden,
           callPreference: bookingType === 'call_back' ? callPref : undefined,
+          isReschedule,
+          previousBooking: previousBooking ?? undefined,
         },
         geo: geo
           ? { lat: geo.lat, lng: geo.lng, accuracy: geo.accuracy, timezone: detectedTz }
@@ -461,6 +471,11 @@ export default function VisitTile({
     }).catch((err) => {
       console.warn('[visit] webhook failed:', err);
     });
+
+    // Clear the reschedule snapshot now that the new booking is recorded — so
+    // a subsequent fresh booking (if visitor reschedules twice) doesn't carry
+    // the wrong previousBooking into its payload.
+    if (previousBooking) setPreviousBooking(null);
   };
 
   useEffect(() => {
@@ -499,13 +514,24 @@ export default function VisitTile({
 
   if (confirmedType && confirmedSlotLabel && confirmedDayLabel && confirmedSlotIso) {
     const resetForReschedule = () => {
+      // Snapshot the current (soon-to-be-overwritten) booking so the next
+      // webhook call can tell downstream (Zoho / CRM) it's an update, not
+      // a fresh lead.
+      if (existingBooking) setPreviousBooking(existingBooking);
+      track('click', 'visit_reschedule', {
+        previousType: existingBooking?.type,
+        previousSlot: existingBooking?.slotIsoLocal,
+      });
       clearBookingStore();
       setDone(false);
       setSlotIdx(null);
       setDayIndex(0);
       setCallPref('now');
       setOtpStep('idle');
-      track('click', 'visit_reschedule');
+      // If we have a saved bookingType in the store, pre-select it so the
+      // visitor doesn't have to re-choose site/virtual/call. They're
+      // rescheduling — most likely want the same kind.
+      if (existingBooking?.type) setBookingType(existingBooking.type);
     };
 
     return (
@@ -644,6 +670,26 @@ export default function VisitTile({
           <p style={{ fontSize: 12.5, color: 'var(--gray-2)', margin: 0, lineHeight: 1.55 }}>
             {note.body}
           </p>
+        </div>
+      )}
+
+      {/* Reschedule banner — visible while the visitor picks a new slot */}
+      {previousBooking && (
+        <div
+          style={{
+            padding: '10px 14px',
+            background: 'var(--sienna-soft, #fdece6)',
+            border: '1px solid var(--sienna, #c76947)',
+            borderRadius: 10,
+            marginBottom: 16,
+            fontSize: 12.5,
+            color: 'var(--sienna-dark, #8a3a1f)',
+            lineHeight: 1.5,
+          }}
+        >
+          <b>Rescheduling</b> — your earlier {bookingLabelFor(previousBooking.type).toLowerCase()}{' '}
+          on <b>{previousBooking.dayShortLabel} · {previousBooking.slotLabel}</b> will be replaced
+          once you confirm the new slot below.
         </div>
       )}
 

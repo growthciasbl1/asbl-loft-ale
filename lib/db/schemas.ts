@@ -34,11 +34,24 @@ export interface MediaDoc {
 }
 
 export interface LeadBooking {
-  type: 'site_visit' | 'call_back';
+  type: 'site_visit' | 'virtual_visit' | 'call_back';
   slotIsoLocal: string;
   timezone: string;
   timezoneDetected: string;
   timezoneUserOverridden: boolean;
+  /** For call_back only — now / tomorrow / later / anytime. */
+  callPreference?: 'now' | 'tomorrow' | 'later' | 'anytime';
+  /** True when this booking replaces an earlier one (visitor clicked Reschedule). */
+  isReschedule?: boolean;
+  /** Snapshot of the prior booking so CRM can update the same record. */
+  previousBooking?: {
+    type: 'site_visit' | 'virtual_visit' | 'call_back';
+    slotIsoLocal: string;
+    slotLabel?: string;
+    dayShortLabel?: string;
+    timezone?: string;
+    capturedAt?: number;
+  };
 }
 
 export interface LeadGeo {
