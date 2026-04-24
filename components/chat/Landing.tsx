@@ -322,11 +322,12 @@ export default function Landing() {
             src="/assets/logo.webp"
             alt="ASBL Loft"
             style={{
-              height: 'clamp(68px, 22vw, 104px)',
-              maxWidth: '80vw',
+              height: 'clamp(96px, 34vw, 140px)',
+              maxWidth: '86vw',
               width: 'auto',
               display: 'block',
               margin: '0 auto',
+              objectFit: 'contain',
             }}
           />
           <div
@@ -493,7 +494,8 @@ export default function Landing() {
               placeholder="Ask about unit plans, pricing, amenities…"
               style={{
                 width: '100%',
-                fontSize: 'clamp(14px, 1.3vw, 17px)',
+                // Min 16px on mobile prevents iOS auto-zoom on focus.
+                fontSize: 'clamp(16px, 1.3vw, 17px)',
                 fontWeight: 300,
                 resize: 'none',
                 minHeight: 'clamp(48px, 8vw, 76px)',

@@ -132,7 +132,11 @@ export default function ChatView() {
   const setCampaign = useChatStore((s) => s.setCampaign);
 
   const [messages, setMessages] = useState<Message[]>([]);
-  const [typing, setTyping] = useState(false);
+  // Counter instead of boolean — lets multiple questions be in-flight at once
+  // (queued rather than blocking). typing-indicator shows whenever any
+  // request is pending.
+  const [pendingCount, setPendingCount] = useState(0);
+  const typing = pendingCount > 0;
   const [composerValue, setComposerValue] = useState('');
   const initRef = useRef(false);
   const composerRef = useRef<HTMLTextAreaElement>(null);
@@ -223,11 +227,9 @@ export default function ChatView() {
     const text = q.trim();
     if (!text) return;
     track('submit', 'message_send', { query: text, campaign: campaign.key });
-    const userMsg: Message = { id: `u-${Date.now()}`, role: 'user', text };
+    const userMsg: Message = { id: `u-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, role: 'user', text };
     setMessages((m) => [...m, userMsg]);
-    setTyping(true);
-
-    await new Promise((r) => setTimeout(r, 400));
+    setPendingCount((c) => c + 1);
 
     const seenArtifacts = Array.from(
       new Set(
@@ -270,9 +272,9 @@ export default function ChatView() {
       useChatStore.getState().setConversationId(result.conversationId);
     }
 
-    setTyping(false);
+    setPendingCount((c) => Math.max(0, c - 1));
     const botMsg: Message = {
-      id: `b-${Date.now()}`,
+      id: `b-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       role: 'bot',
       text: result.text,
       artifact: result.artifact,
@@ -434,7 +436,10 @@ export default function ChatView() {
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
-                  if (composerValue.trim() && !typing) {
+                  if (composerValue.trim()) {
+                    // Queue path — even if a prior reply is still streaming,
+                    // the new question fires in parallel. Send button +
+                    // Enter key behave identically now.
                     submit(composerValue);
                     setComposerValue('');
                     autoGrow();
@@ -444,7 +449,8 @@ export default function ChatView() {
               placeholder="Ask anything about ASBL Loft…"
               style={{
                 width: '100%',
-                fontSize: 14,
+                // 16px min on phones prevents iOS auto-zoom on focus.
+                fontSize: 16,
                 fontWeight: 300,
                 resize: 'none',
                 minHeight: 46,
@@ -463,19 +469,19 @@ export default function ChatView() {
               <span style={{ fontSize: 10, color: 'var(--light-gray)' }}>ASBL Loft Assistant</span>
               <button
                 onClick={() => {
-                  if (composerValue.trim() && !typing) {
+                  if (composerValue.trim()) {
                     submit(composerValue);
                     setComposerValue('');
                     autoGrow();
                   }
                 }}
-                disabled={!composerValue.trim() || typing}
+                disabled={!composerValue.trim()}
                 aria-label="Send"
                 style={{
                   width: 32,
                   height: 32,
                   borderRadius: 9,
-                  background: composerValue.trim() && !typing ? 'var(--plum)' : 'var(--light-gray)',
+                  background: composerValue.trim() ? 'var(--plum)' : 'var(--light-gray)',
                   color: '#fff',
                   display: 'inline-flex',
                   alignItems: 'center',
