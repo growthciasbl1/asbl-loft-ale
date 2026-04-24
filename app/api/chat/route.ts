@@ -4,6 +4,7 @@ import { routeWithLLM, shouldUseLLM, type ChatHistoryMsg } from '@/lib/llm/gemin
 import { insertSignal } from '@/lib/db/signals';
 import { appendConversationTurn } from '@/lib/db/conversations';
 import { insertUsage } from '@/lib/db/usage';
+import { checkRateLimit, getClientKey, rateLimitHeaders } from '@/lib/rateLimit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -22,6 +23,15 @@ function coerceHistory(input: unknown): ChatHistoryMsg[] {
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limit: 30 chat messages per minute per client. Gemini calls are
+  // the most expensive thing we do — a runaway client can blow our quota.
+  const rl = checkRateLimit('chat', getClientKey(req), { maxRequests: 30, windowMs: 60_000 });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'rate_limited', retryAfter: Math.ceil((rl.resetAt - Date.now()) / 1000) },
+      { status: 429, headers: rateLimitHeaders(rl) },
+    );
+  }
   try {
     const body = await req.json();
     const query: string = body?.query ?? '';

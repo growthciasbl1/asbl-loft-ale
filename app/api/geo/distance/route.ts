@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit, getClientKey, rateLimitHeaders } from '@/lib/rateLimit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -154,6 +155,15 @@ function kmFromM(m: number | undefined | null): number | null {
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limit: 10 commute lookups per minute. OpenRouteService free tier
+  // caps at 40 RPM globally — per-client 10 RPM leaves headroom.
+  const rl = checkRateLimit('geo:distance', getClientKey(req), { maxRequests: 10, windowMs: 60_000 });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'rate_limited', retryAfter: Math.ceil((rl.resetAt - Date.now()) / 1000) },
+      { status: 429, headers: rateLimitHeaders(rl) },
+    );
+  }
   try {
     const body = await req.json();
     const origin: string = typeof body?.origin === 'string' ? body.origin.trim() : '';

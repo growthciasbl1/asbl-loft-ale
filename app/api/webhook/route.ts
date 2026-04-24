@@ -5,6 +5,7 @@ import { wasRecentlyVerified, getLastOtpSender } from '@/lib/otp/store';
 import { normalisePhone, sendWhatsApp } from '@/lib/wa/periskope';
 import { resolveVisitor, attachLeadToVisitor } from '@/lib/db/visitors';
 import { getPersonByPhone, attachLeadToPerson } from '@/lib/db/persons';
+import { checkRateLimit, getClientKey, rateLimitHeaders } from '@/lib/rateLimit';
 import { ObjectId } from 'mongodb';
 
 export const runtime = 'nodejs';
@@ -84,6 +85,15 @@ function buildConfirmationMessage(input: {
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limit: 10 form submissions per minute per client. Leads + Zoho
+  // push + WhatsApp confirmation + Mongo upsert fire here; easy to abuse.
+  const rl = checkRateLimit('webhook', getClientKey(req), { maxRequests: 10, windowMs: 60_000 });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'rate_limited', retryAfter: Math.ceil((rl.resetAt - Date.now()) / 1000) },
+      { status: 429, headers: rateLimitHeaders(rl) },
+    );
+  }
   try {
     const body = await req.json();
 

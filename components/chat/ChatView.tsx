@@ -31,6 +31,8 @@ import RoiCalculatorTile from './artifacts/RoiCalculatorTile';
 import LeadGate from './LeadGate';
 import { AskContext, useAsk } from './AskContext';
 import { SeenArtifactsContext } from './SeenArtifactsContext';
+import { useSpeechRecognition } from '@/lib/voice/useSpeechRecognition';
+import { useSpeechSynthesis } from '@/lib/voice/useSpeechSynthesis';
 import { track } from '@/lib/analytics/tracker';
 import { useTrackView } from '@/lib/analytics/useTrackView';
 import { getOrCreateVisitorId } from '@/lib/analytics/visitorId';
@@ -138,6 +140,16 @@ export default function ChatView() {
   const [pendingCount, setPendingCount] = useState(0);
   const typing = pendingCount > 0;
   const [composerValue, setComposerValue] = useState('');
+
+  // Voice: mic button next to send. Web Speech API — works on Chrome, Edge,
+  // Safari. onFinal fires when the browser detects end-of-utterance.
+  const mic = useSpeechRecognition({
+    lang: 'en-IN',
+    onFinal: (text) => {
+      setComposerValue((prev) => (prev ? `${prev} ${text}`.trim() : text));
+      track('submit', 'voice_input_final', { chars: text.length });
+    },
+  });
   const initRef = useRef(false);
   const composerRef = useRef<HTMLTextAreaElement>(null);
 
@@ -467,6 +479,41 @@ export default function ChatView() {
               }}
             >
               <span style={{ fontSize: 10, color: 'var(--light-gray)' }}>ASBL Loft Assistant</span>
+              <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+              {mic.supported && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (mic.listening) {
+                      mic.stop();
+                      track('click', 'voice_input_stop');
+                    } else {
+                      mic.start();
+                      track('click', 'voice_input_start');
+                    }
+                  }}
+                  aria-label={mic.listening ? 'Stop voice input' : 'Start voice input'}
+                  title={mic.listening ? 'Listening… tap to stop' : 'Ask by voice'}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 9,
+                    border: '1px solid var(--border)',
+                    background: mic.listening ? '#ffe9e3' : '#fff',
+                    color: mic.listening ? '#b42318' : 'var(--charcoal)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    transition: 'background 180ms ease',
+                  }}
+                >
+                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <rect x={9} y={2} width={6} height={12} rx={3} />
+                    <path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v3M8 21h8" />
+                  </svg>
+                </button>
+              )}
               <button
                 onClick={() => {
                   if (composerValue.trim()) {
@@ -493,6 +540,7 @@ export default function ChatView() {
                   <path d="M12 19V5M5 12l7-7 7 7" />
                 </svg>
               </button>
+              </div>
             </div>
           </div>
         </div>
@@ -528,6 +576,7 @@ function BotMessage({ m }: { m: Message }) {
     `tile:${m.artifact ?? 'none'}`,
     { artifact: m.artifact, label: m.artifactLabel, unitId: m.unitId },
   );
+  const tts = useSpeechSynthesis({ lang: 'en-IN' });
   return (
     <div
       ref={ref}
@@ -567,9 +616,42 @@ function BotMessage({ m }: { m: Message }) {
             color: 'var(--mid-gray)',
             marginBottom: 5,
             fontWeight: 500,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
           }}
         >
-          ASBL Loft Assistant
+          <span>ASBL Loft Assistant</span>
+          {tts.supported && m.text && (
+            <button
+              type="button"
+              onClick={() => {
+                if (tts.speaking) {
+                  tts.stop();
+                  track('click', 'voice_aloud_stop');
+                } else {
+                  tts.speak(m.text);
+                  track('click', 'voice_aloud_start', { artifact: m.artifact });
+                }
+              }}
+              aria-label={tts.speaking ? 'Stop reading aloud' : 'Read aloud'}
+              title={tts.speaking ? 'Stop reading' : 'Read aloud'}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+                color: tts.speaking ? 'var(--plum)' : 'var(--mid-gray)',
+                display: 'inline-flex',
+                alignItems: 'center',
+              }}
+            >
+              <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11 5L6 9H2v6h4l5 4V5z" />
+                {tts.speaking && <path d="M15 9a5 5 0 0 1 0 6M19 5a10 10 0 0 1 0 14" />}
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* Unified bot message — text answer + artifact tile as ONE card with a divider */}

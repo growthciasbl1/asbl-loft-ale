@@ -11,11 +11,10 @@ export const metadata: Metadata = {
   title: 'ASBL LOFT — Ask Anything',
   description:
     '3BHK residences at ASBL Loft, Financial District, Hyderabad. Ask about plans, pricing, rental offer, amenities, location.',
-  icons: {
-    icon: [{ url: '/assets/logo.webp', type: 'image/webp' }],
-    shortcut: '/assets/logo.webp',
-    apple: '/assets/logo.webp',
-  },
+  // Favicon via Next.js file conventions: app/icon.png (512x512) and
+  // app/apple-icon.png (180x180) are auto-picked up. No manual icons{}
+  // config needed — in fact the old /assets/logo.webp entries were
+  // breaking on iOS Safari which doesn't reliably support WebP icons.
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

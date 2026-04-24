@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { normalisePhone, sendWhatsApp, buildOtpMessage } from '@/lib/wa/periskope';
 import { generateOtp, saveOtp } from '@/lib/otp/store';
 import { sendMsg91Otp, hasMsg91 } from '@/lib/sms/msg91';
+import { checkRateLimit, getClientKey, rateLimitHeaders } from '@/lib/rateLimit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -16,6 +17,15 @@ export const dynamic = 'force-dynamic';
  * Response: { ok, sentVia: ['whatsapp'] | ['whatsapp', 'sms'], fromE164?, smsOk? }
  */
 export async function POST(req: NextRequest) {
+  // Rate limit: 5 OTP sends per minute per client. WhatsApp charges per
+  // outbound message + abusers can spam a target number. Hard cap.
+  const rl = checkRateLimit('otp:send', getClientKey(req), { maxRequests: 5, windowMs: 60_000 });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { ok: false, error: 'rate_limited', retryAfter: Math.ceil((rl.resetAt - Date.now()) / 1000) },
+      { status: 429, headers: rateLimitHeaders(rl) },
+    );
+  }
   try {
     const body = await req.json();
     const phoneRaw = typeof body?.phone === 'string' ? body.phone : '';
