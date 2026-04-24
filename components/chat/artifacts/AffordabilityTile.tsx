@@ -67,8 +67,8 @@ export default function AffordabilityTile({ initialSalary = 40, initialExistingE
       sub="FOIR is variable — use the sliders to unlock your new home."
       footer={<>Actual sanction depends on CIBIL, vintage, and obligations — variance ±12%.</>}
       askMore={{
-        label: 'Start 3-min pre-approval',
-        query: 'Start the 3-minute pre-approval with HDFC, SBI and Bajaj',
+        label: 'Check loan eligibility',
+        query: 'Check loan eligibility with HDFC, SBI and Bajaj',
       }}
       relatedAsks={[
         { label: 'Full price breakdown', query: 'Show me the full price breakdown for 1695 East' },
@@ -276,30 +276,32 @@ function UnitCheck({
       >
         ✓ Affordable · EMI ₹{emiL.toFixed(2)}L
       </div>
-      {!ok && (
-        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={{ fontSize: 11, color: 'var(--mute)', lineHeight: 1.45 }}>
-            Still within reach — want to discuss this on a site visit?
-          </div>
-          <button
-            type="button"
-            onClick={onDiscussOnSiteVisit}
-            style={{
-              background: 'var(--sienna)',
-              color: 'white',
-              border: 'none',
-              borderRadius: 100,
-              padding: '5px 14px',
-              fontSize: 11.5,
-              fontWeight: 500,
-              cursor: 'pointer',
-              alignSelf: 'flex-start',
-            }}
-          >
-            Yes, book a site visit →
-          </button>
+      {/* Site-visit nudge — shown for every scenario so affordable visitors
+          also see a forward CTA, not just those with a shortfall. */}
+      <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ fontSize: 11, color: 'var(--mute)', lineHeight: 1.45 }}>
+          {ok
+            ? 'Lock in your unit with a quick site visit.'
+            : 'Still within reach — want to discuss this on a site visit?'}
         </div>
-      )}
+        <button
+          type="button"
+          onClick={onDiscussOnSiteVisit}
+          style={{
+            background: 'var(--sienna)',
+            color: 'white',
+            border: 'none',
+            borderRadius: 100,
+            padding: '5px 14px',
+            fontSize: 11.5,
+            fontWeight: 500,
+            cursor: 'pointer',
+            alignSelf: 'flex-start',
+          }}
+        >
+          {ok ? 'Book a site visit →' : 'Yes, book a site visit →'}
+        </button>
+      </div>
     </div>
   );
 }

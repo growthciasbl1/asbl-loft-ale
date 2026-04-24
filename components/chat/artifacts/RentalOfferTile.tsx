@@ -53,7 +53,7 @@ export default function RentalOfferTile() {
         { label: 'Full price breakdown', query: 'Show full price breakdown 1695 East' },
         { label: 'Payment schedule', query: 'Show me the payment plan schedule' },
         { label: 'Book a site visit', query: 'Book a site visit' },
-        { label: 'Start pre-approval', query: 'Start 3-minute pre-approval with HDFC, SBI and Bajaj' },
+        { label: 'Check loan eligibility', query: 'Check loan eligibility with HDFC, SBI and Bajaj' },
         { label: 'Show me projected ROI', query: 'Show me projected ROI calculator' },
       ]}
     >

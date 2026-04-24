@@ -261,7 +261,12 @@ export default function Landing() {
           <img
             src="/assets/logo.webp"
             alt="ASBL Loft"
-            style={{ height: 'clamp(32px, 9vw, 44px)', display: 'block' }}
+            style={{
+              height: 'clamp(30px, 8vw, 44px)',
+              maxWidth: '50vw',
+              width: 'auto',
+              display: 'block',
+            }}
           />
         </Link>
         <button
@@ -316,7 +321,13 @@ export default function Landing() {
           <img
             src="/assets/logo.webp"
             alt="ASBL Loft"
-            style={{ height: 104, display: 'block', margin: '0 auto' }}
+            style={{
+              height: 'clamp(68px, 22vw, 104px)',
+              maxWidth: '80vw',
+              width: 'auto',
+              display: 'block',
+              margin: '0 auto',
+            }}
           />
           <div
             style={{
@@ -383,16 +394,10 @@ export default function Landing() {
               valueFs: 19,
               serif: true,
             },
-            {
-              label: 'Location',
-              value: 'Financial District',
-              sub: '',
-              valueColor: COLOR.plum,
-              valueFs: 11,
-              serif: false,
-              bg: COLOR.plumPale,
-              upper: true,
-            },
+            // 'Location: Financial District' cell removed — the
+            // 'Financial District · Hyderabad' line above the info bar
+            // already covers this, and the cell was eating horizontal
+            // space on mobile for no new info.
           ].map((c, i) => (
             <div
               key={c.label}
@@ -401,7 +406,7 @@ export default function Landing() {
                 flex: '1 1 180px',
                 padding: '14px 20px',
                 borderLeft: i === 0 ? 'none' : `1px solid ${COLOR.border}`,
-                background: c.bg || '#fff',
+                background: '#fff',
                 minWidth: 160,
               }}
             >
@@ -425,8 +430,8 @@ export default function Landing() {
                   fontSize: c.valueFs,
                   color: c.valueColor,
                   fontWeight: 500,
-                  textTransform: c.upper ? 'uppercase' : 'none',
-                  letterSpacing: c.upper ? '0.05em' : 'normal',
+                  textTransform: 'none',
+                  letterSpacing: 'normal',
                   lineHeight: 1.15,
                 }}
               >
@@ -443,11 +448,11 @@ export default function Landing() {
           ))}
         </div>
 
-        {/* 3c. Inline Search Bar */}
+        {/* 3c. Inline Search Bar — bigger on desktop, mobile stays compact */}
         <div
           style={{
             width: '100%',
-            maxWidth: 600,
+            maxWidth: 780,
             marginBottom: 16,
             animation: 'fadeUp 600ms 120ms ease both',
             opacity: 0,
@@ -458,8 +463,8 @@ export default function Landing() {
             style={{
               background: '#fff',
               border: `1.5px solid ${focused ? COLOR.plumBorder : COLOR.border}`,
-              borderRadius: 16,
-              padding: '12px 16px 10px',
+              borderRadius: 18,
+              padding: 'clamp(12px, 2vw, 20px) clamp(16px, 2vw, 24px) clamp(10px, 1.5vw, 16px)',
               boxShadow: focused ? '0 0 0 3px rgba(139, 47, 122, 0.07)' : 'none',
               transition: 'border-color 180ms ease, box-shadow 180ms ease',
             }}
@@ -488,11 +493,11 @@ export default function Landing() {
               placeholder="Ask about unit plans, pricing, amenities…"
               style={{
                 width: '100%',
-                fontSize: 14,
+                fontSize: 'clamp(14px, 1.3vw, 17px)',
                 fontWeight: 300,
                 resize: 'none',
-                minHeight: 48,
-                maxHeight: 100,
+                minHeight: 'clamp(48px, 8vw, 76px)',
+                maxHeight: 'clamp(100px, 16vw, 160px)',
                 lineHeight: 1.55,
                 color: COLOR.charcoal,
                 fontFamily: "'DM Sans', sans-serif",

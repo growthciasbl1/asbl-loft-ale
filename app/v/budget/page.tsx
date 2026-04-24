@@ -184,7 +184,7 @@ function BudgetHomeInner() {
           className="rounded-3xl p-10 md:p-14 text-center"
           style={{ background: 'var(--surface-2)' }}
         >
-          <p className="eyebrow mb-3">Three-minute pre-approval</p>
+          <p className="eyebrow mb-3">Check loan eligibility</p>
           <h3 className="text-3xl md:text-4xl font-bold mb-4">
             Know your exact ticket price <span className="accent-text">before you visit.</span>
           </h3>
