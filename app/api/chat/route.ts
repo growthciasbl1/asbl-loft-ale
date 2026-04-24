@@ -178,22 +178,30 @@ export async function POST(req: NextRequest) {
             finalResult = regex;
           }
 
-          // CRITICAL: preserve regex's artifact when LLM opted for text-
-          // only. The LLM frequently skips render_artifact when it thinks
-          // prose alone answers the user — but if the user explicitly
-          // asked for something visual ("unit plans", "master plan",
-          // "amenities", "pricing"), the regex router ALREADY knew the
-          // right tile to render. Use LLM's richer text WITH regex's
-          // artifact so users always get the full tile experience on
-          // button-style / noun-phrase queries.
-          if (
-            regex.artifact !== 'none' &&
-            finalResult.artifact === 'none' &&
-            finalResult.text
-          ) {
+          // CRITICAL: when regex matched a concrete artifact, ALWAYS use
+          // that artifact — don't let the LLM drop or swap it. Regex is
+          // deterministic: if the user asked for "unit plans", show the
+          // unit plans tile, period. The LLM sometimes skips
+          // render_artifact (thinks prose is enough) or picks a different
+          // kind. Neither is what the user wants on a button-style query.
+          //
+          // Text-merging rule: use LLM's richer text when it's genuinely
+          // richer than regex's curated intro. Fall back to regex's text
+          // when LLM returned a known fallback ("Happy to dig deeper",
+          // "Here you go") or something shorter than regex.
+          if (regex.artifact !== 'none') {
+            const llmText = (finalResult.text ?? '').trim();
+            const stripped = llmText.replace(/<[^>]+>/g, '').trim();
+            const regexStripped = (regex.text ?? '').replace(/<[^>]+>/g, '').trim();
+            const isFallback =
+              !stripped ||
+              /^happy to dig deeper/i.test(stripped) ||
+              /^here you go\.?$/i.test(stripped);
+            const isRicher = stripped.length > 80 && stripped.length >= regexStripped.length * 0.8;
+            const useLlmText = !isFallback && isRicher;
             finalResult = {
               ...regex,
-              text: finalResult.text,
+              text: useLlmText ? finalResult.text : regex.text,
               signal: finalResult.signal,
               usage: finalResult.usage,
               model: finalResult.model,

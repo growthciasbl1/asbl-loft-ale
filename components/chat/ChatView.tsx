@@ -268,31 +268,34 @@ export default function ChatView() {
     const botMsgId = `b-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
     let finalResult: (RouterResult & { conversationId?: string }) | null = null;
-    let streamedText = ''; // plain-text accumulator (Gemini yields plain; we'll wrap once)
+    let streamedText = '';
     let streamStarted = false;
 
+    /**
+     * Render streamed text. Gemini outputs <p>-wrapped HTML per system
+     * prompt, so we use it directly. If a chunk lands mid-tag (e.g.
+     * "<p>Two " then "3BHK..."), the browser's innerHTML handles partial
+     * tags gracefully — unclosed tags auto-close at the element boundary.
+     * We also strip the <signal>{...}</signal> tail the bot emits at the
+     * end; that's internal sales-telemetry, not user-facing prose.
+     */
     const applyText = (chunk: string) => {
       streamedText += chunk;
-      const html = streamedText
-        ? streamedText
-            .split(/\n{2,}/)
-            .map((p) => `<p>${escapeHtmlInline(p.trim())}</p>`)
-            .join('')
-        : '';
+      // Hide the signal block the moment it starts streaming, not after
+      // it fully lands. The bot writes `<signal>` literally before the
+      // JSON — we trim from that marker onward.
+      const sigIdx = streamedText.indexOf('<signal>');
+      const display = sigIdx >= 0 ? streamedText.slice(0, sigIdx) : streamedText;
       setMessages((prev) => {
         if (!streamStarted) {
           streamStarted = true;
           setPendingCount((c) => Math.max(0, c - 1));
           return [
             ...prev,
-            {
-              id: botMsgId,
-              role: 'bot' as const,
-              text: html,
-            },
+            { id: botMsgId, role: 'bot' as const, text: display },
           ];
         }
-        return prev.map((m) => (m.id === botMsgId ? { ...m, text: html } : m));
+        return prev.map((m) => (m.id === botMsgId ? { ...m, text: display } : m));
       });
     };
 
@@ -405,14 +408,6 @@ export default function ChatView() {
       label: finalResult.artifactLabel,
     });
   };
-
-  // Inline HTML-escape for streamed prose. Prevents any stray `<`/`>` from
-  // breaking layout while we're still accumulating the response.
-  function escapeHtmlInline(s: string): string {
-    return s.replace(/[&<>"']/g, (c) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string),
-    );
-  }
 
   const autoGrow = () => {
     const el = composerRef.current;
