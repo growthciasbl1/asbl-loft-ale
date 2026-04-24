@@ -161,12 +161,15 @@ export function routeQuery(q: string): RouterResult {
     };
   }
 
-  // Urban corridors / location / neighborhood
-  if (/urban\s*corridor|connectivity|location\s*map|where is|which area|neighbour|neighborhood|micro[-\s]?market|nearby\s*area|area\s*around/.test(ql)) {
+  // Urban Corridor — ASBL Loft's BRANDED ground-floor amenity spine
+  // (double-height retail + work + wellness corridor inside each tower).
+  // NOT the Hyderabad-wide IT corridor — that routes to `commute` instead.
+  // Tight regex: only "urban corridor(s)" phrases land here.
+  if (/urban\s*corridor/.test(ql)) {
     return {
-      text: `<p><strong>ASBL Loft sits in Financial District, Hyderabad</strong> — the southern anchor of the IT corridor. 4 minutes to the Nanakramguda ORR exit, then IT hubs (Google / Apple / Amazon · 5 min), schools (6 in 12 min), hospitals (Continental / Apollo · 5 min), and RGI airport at 35 min.</p>`,
+      text: `<p>ASBL Loft&apos;s <strong>Urban Corridor</strong> is the ground-floor spine of each tower — a double-height retail + work + wellness walk you take every morning. Tower A is tuned for the workday; Tower B for family and learning.</p>`,
       artifact: 'urban_corridors',
-      artifactLabel: 'Urban corridors · FD',
+      artifactLabel: 'Urban Corridor · Tower A + B',
     };
   }
 
@@ -343,7 +346,10 @@ export function routeQuery(q: string): RouterResult {
     };
   }
 
-  if (/commute|hitec|hitech|drive|metro|distance|airport|how far|tenant\s*demograph/.test(ql)) {
+  // Commute / connectivity / nearby / location queries. Covers the city-
+  // wide IT-corridor map + distances. (The BRANDED "Urban Corridor" tile
+  // is separate — handled above — and shows tower ground-floor amenities.)
+  if (/commute|hitec|hitech|drive|metro|distance|airport|how\s*far|tenant\s*demograph|location\s*map|where\s*is|which\s*area|neighbour|neighborhood|micro[-\s]?market|nearby|area\s*around|connectivity|connected|what\s*is\s*nearby|what('|&apos;)?s\s*nearby/.test(ql)) {
     return {
       text: `<p>Typical drive times from Loft. Nanakramguda ORR is 4 minutes away.</p>`,
       artifact: 'commute',
