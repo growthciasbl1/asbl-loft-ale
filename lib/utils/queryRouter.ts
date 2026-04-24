@@ -12,7 +12,6 @@ export type ArtifactKind =
   | 'master_plan'
   | 'urban_corridors'
   | 'unit_detail'
-  | 'finance'
   | 'affordability'
   | 'plans'
   | 'schools'
@@ -220,12 +219,14 @@ export function routeQuery(q: string): RouterResult {
     };
   }
 
-  // Levered finance calculator
+  // EMI / loan / down-payment / affordability intent. Cash-on-cash and IRR
+  // keywords also funnel here — those speculative-calculator intents are
+  // no longer shown as public tiles; affordability is the compliant view.
   if (/levered|cash[-\s]?on[-\s]?cash|irr|finance\s*calc|loan\s*calc|emi\s*calc|down\s*payment\s*math/.test(ql)) {
     return {
-      text: `<p>With 25% down, you&apos;re not buying a home — you&apos;re buying a <strong>yield multiplier</strong>. Play with ticket, down, rate, tenure to see cash-on-cash.</p>`,
-      artifact: 'finance',
-      artifactLabel: 'Levered finance · cash-on-cash',
+      text: `<p>Let&apos;s check what works for you — share your salary and any current EMI, and I&apos;ll show what ticket, down-payment and EMI you can comfortably carry.</p>`,
+      artifact: 'affordability',
+      artifactLabel: 'Affordability check',
     };
   }
 
@@ -351,7 +352,7 @@ export function routeQuery(q: string): RouterResult {
   }
 
   return {
-    text: `<p>I can show <strong>unit plans</strong>, the master plan, urban corridors, price breakdown, rental comps, cash-on-cash calculator, affordability check, payment plans, schools, or a visit slot.</p><p>What would help most right now?</p>`,
+    text: `<p>I can show <strong>unit plans</strong>, the master plan, urban corridors, price breakdown, rental comps, affordability check, payment plans, schools, or a visit slot.</p><p>What would help most right now?</p>`,
     artifact: 'none',
   };
 }

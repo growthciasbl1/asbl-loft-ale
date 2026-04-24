@@ -6,7 +6,11 @@ import BrandImage from './BrandImage';
 import Lightbox from '../Lightbox';
 import { track } from '@/lib/analytics/tracker';
 
-const MASTER_PLAN_IMG = '/asbl/master-plan.webp';
+const MASTER_PLAN_THUMB = '/asbl/master-plan.webp';
+// Lightbox opens the higher-resolution render (restored from the earlier
+// larger upload). Thumbnail stays on the optimised version so the tile
+// loads fast; zoom reveals the full-detail plan.
+const MASTER_PLAN_FULL = '/asbl/master-plan-full.webp';
 
 const LEGEND = [
   { n: 1, label: 'Entry / Exit Dropoff' },
@@ -215,7 +219,7 @@ export default function MasterPlanTile() {
       </div>
     <Lightbox
         open={lightboxOpen}
-        images={[{ src: MASTER_PLAN_IMG, label: 'ASBL Loft · Master Plan' }]}
+        images={[{ src: MASTER_PLAN_FULL, label: 'ASBL Loft · Master Plan' }]}
         activeIndex={0}
         onChange={() => {}}
         onClose={() => setLightboxOpen(false)}

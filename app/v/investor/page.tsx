@@ -77,7 +77,6 @@ function InvestorHomeInner() {
             </p>
             <div className="mt-8 flex gap-3 flex-wrap">
               <Link href="/v/investor/units" className="btn-primary">Open the yield matrix →</Link>
-              <Link href="/v/investor/finance" className="btn-ghost">See payment plan</Link>
             </div>
           </div>
 
@@ -161,10 +160,11 @@ function InvestorHomeInner() {
             </h2>
             <p className="muted-text">
               Our modelling assumes a conservative ₹55,000/mo on a 1,870 sqft east-facing unit on
-              floor 35. That&apos;s 3.0% gross unlevered; 6.8% cash-on-cash at 25% down.
+              floor 35. That&apos;s 3.0% gross unlevered yield on a tenant-ready unit the day
+              possession hits.
             </p>
-            <Link href="/v/investor/finance" className="btn-ghost mt-6 text-sm">
-              Break down the levered numbers →
+            <Link href="/v/investor/units" className="btn-ghost mt-6 text-sm">
+              See the unit-level yield matrix →
             </Link>
           </div>
           <div className="surface-2 rounded-2xl p-8">
@@ -176,11 +176,10 @@ function InvestorHomeInner() {
                 ['Rent (mo)', '₹55,000'],
                 ['Rent (yr)', '₹6.6 L'],
                 ['Gross yield', '2.74%'],
-                ['Levered (25% down)', '6.8% CoC'],
               ].map(([k, v], i) => (
                 <div
                   key={k}
-                  className={`flex justify-between ${i === 6 ? 'pt-4 mt-2 border-t border-theme' : ''}`}
+                  className={`flex justify-between ${i === 5 ? 'pt-4 mt-2 border-t border-theme' : ''}`}
                 >
                   <span className="muted-text text-sm">{k}</span>
                   <span className={`font-semibold ${i === 6 ? 'accent-text text-lg' : ''}`}>{v}</span>
@@ -203,13 +202,13 @@ function InvestorHomeInner() {
         >
           <p className="eyebrow mb-3">Next step</p>
           <h3 className="text-3xl md:text-4xl serif mb-4">
-            Get the 5-year IRR model on your WhatsApp.
+            See the yield, the site, and the story.
           </h3>
           <p className="muted-text mb-7 max-w-xl mx-auto">
-            Floor-by-floor rent assumption, levered returns, exit scenarios. Built for you, not a
-            brochure.
+            Pick a slot — a 20-minute walk-through on floor, facing, rental evidence, and
+            payment plan. No pressure, no pitch deck.
           </p>
-          <a href="#contact" className="btn-primary">Send IRR model →</a>
+          <a href="#contact" className="btn-primary">Book a site visit →</a>
         </div>
       </section>
     </>

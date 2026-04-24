@@ -28,7 +28,6 @@ const ARTIFACT_KINDS: ArtifactKind[] = [
   'master_plan',
   'urban_corridors',
   'unit_detail',
-  'finance',
   'affordability',
   'plans',
   'schools',
@@ -276,7 +275,7 @@ Rules:
 
 # ARTIFACT ROUTING (pick exactly one per reply)
 
-Available kinds: price, yield, rental_offer, amenity, trends, why_fd, project_comparison, commute, commute_from_you, unit_plans, master_plan, urban_corridors, unit_detail (extract unitId), finance, affordability (extract salaryLakh, existingEmi), plans, schools, visit (visitIntro: no_model_flat | live_inventory | default), share_request (with shareSubject), resale_framework, roi_calculator, none.
+Available kinds: price, yield, rental_offer, amenity, trends, why_fd, project_comparison, commute, commute_from_you, unit_plans, master_plan, urban_corridors, unit_detail (extract unitId), affordability (extract salaryLakh, existingEmi), plans, schools, visit (visitIntro: no_model_flat | live_inventory | default), share_request (with shareSubject), resale_framework, roi_calculator, none.
 
 Routing rules:
 - Compares Loft to non-ASBL project → project_comparison (always pro-Loft framing)
@@ -290,7 +289,7 @@ Routing rules:
 - Master plan / site layout / zones → master_plan
 - Unit dimensions / floor plans → unit_plans
 - Specific unit (e.g. "A-45E-1870") → unit_detail
-- Payment / EMI / loan / BHFL → finance
+- Payment / EMI / loan / BHFL → plans (payment schedule) or affordability (when the user is testing capacity)
 - Salary mentioned + affordability concern → affordability (extract salaryLakh, existingEmi)
 - Schools / hospital / airport → schools / commute
 - User asks "how far is it from my office / home / school / [specific place]" → commute_from_you
@@ -953,7 +952,7 @@ export async function suggestNext(
 - 3 suggestions, do not repeat already-seen.
 - Each label under 28 characters.
 - Each query 4–12 words, sounds like a buyer would ask.
-- Pro-Loft: nudge toward conversion-relevant tiles (visit, affordability, price, finance).
+- Pro-Loft: nudge toward conversion-relevant tiles (visit, affordability, price, rental_offer).
 - Return JSON only: {"suggestions":[{"label":"...","query":"..."}]}
 
 Session:

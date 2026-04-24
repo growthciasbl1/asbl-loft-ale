@@ -30,16 +30,30 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         {/* Google Tag Manager — loader. Must run early so the dataLayer is
             ready before any client code pushes events. Next.js injects this
-            into <head> via the Script component. */}
+            into <head> via the Script component.
+            Guarded: if the loader already ran once (GTM script node present
+            or gtm.start already on the dataLayer) we skip re-initialising.
+            This fixes the duplicate-page_view-fire issue seen in prod where
+            gtm.start was landing on the dataLayer 4-5 times per session
+            (dev-strict-mode double-render + accidental layout re-renders on
+            client-side navigation were each re-running this inline block). */}
         <Script
           id="gtm-loader"
           strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `
-              (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-              new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-              j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-              'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+              (function(w,d,s,l,i){
+                if (w.__asblGtmLoaded) return;
+                w.__asblGtmLoaded = true;
+                w[l]=w[l]||[];
+                if (w[l].some && w[l].some(function(e){return e && e.event==='gtm.js';})) return;
+                w[l].push({'gtm.start': new Date().getTime(),event:'gtm.js'});
+                var f=d.getElementsByTagName(s)[0],
+                    j=d.createElement(s),
+                    dl=l!='dataLayer'?'&l='+l:'';
+                j.async=true;
+                j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
+                f.parentNode.insertBefore(j,f);
               })(window,document,'script','dataLayer','${GTM_ID}');
             `,
           }}

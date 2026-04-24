@@ -18,7 +18,6 @@ import UnitDetailTile from './artifacts/UnitDetailTile';
 import UnitPlansTile from './artifacts/UnitPlansTile';
 import MasterPlanTile from './artifacts/MasterPlanTile';
 import UrbanCorridorsTile from './artifacts/UrbanCorridorsTile';
-import FinanceTile from './artifacts/FinanceTile';
 import AffordabilityTile from './artifacts/AffordabilityTile';
 import PlansTile from './artifacts/PlansTile';
 import SchoolsTile from './artifacts/SchoolsTile';
@@ -84,8 +83,6 @@ function renderArtifact(m: Message) {
       return <UrbanCorridorsTile />;
     case 'unit_detail':
       return m.unitId ? <UnitDetailTile unitId={m.unitId} /> : null;
-    case 'finance':
-      return <FinanceTile />;
     case 'affordability':
       return <AffordabilityTile initialSalary={m.salaryLakh} initialExistingEmi={m.existingEmi} />;
     case 'plans':

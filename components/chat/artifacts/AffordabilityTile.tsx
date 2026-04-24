@@ -32,6 +32,10 @@ export default function AffordabilityTile({ initialSalary = 40, initialExistingE
     track('click', 'affordability_site_visit_nudge');
     ask('Book a site visit');
   };
+  const onDiscussVirtualVisit = () => {
+    track('click', 'affordability_virtual_visit_nudge');
+    ask('Book a virtual site visit over video call');
+  };
 
   const result = useMemo(() => {
     const monthlyIncome = (salary * 100000) / 12;
@@ -205,6 +209,7 @@ export default function AffordabilityTile({ initialSalary = 40, initialExistingE
           ok={result.canAfford1695}
           emiL={result.emi1695 / 100000}
           onDiscussOnSiteVisit={onDiscussOnSiteVisit}
+          onDiscussVirtualVisit={onDiscussVirtualVisit}
         />
         <UnitCheck
           label="1,870 sqft"
@@ -212,6 +217,7 @@ export default function AffordabilityTile({ initialSalary = 40, initialExistingE
           ok={result.canAfford1870}
           emiL={result.emi1870 / 100000}
           onDiscussOnSiteVisit={onDiscussOnSiteVisit}
+          onDiscussVirtualVisit={onDiscussVirtualVisit}
         />
       </div>
     </TileShell>
@@ -246,12 +252,14 @@ function UnitCheck({
   ok,
   emiL,
   onDiscussOnSiteVisit,
+  onDiscussVirtualVisit,
 }: {
   label: string;
   price: string;
   ok: boolean;
   emiL: number;
   onDiscussOnSiteVisit: () => void;
+  onDiscussVirtualVisit: () => void;
 }) {
   return (
     <div
@@ -270,37 +278,63 @@ function UnitCheck({
         style={{
           fontSize: 11.5,
           marginTop: 6,
-          color: 'var(--sienna-dark)',
+          color: ok ? 'var(--sienna-dark)' : 'var(--plum-dark)',
           fontWeight: 500,
         }}
       >
-        ✓ Affordable · EMI ₹{emiL.toFixed(2)}L
+        {ok ? (
+          <>✓ Affordable · EMI ₹{emiL.toFixed(2)}L</>
+        ) : (
+          <>Short on your own — co-applicant unlocks it.</>
+        )}
       </div>
       {/* Site-visit nudge — shown for every scenario so affordable visitors
-          also see a forward CTA, not just those with a shortfall. */}
-      <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <div style={{ fontSize: 11, color: 'var(--mute)', lineHeight: 1.45 }}>
+          also see a forward CTA, not just those with a shortfall. When the
+          user is short, we tell them a co-applicant can bridge the gap and
+          offer both site + virtual visit so they can talk it through with
+          the RM. */}
+      <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ fontSize: 11, color: 'var(--mute)', lineHeight: 1.5 }}>
           {ok
             ? 'Lock in your unit with a quick site visit.'
-            : 'Still within reach — want to discuss this on a site visit?'}
+            : 'You can still book ASBL Loft with a co-applicant — their income gets added to yours for loan sanction. For details, visit the site or hop on a quick video call.'}
         </div>
-        <button
-          type="button"
-          onClick={onDiscussOnSiteVisit}
-          style={{
-            background: 'var(--sienna)',
-            color: 'white',
-            border: 'none',
-            borderRadius: 100,
-            padding: '5px 14px',
-            fontSize: 11.5,
-            fontWeight: 500,
-            cursor: 'pointer',
-            alignSelf: 'flex-start',
-          }}
-        >
-          {ok ? 'Book a site visit →' : 'Yes, book a site visit →'}
-        </button>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={onDiscussOnSiteVisit}
+            style={{
+              background: 'var(--sienna)',
+              color: 'white',
+              border: 'none',
+              borderRadius: 100,
+              padding: '5px 14px',
+              fontSize: 11.5,
+              fontWeight: 500,
+              cursor: 'pointer',
+            }}
+          >
+            {ok ? 'Book a site visit →' : 'Site visit →'}
+          </button>
+          {!ok && (
+            <button
+              type="button"
+              onClick={onDiscussVirtualVisit}
+              style={{
+                background: 'transparent',
+                color: 'var(--sienna-dark)',
+                border: '1px solid var(--sienna)',
+                borderRadius: 100,
+                padding: '4px 13px',
+                fontSize: 11.5,
+                fontWeight: 500,
+                cursor: 'pointer',
+              }}
+            >
+              Virtual visit →
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

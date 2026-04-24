@@ -17,7 +17,6 @@ export const ARTIFACT_INTENT: Record<ArtifactKind, IntentLevel> = {
   unit_detail: 'high',
   plans: 'high',
   unit_plans: 'medium',
-  finance: 'medium',
   affordability: 'medium',
   yield: 'medium',
   rental_offer: 'low', // marketing tile — open to all, CTA routes to share_request

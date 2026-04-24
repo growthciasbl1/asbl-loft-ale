@@ -15,7 +15,6 @@ export default function InvestorLayout({ children }: { children: React.ReactNode
           { href: '/v/investor', label: 'Thesis' },
           { href: '/v/investor/units', label: 'Yield Matrix' },
           { href: '/v/investor/market', label: 'Market' },
-          { href: '/v/investor/finance', label: 'Finance' },
         ]}
         ctaLabel="Book Investor Call"
       />
