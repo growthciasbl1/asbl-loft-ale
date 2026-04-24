@@ -32,7 +32,7 @@ export default function SchoolsTile({ focus = 'schools' }: Props) {
   const isHospitalFocus = focus === 'hospitals';
   return (
     <TileShell
-      eyebrow={isHospitalFocus ? 'Healthcare + schools' : 'Schools + healthcare'}
+      eyebrow={isHospitalFocus ? 'Healthcare · 5-min radius' : 'Schools · 12-min radius'}
       title={
         isHospitalFocus
           ? 'Continental, Apollo and Star — all 5 minutes away.'
@@ -40,8 +40,8 @@ export default function SchoolsTile({ focus = 'schools' }: Props) {
       }
       sub={
         isHospitalFocus
-          ? 'Plus eight K–12 schools in the same 15-minute radius.'
-          : 'Plus Continental, Apollo and Star Hospitals all 5 min away.'
+          ? 'Distances are typical midweek drives · verified via Google Distance Matrix.'
+          : 'K–12 mix of CBSE, IB and IB/CBSE — a shortlist most FD families weigh.'
       }
       icon={
         <TileIcon>
@@ -62,10 +62,10 @@ export default function SchoolsTile({ focus = 'schools' }: Props) {
         { label: 'Book a visit', query: 'Book a site visit' },
       ]}
     >
-      {/* When focus === 'hospitals' the healthcare section renders FIRST so
-          the visitor who asked about hospitals doesn't have to scroll past
-          all eight schools to see the Continental / Apollo / Star list. */}
-      {isHospitalFocus && (
+      {/* Focus-driven content: show EITHER hospitals OR schools, never both.
+          Per doc 2.25 — asking about schools should return only schools,
+          asking about hospitals should return only hospitals. */}
+      {isHospitalFocus ? (
         <>
           <div
             style={{
@@ -79,31 +79,52 @@ export default function SchoolsTile({ focus = 'schools' }: Props) {
           >
             Hospitals
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+              gap: 8,
+            }}
+          >
             {HOSPITALS.map((h) => (
               <div
                 key={h.name}
                 style={{
-                  padding: '7px 12px',
+                  padding: '10px 12px',
                   background: 'var(--cream)',
                   border: '1px solid var(--border)',
-                  borderRadius: 100,
-                  fontSize: 12,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 8,
+                  borderRadius: 10,
                 }}
               >
-                <span style={{ color: 'var(--charcoal)', fontWeight: 500 }}>{h.name}</span>
-                <span className="mono" style={{ color: 'var(--plum-dark)', fontSize: 11 }}>
-                  {h.min} min
-                </span>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    gap: 8,
+                    alignItems: 'baseline',
+                  }}
+                >
+                  <span style={{ fontWeight: 500, fontSize: 12.5, color: 'var(--charcoal)' }}>
+                    {h.name}
+                  </span>
+                  <span
+                    className="mono"
+                    style={{
+                      fontSize: 11,
+                      color: 'var(--plum-dark)',
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {h.min} min
+                  </span>
+                </div>
               </div>
             ))}
           </div>
         </>
-      )}
-
+      ) : (
+        <>
       <div
         style={{
           fontSize: 9.5,
@@ -140,44 +161,7 @@ export default function SchoolsTile({ focus = 'schools' }: Props) {
           </div>
         ))}
       </div>
-
-      {!isHospitalFocus && (
-      <div style={{ marginTop: 16 }}>
-        <div
-          style={{
-            fontSize: 9.5,
-            textTransform: 'uppercase',
-            letterSpacing: '0.13em',
-            color: 'var(--mid-gray)',
-            fontWeight: 500,
-            marginBottom: 10,
-          }}
-        >
-          Hospitals
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {HOSPITALS.map((h) => (
-            <div
-              key={h.name}
-              style={{
-                padding: '7px 12px',
-                background: 'var(--cream)',
-                border: '1px solid var(--border)',
-                borderRadius: 100,
-                fontSize: 12,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-              }}
-            >
-              <span style={{ color: 'var(--charcoal)', fontWeight: 500 }}>{h.name}</span>
-              <span className="mono" style={{ color: 'var(--plum-dark)', fontSize: 11 }}>
-                {h.min} min
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
+        </>
       )}
     </TileShell>
   );

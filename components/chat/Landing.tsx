@@ -99,6 +99,86 @@ const CHIPS: { label: string; query: string; icon: React.ReactNode }[] = [
       </svg>
     ),
   },
+  {
+    label: 'Master plan',
+    query: 'Show me the ASBL Loft master plan',
+    icon: (
+      <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round">
+        <rect x={3} y={3} width={18} height={18} />
+        <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Clubhouse',
+    query: 'Walk me through the clubhouse and podium amenities',
+    icon: (
+      <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 21h18M5 21V9l7-5 7 5v12" />
+        <path d="M10 21v-6h4v6" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Schools',
+    query: 'What schools are within 12 minutes?',
+    icon: (
+      <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 3l10 5-10 5L2 8l10-5z" />
+        <path d="M6 10v5c0 1.5 3 3 6 3s6-1.5 6-3v-5" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Commute',
+    query: 'How long to reach Loft from my place?',
+    icon: (
+      <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round">
+        <circle cx={12} cy={12} r={9} />
+        <path d="M12 7v5l3 2" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Payment plan',
+    query: 'Show me the payment plan schedule and booking amount',
+    icon: (
+      <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round">
+        <rect x={3} y={4} width={18} height={16} rx={2} />
+        <path d="M3 10h18M7 15h4M7 18h2" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Projected ROI',
+    query: 'Show me projected ROI calculator',
+    icon: (
+      <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 17l6-6 4 4 8-8" />
+        <path d="M14 7h7v7" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Can I afford it?',
+    query: 'Check affordability using FOIR',
+    icon: (
+      <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round">
+        <circle cx={12} cy={12} r={9} />
+        <path d="M9 12l2 2 4-4" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Book a visit',
+    query: 'Book a site visit',
+    icon: (
+      <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round">
+        <rect x={3} y={5} width={18} height={16} rx={2} />
+        <path d="M3 10h18M8 3v4M16 3v4" />
+      </svg>
+    ),
+  },
 ];
 
 export default function Landing() {
