@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { TileShell } from './common';
+import { track } from '@/lib/analytics/tracker';
 
 interface DistanceResponse {
   ok: true;
@@ -33,6 +34,7 @@ export default function CommuteFromYouTile() {
   const submit = async (raw: string) => {
     const q = raw.trim();
     if (!q || q.length < 2) return;
+    track('submit', 'commute_from_you_submit', { origin: q });
     setInput(q);
     setLoading(true);
     setErrorMsg(null);
@@ -135,6 +137,7 @@ export default function CommuteFromYouTile() {
             placeholder="e.g. Jubilee Hills, Begumpet, or your office address"
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onFocus={() => track('focus', 'commute_input_focus')}
             onKeyDown={(e) => {
               if (e.key === 'Enter') submit(input);
             }}
@@ -170,7 +173,10 @@ export default function CommuteFromYouTile() {
             <button
               key={s}
               type="button"
-              onClick={() => submit(s)}
+              onClick={() => {
+                track('click', 'commute_suggest_click', { label: s });
+                submit(s);
+              }}
               disabled={loading}
               style={{
                 padding: '5px 12px',

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { TileShell } from './common';
 import { UNIT_LAYOUTS } from '@/lib/utils/asblData';
+import { track } from '@/lib/analytics/tracker';
 
 type Size = 1695 | 1870;
 
@@ -25,7 +26,10 @@ export default function PlanTile() {
           {([1695, 1870] as Size[]).map((s) => (
             <button
               key={s}
-              onClick={() => setSize(s)}
+              onClick={() => {
+                track('click', 'plan_size_select', { size: s });
+                setSize(s);
+              }}
               style={{
                 padding: '6px 14px',
                 borderRadius: 100,

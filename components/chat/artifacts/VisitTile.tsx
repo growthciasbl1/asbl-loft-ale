@@ -793,6 +793,11 @@ export default function VisitTile({
                 key={i}
                 type="button"
                 onClick={() => {
+                  track('click', 'visit_date_select', {
+                    date: day.shortLabel,
+                    is_custom: isCustom,
+                    bookingType,
+                  });
                   setDayIndex(i);
                   setSlotIdx(null);
                 }}
@@ -833,7 +838,10 @@ export default function VisitTile({
           {/* "+ More dates" trigger — opens the native date picker */}
           <button
             type="button"
-            onClick={() => setShowDatePicker((v) => !v)}
+            onClick={() => {
+              track('click', 'visit_more_dates_toggle', { next: !showDatePicker });
+              setShowDatePicker((v) => !v);
+            }}
             style={{
               padding: '10px 8px',
               borderRadius: 12,
@@ -1034,6 +1042,7 @@ export default function VisitTile({
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                onFocus={() => track('focus', 'visit_name_focus', { bookingType })}
                 placeholder="Your name"
                 autoComplete="name"
                 required
@@ -1050,6 +1059,7 @@ export default function VisitTile({
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
+                onFocus={() => track('focus', 'visit_phone_focus', { bookingType })}
                 placeholder="+91 98XXXXXXXX"
                 autoComplete="tel"
                 required
@@ -1142,6 +1152,7 @@ export default function VisitTile({
             maxLength={6}
             autoFocus
             onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            onFocus={() => track('focus', 'visit_otp_focus', { bookingType })}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && otpCode.length === 6) verifyAndBook();
             }}
@@ -1172,7 +1183,10 @@ export default function VisitTile({
           )}
           <button
             type="button"
-            onClick={verifyAndBook}
+            onClick={() => {
+              track('submit', 'visit_otp_verify_click', { bookingType });
+              verifyAndBook();
+            }}
             disabled={submitting || otpCode.length !== 6}
             className="btn-plum"
             style={{
@@ -1197,6 +1211,7 @@ export default function VisitTile({
             <button
               type="button"
               onClick={() => {
+                track('click', 'visit_change_details', { bookingType });
                 setOtpStep('idle');
                 setOtpCode('');
                 setOtpError(null);
@@ -1216,6 +1231,7 @@ export default function VisitTile({
               type="button"
               onClick={() => {
                 if (resendIn > 0 || submitting) return;
+                track('click', 'visit_otp_resend', { bookingType, cooldown_left: resendIn });
                 setOtpCode('');
                 setOtpError(null);
                 submit(new Event('submit') as unknown as React.FormEvent);
@@ -1317,7 +1333,10 @@ function TimezoneEditor({
         </div>
         <button
           type="button"
-          onClick={() => setOpen(!open)}
+          onClick={() => {
+            track('click', 'visit_timezone_toggle', { next: !open });
+            setOpen(!open);
+          }}
           style={{
             fontSize: 11.5,
             fontWeight: 500,

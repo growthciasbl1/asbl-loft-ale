@@ -332,7 +332,7 @@ export default function ChatView() {
           padding: '0 1.75rem',
         }}
       >
-        <Link href="/">
+        <Link href="/" onClick={() => track('click', 'header_logo_click', { from: 'chat' })}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/assets/logo.webp" alt="ASBL Loft" style={{ height: 44, display: 'block' }} />
         </Link>
@@ -424,6 +424,7 @@ export default function ChatView() {
                 setComposerValue(e.target.value);
                 autoGrow();
               }}
+              onFocus={() => track('focus', 'chat_composer_focus')}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();

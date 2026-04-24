@@ -84,6 +84,18 @@ export default function AffordabilityTile({ initialSalary = 40, initialExistingE
             max={100}
             value={salary}
             onChange={(e) => setSalary(Number(e.target.value))}
+            onMouseUp={(e) =>
+              track('click', 'affordability_slider_commit', {
+                field: 'salary',
+                value: Number((e.target as HTMLInputElement).value),
+              })
+            }
+            onTouchEnd={(e) =>
+              track('click', 'affordability_slider_commit', {
+                field: 'salary',
+                value: Number((e.target as HTMLInputElement).value),
+              })
+            }
             style={{ width: '100%', accentColor: 'var(--sienna)' }}
           />
         </Row>
@@ -99,6 +111,18 @@ export default function AffordabilityTile({ initialSalary = 40, initialExistingE
             step={1000}
             value={existingEmi}
             onChange={(e) => setExistingEmi(Number(e.target.value))}
+            onMouseUp={(e) =>
+              track('click', 'affordability_slider_commit', {
+                field: 'existing_emi',
+                value: Number((e.target as HTMLInputElement).value),
+              })
+            }
+            onTouchEnd={(e) =>
+              track('click', 'affordability_slider_commit', {
+                field: 'existing_emi',
+                value: Number((e.target as HTMLInputElement).value),
+              })
+            }
             style={{ width: '100%', accentColor: 'var(--sienna)' }}
           />
         </Row>
@@ -110,6 +134,18 @@ export default function AffordabilityTile({ initialSalary = 40, initialExistingE
             max={30}
             value={years}
             onChange={(e) => setYears(Number(e.target.value))}
+            onMouseUp={(e) =>
+              track('click', 'affordability_slider_commit', {
+                field: 'years',
+                value: Number((e.target as HTMLInputElement).value),
+              })
+            }
+            onTouchEnd={(e) =>
+              track('click', 'affordability_slider_commit', {
+                field: 'years',
+                value: Number((e.target as HTMLInputElement).value),
+              })
+            }
             style={{ width: '100%', accentColor: 'var(--sienna)' }}
           />
         </Row>

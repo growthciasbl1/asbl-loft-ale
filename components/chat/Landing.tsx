@@ -172,7 +172,11 @@ export default function Landing() {
           padding: '0 1.75rem',
         }}
       >
-        <Link href="/" style={{ display: 'flex', alignItems: 'center' }}>
+        <Link
+          href="/"
+          onClick={() => track('click', 'landing_logo_click')}
+          style={{ display: 'flex', alignItems: 'center' }}
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/assets/logo.webp" alt="ASBL Loft" style={{ height: 44, display: 'block' }} />
         </Link>
@@ -384,7 +388,10 @@ export default function Landing() {
                 setValue(e.target.value);
                 autoGrow();
               }}
-              onFocus={() => setFocused(true)}
+              onFocus={() => {
+                track('focus', 'landing_composer_focus');
+                setFocused(true);
+              }}
               onBlur={() => setFocused(false)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -514,6 +521,7 @@ export default function Landing() {
             href="https://rera.telangana.gov.in"
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => track('click', 'rera_external_link', { from: 'landing_footer' })}
             style={{ color: COLOR.midGray, textDecoration: 'underline', fontSize: 10 }}
           >
             rera.telangana.gov.in

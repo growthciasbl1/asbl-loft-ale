@@ -4,6 +4,7 @@ import { TileShell } from './common';
 import { useAsk } from '../AskContext';
 import { ASBL_LOFT_DATA, UNIT_LAYOUTS } from '@/lib/utils/asblData';
 import { useChatStore } from '@/lib/store/chatStore';
+import { track } from '@/lib/analytics/tracker';
 
 interface Props {
   unitId: string;
@@ -174,7 +175,10 @@ export default function UnitDetailTile({ unitId }: Props) {
         }}
       >
         <button
-          onClick={() => togglePin(unit.id)}
+          onClick={() => {
+            track('click', 'unit_pin_toggle', { unitId: unit.id, pinned: !pinned });
+            togglePin(unit.id);
+          }}
           style={{
             padding: '10px 18px',
             borderRadius: 100,
@@ -189,7 +193,10 @@ export default function UnitDetailTile({ unitId }: Props) {
         </button>
         <button
           type="button"
-          onClick={() => ask(`Compare ${unit.id} yield with similar units in the same floor band`)}
+          onClick={() => {
+            track('click', 'unit_compare_yield', { unitId: unit.id });
+            ask(`Compare ${unit.id} yield with similar units in the same floor band`);
+          }}
           style={{
             padding: '10px 18px',
             borderRadius: 100,
@@ -204,7 +211,10 @@ export default function UnitDetailTile({ unitId }: Props) {
         </button>
         <button
           type="button"
-          onClick={() => ask(`Book a visit to see ${unit.id}`)}
+          onClick={() => {
+            track('click', 'unit_book_visit', { unitId: unit.id });
+            ask(`Book a visit to see ${unit.id}`);
+          }}
           style={{
             padding: '10px 18px',
             borderRadius: 100,

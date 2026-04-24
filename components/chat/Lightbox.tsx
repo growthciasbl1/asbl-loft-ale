@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { track } from '@/lib/analytics/tracker';
 
 export interface LightboxImage {
   src: string;
@@ -30,9 +31,18 @@ export default function Lightbox({ open, images, activeIndex, onChange, onClose 
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-      if (e.key === 'ArrowLeft') onChange(Math.max(0, activeIndex - 1));
-      if (e.key === 'ArrowRight') onChange(Math.min(images.length - 1, activeIndex + 1));
+      if (e.key === 'Escape') {
+        track('click', 'lightbox_close', { via: 'keyboard' });
+        onClose();
+      }
+      if (e.key === 'ArrowLeft') {
+        track('click', 'lightbox_nav', { via: 'keyboard', direction: 'prev' });
+        onChange(Math.max(0, activeIndex - 1));
+      }
+      if (e.key === 'ArrowRight') {
+        track('click', 'lightbox_nav', { via: 'keyboard', direction: 'next' });
+        onChange(Math.min(images.length - 1, activeIndex + 1));
+      }
     };
     window.addEventListener('keydown', onKey);
     // Prevent body scroll while open
@@ -50,7 +60,10 @@ export default function Lightbox({ open, images, activeIndex, onChange, onClose 
 
   const overlay = (
     <div
-      onClick={onClose}
+      onClick={() => {
+        track('click', 'lightbox_close', { via: 'backdrop' });
+        onClose();
+      }}
       style={{
         position: 'fixed',
         inset: 0,
@@ -68,6 +81,7 @@ export default function Lightbox({ open, images, activeIndex, onChange, onClose 
       <button
         onClick={(e) => {
           e.stopPropagation();
+          track('click', 'lightbox_close', { via: 'button' });
           onClose();
         }}
         style={{
@@ -148,7 +162,10 @@ export default function Lightbox({ open, images, activeIndex, onChange, onClose 
           {images.map((_, i) => (
             <button
               key={i}
-              onClick={() => onChange(i)}
+              onClick={() => {
+                track('click', 'lightbox_nav', { via: 'dot', target: i });
+                onChange(i);
+              }}
               aria-label={`Go to image ${i + 1}`}
               style={{
                 width: 8,

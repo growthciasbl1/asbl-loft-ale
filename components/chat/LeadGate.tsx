@@ -111,6 +111,7 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
       });
       const vJson = await verifyRes.json();
       if (!verifyRes.ok || !vJson.ok) {
+        track('error', 'lead_gate_otp_verify_fail', { reason, err: vJson?.error ?? 'unknown' });
         setErrorMsg(
           vJson.error === 'wrong_code'
             ? 'Galat code. Try again.'
@@ -236,6 +237,7 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
                 placeholder="Full name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                onFocus={() => track('focus', 'lead_gate_name_focus', { reason })}
                 autoComplete="name"
                 style={inputStyle}
               />
@@ -245,6 +247,7 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
                 placeholder="+91 98XXXXXXXX"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
+                onFocus={() => track('focus', 'lead_gate_phone_focus', { reason })}
                 autoComplete="tel"
                 style={inputStyle}
               />
@@ -284,6 +287,7 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
                 value={code}
                 maxLength={6}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                onFocus={() => track('focus', 'lead_gate_otp_focus', { reason })}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && code.length === 6) verifyOtp();
                 }}
@@ -299,7 +303,10 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
 
               <button
                 type="button"
-                onClick={verifyOtp}
+                onClick={() => {
+                  track('submit', 'lead_gate_otp_verify_click', { reason });
+                  verifyOtp();
+                }}
                 disabled={busy || code.length !== 6}
                 className="btn-plum"
                 style={{ justifyContent: 'center', padding: '12px 20px', opacity: busy ? 0.6 : 1 }}
@@ -319,6 +326,7 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
                 <button
                   type="button"
                   onClick={() => {
+                    track('click', 'lead_gate_change_number', { reason });
                     setStep('form');
                     setCode('');
                     setErrorMsg(null);
@@ -336,7 +344,10 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
                 </button>
                 <button
                   type="button"
-                  onClick={resend}
+                  onClick={() => {
+                    track('click', 'lead_gate_otp_resend', { reason, cooldown_left: resendIn });
+                    resend();
+                  }}
                   disabled={resendIn > 0 || busy}
                   style={{
                     background: 'none',

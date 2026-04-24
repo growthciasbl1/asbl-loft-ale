@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { TileShell } from './common';
+import { track } from '@/lib/analytics/tracker';
 
 type Size = 1695 | 1870;
 type Bank = 'bajaj' | 'otherBanks';
@@ -92,10 +93,22 @@ export default function PlansTile() {
             Unit size
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
-            <Pill active={size === 1695} onClick={() => setSize(1695)}>
+            <Pill
+              active={size === 1695}
+              onClick={() => {
+                track('click', 'plans_size_select', { size: 1695 });
+                setSize(1695);
+              }}
+            >
               1,695 sqft
             </Pill>
-            <Pill active={size === 1870} onClick={() => setSize(1870)}>
+            <Pill
+              active={size === 1870}
+              onClick={() => {
+                track('click', 'plans_size_select', { size: 1870 });
+                setSize(1870);
+              }}
+            >
               1,870 sqft
             </Pill>
           </div>
@@ -114,10 +127,22 @@ export default function PlansTile() {
             Bank
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            <Pill active={bank === 'bajaj'} onClick={() => setBank('bajaj')}>
+            <Pill
+              active={bank === 'bajaj'}
+              onClick={() => {
+                track('click', 'plans_bank_select', { bank: 'bajaj' });
+                setBank('bajaj');
+              }}
+            >
               Bajaj (low booking)
             </Pill>
-            <Pill active={bank === 'otherBanks'} onClick={() => setBank('otherBanks')}>
+            <Pill
+              active={bank === 'otherBanks'}
+              onClick={() => {
+                track('click', 'plans_bank_select', { bank: 'otherBanks' });
+                setBank('otherBanks');
+              }}
+            >
               HDFC / SBI / Standard
             </Pill>
           </div>

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { TileShell } from './common';
+import { track } from '@/lib/analytics/tracker';
 
 type Size = 1695 | 1870;
 
@@ -79,7 +80,10 @@ export default function RoiCalculatorTile() {
           <button
             key={s}
             type="button"
-            onClick={() => setSize(s)}
+            onClick={() => {
+              track('click', 'roi_unit_size_select', { size: s });
+              setSize(s);
+            }}
             style={{
               padding: '7px 14px',
               borderRadius: 100,
@@ -100,6 +104,7 @@ export default function RoiCalculatorTile() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <Slider
           label="Exit year"
+          trackName="roi_slider_exit_year"
           value={exitYear}
           min={POSSESSION_YEAR + 1}
           max={POSSESSION_YEAR + 10}
@@ -110,6 +115,7 @@ export default function RoiCalculatorTile() {
         />
         <Slider
           label="Assumed annual appreciation"
+          trackName="roi_slider_appreciation"
           value={appreciation}
           min={5}
           max={25}
@@ -120,6 +126,7 @@ export default function RoiCalculatorTile() {
         />
         <Slider
           label="Loan portion"
+          trackName="roi_slider_loan_pct"
           value={loanPct}
           min={0}
           max={80}
@@ -131,6 +138,7 @@ export default function RoiCalculatorTile() {
         {loanPct > 0 && (
           <Slider
             label="Loan interest rate"
+            trackName="roi_slider_loan_rate"
             value={loanRate}
             min={7.5}
             max={11}
@@ -142,6 +150,7 @@ export default function RoiCalculatorTile() {
         )}
         <Slider
           label="Post-possession rent growth"
+          trackName="roi_slider_rent_growth"
           value={rentGrowth}
           min={0}
           max={12}
@@ -270,6 +279,7 @@ export default function RoiCalculatorTile() {
 
 function Slider({
   label,
+  trackName,
   value,
   min,
   max,
@@ -279,6 +289,7 @@ function Slider({
   helper,
 }: {
   label: string;
+  trackName?: string;
   value: number;
   min: number;
   max: number;
@@ -287,6 +298,9 @@ function Slider({
   onChange: (v: number) => void;
   helper?: string;
 }) {
+  const fireCommit = (v: number) => {
+    if (trackName) track('click', trackName, { value });
+  };
   return (
     <div>
       <div
@@ -325,6 +339,8 @@ function Slider({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
+        onMouseUp={(e) => fireCommit(Number((e.target as HTMLInputElement).value))}
+        onTouchEnd={(e) => fireCommit(Number((e.target as HTMLInputElement).value))}
         style={{
           width: '100%',
           accentColor: 'var(--plum)',

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { TileShell, TileIcon } from './common';
+import { track } from '@/lib/analytics/tracker';
 
 type Size = 1695 | 1870;
 
@@ -62,7 +63,10 @@ export default function RentalOfferTile() {
           <button
             key={s}
             type="button"
-            onClick={() => setSize(s)}
+            onClick={() => {
+              track('click', 'rental_offer_size_select', { size: s });
+              setSize(s);
+            }}
             style={{
               padding: '7px 14px',
               borderRadius: 100,

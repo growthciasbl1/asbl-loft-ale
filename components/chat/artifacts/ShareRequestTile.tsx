@@ -377,6 +377,7 @@ export default function ShareRequestTile({
                   autoComplete="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  onFocus={() => track('focus', 'share_name_focus', { subject: displaySubject })}
                   placeholder="Full name"
                   style={inputStyle}
                 />
@@ -389,6 +390,7 @@ export default function ShareRequestTile({
                   autoComplete="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
+                  onFocus={() => track('focus', 'share_phone_focus', { subject: displaySubject })}
                   placeholder="+91 98XXXXXXXX"
                   style={inputStyle}
                 />
@@ -442,6 +444,7 @@ export default function ShareRequestTile({
             maxLength={6}
             autoFocus
             onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            onFocus={() => track('focus', 'share_otp_focus', { subject: displaySubject })}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && code.length === 6) verifyAndSend();
             }}
@@ -456,7 +459,10 @@ export default function ShareRequestTile({
           {errorMsg && <div style={errStyle}>{errorMsg}</div>}
           <button
             type="button"
-            onClick={verifyAndSend}
+            onClick={() => {
+              track('submit', 'share_otp_verify_click', { subject: displaySubject });
+              verifyAndSend();
+            }}
             disabled={busy || code.length !== 6}
             className="btn-plum"
             style={{
@@ -479,6 +485,7 @@ export default function ShareRequestTile({
             <button
               type="button"
               onClick={() => {
+                track('click', 'share_change_details', { subject: displaySubject });
                 setStep('form');
                 setCode('');
                 setErrorMsg(null);
@@ -489,7 +496,10 @@ export default function ShareRequestTile({
             </button>
             <button
               type="button"
-              onClick={resend}
+              onClick={() => {
+                track('click', 'share_otp_resend', { subject: displaySubject, cooldown_left: resendIn });
+                resend();
+              }}
               disabled={resendIn > 0 || busy}
               style={{
                 ...linkStyle,

@@ -5,6 +5,7 @@ import { useAsk } from '../AskContext';
 import { useSeenArtifacts } from '../SeenArtifactsContext';
 import { routeQuery } from '@/lib/utils/queryRouter';
 import { track } from '@/lib/analytics/tracker';
+import { useTrackView } from '@/lib/analytics/useTrackView';
 
 interface Props {
   eyebrow?: string;
@@ -20,6 +21,11 @@ interface Props {
 export function TileShell({ eyebrow, title, sub, icon, children, footer, askMore, relatedAsks }: Props) {
   const ask = useAsk();
   const seen = useSeenArtifacts();
+
+  // Fire view + read events for every tile automatically. `title` is a stable
+  // identifier per tile instance — props carry the eyebrow for disambiguation
+  // (so 'price' vs 'rental_offer' are distinguishable in analytics).
+  const tileRef = useTrackView('tile:' + title, { eyebrow });
 
   // Filter out chips whose query would route to an artifact the visitor has
   // already seen — keeps suggestions fresh instead of re-offering the same
@@ -42,6 +48,7 @@ export function TileShell({ eyebrow, title, sub, icon, children, footer, askMore
 
   return (
     <div
+      ref={tileRef}
       style={{
         background: '#fff',
         border: '1px solid var(--border)',

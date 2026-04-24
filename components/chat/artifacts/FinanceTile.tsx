@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { TileShell } from './common';
 import { PAYMENT_STRUCTURES } from '@/lib/utils/asblData';
+import { track } from '@/lib/analytics/tracker';
 
 function emi(p: number, r: number, y: number) {
   const m = r / 12 / 100;
@@ -55,6 +56,7 @@ export default function FinanceTile() {
       <div style={{ padding: '22px 26px', display: 'flex', flexDirection: 'column', gap: 20 }}>
         <Slider
           label="Ticket size"
+          trackName="finance_slider_ticket"
           value={`₹${(ticket / 10000000).toFixed(2)}Cr`}
           min={15000000}
           max={30000000}
@@ -66,6 +68,7 @@ export default function FinanceTile() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
           <Slider
             label="Down payment"
+            trackName="finance_slider_down_pct"
             value={`${downPct}%`}
             min={10}
             max={100}
@@ -75,6 +78,7 @@ export default function FinanceTile() {
           />
           <Slider
             label="Loan rate"
+            trackName="finance_slider_rate"
             value={`${rate.toFixed(1)}%`}
             min={7}
             max={11}
@@ -87,6 +91,7 @@ export default function FinanceTile() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
           <Slider
             label="Tenure"
+            trackName="finance_slider_tenure"
             value={`${years}y`}
             min={5}
             max={30}
@@ -96,6 +101,7 @@ export default function FinanceTile() {
           />
           <Slider
             label="Expected rent"
+            trackName="finance_slider_rent"
             value={`₹${(rent / 1000).toFixed(0)}K`}
             min={30000}
             max={90000}
@@ -120,10 +126,22 @@ export default function FinanceTile() {
             Payment structure
           </div>
           <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
-            <Pill active={bank === 'bajaj'} onClick={() => setBank('bajaj')}>
+            <Pill
+              active={bank === 'bajaj'}
+              onClick={() => {
+                track('click', 'finance_bank_select', { bank: 'bajaj' });
+                setBank('bajaj');
+              }}
+            >
               Bajaj (low booking)
             </Pill>
-            <Pill active={bank === 'otherBanks'} onClick={() => setBank('otherBanks')}>
+            <Pill
+              active={bank === 'otherBanks'}
+              onClick={() => {
+                track('click', 'finance_bank_select', { bank: 'otherBanks' });
+                setBank('otherBanks');
+              }}
+            >
               Standard banks
             </Pill>
           </div>
@@ -196,6 +214,7 @@ export default function FinanceTile() {
 
 function Slider({
   label,
+  trackName,
   value,
   min,
   max,
@@ -204,6 +223,7 @@ function Slider({
   onChange,
 }: {
   label: string;
+  trackName?: string;
   value: string;
   min: number;
   max: number;
@@ -211,6 +231,9 @@ function Slider({
   raw: number;
   onChange: (v: number) => void;
 }) {
+  const fireCommit = (v: number) => {
+    if (trackName) track('click', trackName, { value: v });
+  };
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
@@ -229,6 +252,8 @@ function Slider({
         step={step}
         value={raw}
         onChange={(e) => onChange(Number(e.target.value))}
+        onMouseUp={(e) => fireCommit(Number((e.target as HTMLInputElement).value))}
+        onTouchEnd={(e) => fireCommit(Number((e.target as HTMLInputElement).value))}
         style={{ width: '100%', accentColor: 'var(--sienna)' }}
       />
     </div>
