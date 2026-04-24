@@ -178,6 +178,28 @@ export async function POST(req: NextRequest) {
             finalResult = regex;
           }
 
+          // CRITICAL: preserve regex's artifact when LLM opted for text-
+          // only. The LLM frequently skips render_artifact when it thinks
+          // prose alone answers the user — but if the user explicitly
+          // asked for something visual ("unit plans", "master plan",
+          // "amenities", "pricing"), the regex router ALREADY knew the
+          // right tile to render. Use LLM's richer text WITH regex's
+          // artifact so users always get the full tile experience on
+          // button-style / noun-phrase queries.
+          if (
+            regex.artifact !== 'none' &&
+            finalResult.artifact === 'none' &&
+            finalResult.text
+          ) {
+            finalResult = {
+              ...regex,
+              text: finalResult.text,
+              signal: finalResult.signal,
+              usage: finalResult.usage,
+              model: finalResult.model,
+            };
+          }
+
           const { signal, usage, model: usedModel, ...publicResult } = finalResult;
 
           // Terminal event — artifact, label, extras.
