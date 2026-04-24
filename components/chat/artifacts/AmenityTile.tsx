@@ -32,17 +32,63 @@ const AMENITIES: Amenity[] = [
     note: 'Double-height',
     images: ['/asbl/amenities/gym-1.webp', '/asbl/amenities/gym-2.webp'],
   },
-  { label: 'Yoga & calisthenics studio', category: 'Clubhouse' },
-  { label: 'Squash court', category: 'Clubhouse', note: 'Regulation size' },
-  { label: '3 badminton courts', category: 'Clubhouse' },
-  { label: 'Indoor games', category: 'Clubhouse' },
-  { label: 'Co-working space', category: 'Clubhouse', note: 'Meeting rooms' },
-  { label: 'Conference rooms', category: 'Clubhouse' },
-  { label: 'Creche & learning centre', category: 'Clubhouse' },
-  { label: 'Tuition centre', category: 'Clubhouse' },
-  { label: 'Hobby & art centre', category: 'Clubhouse' },
-  { label: 'Guest rooms', category: 'Clubhouse' },
-  { label: 'Gents + ladies salon', category: 'Clubhouse' },
+  {
+    label: 'Yoga & calisthenics studio',
+    category: 'Clubhouse',
+    images: ['/asbl/amenities/yoga-1.webp', '/asbl/amenities/yoga-2.webp'],
+  },
+  {
+    label: 'Squash court',
+    category: 'Clubhouse',
+    note: 'Regulation size',
+    images: ['/asbl/amenities/squash.webp'],
+  },
+  {
+    label: '3 badminton courts',
+    category: 'Clubhouse',
+    images: ['/asbl/amenities/badminton.webp'],
+  },
+  {
+    label: 'Indoor games',
+    category: 'Clubhouse',
+    images: ['/asbl/amenities/indoor-games.webp'],
+  },
+  {
+    label: 'Co-working space',
+    category: 'Clubhouse',
+    note: 'Meeting rooms',
+    images: ['/asbl/amenities/coworking.webp'],
+  },
+  {
+    label: 'Conference rooms',
+    category: 'Clubhouse',
+    images: ['/asbl/amenities/conference.webp'],
+  },
+  {
+    label: 'Creche & learning centre',
+    category: 'Clubhouse',
+    images: ['/asbl/amenities/creche.webp'],
+  },
+  {
+    label: 'Tuition centre',
+    category: 'Clubhouse',
+    images: ['/asbl/amenities/tuition.webp'],
+  },
+  {
+    label: 'Hobby & art centre',
+    category: 'Clubhouse',
+    images: ['/asbl/amenities/hobby.webp'],
+  },
+  {
+    label: 'Guest rooms',
+    category: 'Clubhouse',
+    images: ['/asbl/amenities/guest-rooms.webp'],
+  },
+  {
+    label: 'Gents + ladies salon',
+    category: 'Clubhouse',
+    images: ['/asbl/amenities/salon.webp'],
+  },
   {
     label: 'Tower lobby',
     category: 'Clubhouse',
@@ -51,7 +97,11 @@ const AMENITIES: Amenity[] = [
   },
 
   // Landscape
-  { label: 'Jogging & cycling loop', category: 'Landscape' },
+  {
+    label: 'Jogging & cycling loop',
+    category: 'Landscape',
+    images: ['/asbl/amenities/jogging.webp'],
+  },
   {
     label: "Kids' play area",
     category: 'Landscape',
@@ -70,22 +120,50 @@ const AMENITIES: Amenity[] = [
     note: 'Events + gatherings',
     images: ['/asbl/amenities/plaza.webp'],
   },
-  { label: 'Senior reflexology walk', category: 'Landscape' },
-  { label: 'Pet park', category: 'Landscape', note: 'Fenced loop' },
+  {
+    label: 'Senior reflexology walk',
+    category: 'Landscape',
+    images: ['/asbl/amenities/reflexology.webp'],
+  },
+  {
+    label: 'Pet park',
+    category: 'Landscape',
+    note: 'Fenced loop',
+    images: ['/asbl/amenities/pet-park.webp'],
+  },
   {
     label: 'Basketball court',
     category: 'Landscape',
     images: ['/asbl/amenities/basketball.webp'],
   },
-  { label: 'Multi-sports turf', category: 'Landscape' },
+  {
+    label: 'Multi-sports turf',
+    category: 'Landscape',
+    images: ['/asbl/amenities/turf.webp'],
+  },
 
   // Utility
-  { label: 'EV charging', category: 'Utility', note: 'Basement level' },
-  { label: 'Solar + DG backup', category: 'Utility', note: '100% backup' },
+  {
+    label: 'EV charging',
+    category: 'Utility',
+    note: 'Basement level',
+    images: ['/asbl/amenities/ev-charging.webp'],
+  },
+  {
+    label: 'Solar + DG backup',
+    category: 'Utility',
+    note: '100% backup',
+    images: ['/asbl/amenities/solar-dg.webp'],
+  },
   { label: 'On-campus retail', category: 'Utility', note: 'Ratnadeep · ICICI' },
 
   // Security
-  { label: '24/7 security & CCTV', category: 'Security', note: 'Gated community' },
+  {
+    label: '24/7 security & CCTV',
+    category: 'Security',
+    note: 'Gated community',
+    images: ['/asbl/amenities/security.webp'],
+  },
 ];
 
 const CATEGORY_ORDER: Category[] = ['Clubhouse', 'Landscape', 'Utility', 'Security'];
