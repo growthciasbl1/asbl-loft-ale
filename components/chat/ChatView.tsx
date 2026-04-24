@@ -418,6 +418,8 @@ export default function ChatView() {
           >
             <textarea
               ref={composerRef}
+              id="chat-composer"
+              name="composer"
               rows={1}
               value={composerValue}
               onChange={(e) => {

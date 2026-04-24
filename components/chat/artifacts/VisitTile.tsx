@@ -895,6 +895,8 @@ export default function VisitTile({
             </label>
             <input
               type="date"
+              id="visit-custom-date"
+              name="custom_date"
               min={calendarMinDateISO()}
               max={calendarMaxDateISO()}
               value={customDateInput}
@@ -1040,6 +1042,8 @@ export default function VisitTile({
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <input
                 type="text"
+                id="visit-name"
+                name="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 onFocus={() => track('focus', 'visit_name_focus', { bookingType })}
@@ -1057,6 +1061,8 @@ export default function VisitTile({
               />
               <input
                 type="tel"
+                id="visit-phone"
+                name="phone"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 onFocus={() => track('focus', 'visit_phone_focus', { bookingType })}
@@ -1144,6 +1150,8 @@ export default function VisitTile({
           </div>
           <input
             type="text"
+            id="visit-otp"
+            name="otp"
             inputMode="numeric"
             pattern="[0-9]*"
             autoComplete="one-time-code"

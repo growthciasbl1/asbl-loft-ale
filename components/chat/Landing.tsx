@@ -382,6 +382,8 @@ export default function Landing() {
           >
             <textarea
               ref={taRef}
+              id="landing-composer"
+              name="composer"
               rows={1}
               value={value}
               onChange={(e) => {

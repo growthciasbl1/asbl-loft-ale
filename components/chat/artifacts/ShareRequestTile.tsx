@@ -374,6 +374,8 @@ export default function ShareRequestTile({
                 <label style={labelStyle}>Your name</label>
                 <input
                   type="text"
+                  id="share-name"
+                  name="name"
                   autoComplete="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -387,6 +389,8 @@ export default function ShareRequestTile({
                 <label style={labelStyle}>Phone number</label>
                 <input
                   type="tel"
+                  id="share-phone"
+                  name="phone"
                   autoComplete="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
@@ -436,6 +440,8 @@ export default function ShareRequestTile({
           </div>
           <input
             type="text"
+            id="share-otp"
+            name="otp"
             inputMode="numeric"
             pattern="[0-9]*"
             autoComplete="one-time-code"

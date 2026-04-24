@@ -234,6 +234,8 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <input
                 type="text"
+                id="lead-gate-name"
+                name="name"
                 placeholder="Full name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -243,6 +245,8 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
               />
               <input
                 type="tel"
+                id="lead-gate-phone"
+                name="phone"
                 inputMode="tel"
                 placeholder="+91 98XXXXXXXX"
                 value={phone}
@@ -280,6 +284,8 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
               <input
                 ref={otpInputRef}
                 type="text"
+                id="lead-gate-otp"
+                name="otp"
                 inputMode="numeric"
                 pattern="[0-9]*"
                 autoComplete="one-time-code"
