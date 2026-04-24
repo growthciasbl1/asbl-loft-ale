@@ -115,10 +115,32 @@ export async function POST(req: NextRequest) {
     // a phone-identified human. It accumulates UTM history across every
     // browser they've ever used. Falls back to visitor-level data only when
     // the person record doesn't exist yet (first-ever submission).
+    // CRITICAL: Mongo reads are bounded so Zoho push is never blocked by
+    // a sick cluster. Each lookup is raced against a 2.5s budget — if
+    // Mongo stalls, we lose visitor/person enrichment for this request
+    // but the CRM push proceeds with whatever attribution the client sent
+    // in the body. Previously a dead Mongo would hang the whole webhook
+    // for 30s and Vercel would kill the lambda before CRM push fired.
     const visitorId = typeof body?.visitorId === 'string' ? body.visitorId : null;
-    const visitor = visitorId ? await resolveVisitor(visitorId) : null;
     const phoneForPerson = normalisePhone(String(body?.phone ?? ''));
-    const person = phoneForPerson ? await getPersonByPhone(phoneForPerson) : null;
+    const raceRead = async <T>(p: Promise<T>, label: string): Promise<T | null> => {
+      return Promise.race([
+        p.catch((e) => {
+          console.warn(`[webhook] mongo read failed (${label}):`, (e as Error).message);
+          return null as T | null;
+        }),
+        new Promise<null>((resolve) =>
+          setTimeout(() => {
+            console.warn(`[webhook] mongo read timed out (${label})`);
+            resolve(null);
+          }, 2500),
+        ),
+      ]);
+    };
+    const [visitor, person] = await Promise.all([
+      visitorId ? raceRead(resolveVisitor(visitorId), 'resolveVisitor') : Promise.resolve(null),
+      phoneForPerson ? raceRead(getPersonByPhone(phoneForPerson), 'getPersonByPhone') : Promise.resolve(null),
+    ]);
 
     const utmLast = person?.lastUtm ?? visitor?.lastUtm ?? null;
     const utmFirst = person?.firstUtm ?? visitor?.firstUtm ?? null;
@@ -188,7 +210,11 @@ export async function POST(req: NextRequest) {
     //    upsertLead merges by phone — resubmissions (reschedule / re-book /
     //    re-share) become an UPDATE on the existing row with bumped
     //    resubmissionCount + appended submissionHistory. No duplicate rows.
-    const upsert = await upsertLead({
+    //    RACED against a 3s budget so a sick Mongo cluster does not block
+    //    the Zoho CRM push that comes next. If the race times out, we lose
+    //    the Mongo-side lead audit for this request but Zoho still gets
+    //    the lead (the single thing that actually matters for sales).
+    const upsertPromise = upsertLead({
       name: body.name,
       phone: body.phone,
       email: body.email,
@@ -216,9 +242,24 @@ export async function POST(req: NextRequest) {
       globalId: visitor?.globalId ?? null,
       otpVerified: body.otpVerified === true,
     });
-    const leadId = upsert.id;
-    const resubmissionCount = upsert.resubmissionCount;
-    const isReturningLead = !upsert.isNew;
+    // Race upsert against 3s. If Mongo stalls, degrade gracefully: no
+    // leadId, resubmissionCount 0, isReturningLead false. CRM push still
+    // proceeds with whatever we have.
+    const upsertRaced = await Promise.race([
+      upsertPromise.catch((e) => {
+        console.warn('[webhook] upsertLead failed:', (e as Error).message);
+        return { id: null, isNew: true, resubmissionCount: 0 };
+      }),
+      new Promise<{ id: null; isNew: true; resubmissionCount: 0 }>((resolve) =>
+        setTimeout(() => {
+          console.warn('[webhook] upsertLead timed out — proceeding to CRM without Mongo leadId');
+          resolve({ id: null, isNew: true, resubmissionCount: 0 });
+        }, 3000),
+      ),
+    ]);
+    const leadId = upsertRaced.id;
+    const resubmissionCount = upsertRaced.resubmissionCount;
+    const isReturningLead = !upsertRaced.isNew;
 
     // Link the visitor record to this lead so analytics can pivot the
     // other way (visitorId → leadId). Best-effort, non-blocking.
