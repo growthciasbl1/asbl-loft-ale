@@ -124,33 +124,65 @@ export default function PlansTile() {
         </div>
       </div>
 
-      {/* Installment rows — no status column (per doc 3.5: "no status against installments") */}
-      <div style={{ padding: '8px 26px' }}>
+      {/* Installment rows — flex layout so amounts never clip on narrow screens
+          (doc 3.5: no status column, mobile-friendly). */}
+      <div style={{ padding: '8px 18px' }}>
         {rows.map((it) => (
           <div
             key={it.k}
             style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 80px 120px 120px',
-              alignItems: 'center',
-              gap: 10,
               padding: '12px 0',
               borderBottom: '1px solid var(--paper-2)',
             }}
           >
-            <div style={{ fontWeight: 500, fontSize: 13.5 }}>{it.k}</div>
-            <div className="mono" style={{ color: 'var(--sienna-dark)', fontWeight: 600, fontSize: 14 }}>
-              {(it.pct * 100).toFixed(2)}%
-            </div>
             <div
-              className="mono"
-              style={{ textAlign: 'right', fontWeight: 500, fontSize: 13, color: 'var(--ink)' }}
+              style={{
+                display: 'flex',
+                alignItems: 'baseline',
+                gap: 10,
+                marginBottom: 6,
+              }}
             >
-              {formatAmount(it.amount)}
+              <div
+                style={{
+                  flex: '1 1 auto',
+                  minWidth: 0,
+                  fontWeight: 500,
+                  fontSize: 13.5,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {it.k}
+              </div>
+              <div
+                className="mono"
+                style={{
+                  color: 'var(--sienna-dark)',
+                  fontWeight: 600,
+                  fontSize: 13,
+                  flexShrink: 0,
+                }}
+              >
+                {(it.pct * 100).toFixed(2)}%
+              </div>
+              <div
+                className="mono"
+                style={{
+                  fontWeight: 600,
+                  fontSize: 13.5,
+                  color: 'var(--ink)',
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {formatAmount(it.amount)}
+              </div>
             </div>
             <div
               style={{
-                height: 6,
+                height: 5,
                 background: 'var(--paper-2)',
                 borderRadius: 100,
                 overflow: 'hidden',

@@ -199,21 +199,25 @@ export default function RoiCalculatorTile() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <Row label="Unit price (all-in)" value={fmtCr(model.unitPrice)} />
           <Row
-            label="Down payment + EMIs during construction"
-            value={fmtCr(model.cashOutPreHandover)}
+            label={`Down payment (${(100 - loanPct).toFixed(0)}%)`}
+            value={fmtCr(model.downPayment)}
             neg
           />
           <Row
-            label="ASBL rental during offer (till Dec 2026)"
-            value={`+ ${fmtCr(model.asblRentalTotal)}`}
-            pos
+            label={`EMIs during construction (${12} months)`}
+            value={fmtCr(model.cashOutPreHandover - model.downPayment)}
+            neg
           />
           <Row
-            label="Market rent after possession"
+            label={`Market rent · ${model.postPossessionYears}y post-possession (₹${(POST_POSSESSION_MONTHLY[size] / 1000).toFixed(0)}K/mo, +${rentGrowth}% YoY)`}
             value={`+ ${fmtCr(model.postRentalTotal)}`}
             pos
           />
-          <Row label="EMIs post-possession (till exit)" value={fmtCr(model.postEmiTotal)} neg />
+          <Row
+            label={`EMIs post-possession (${model.postPossessionYears}y till exit)`}
+            value={fmtCr(model.postEmiTotal)}
+            neg
+          />
           <Row label="Outstanding loan at exit" value={fmtCr(model.loanAtExit)} neg />
           <Row label="Exit sale value" value={`+ ${fmtCr(model.exitValue)}`} pos />
           <div style={{ height: 1, background: 'var(--border)', margin: '6px 0' }} />
@@ -222,6 +226,19 @@ export default function RoiCalculatorTile() {
             value={fmtCr(model.netCashDeployed)}
           />
           <Row label="Net gain" value={fmtCr(model.netGain)} bold />
+        </div>
+        <div
+          style={{
+            marginTop: 10,
+            fontSize: 10.5,
+            color: 'var(--mid-gray)',
+            fontStyle: 'italic',
+            lineHeight: 1.5,
+          }}
+        >
+          Note: ASBL&apos;s Assured Rental Offer (₹85K/mo for 1,695 · ₹95K/mo for 1,870 till 31 Dec
+          2026) is excluded from this ROI calculation — it&apos;s a separate direct payment and
+          doesn&apos;t affect the investment math.
         </div>
       </div>
 
@@ -409,11 +426,12 @@ function compute(input: ModelInput) {
   const monthlyEmiFull = pmt(loanAmount, loanRate / 100 / 12, 20 * 12); // 20 yr tenure
   const emiDuringConstruction = monthlyEmiFull * constructionMonths;
 
-  // ASBL guaranteed rental during construction (till Dec 2026)
-  const asblRentalTotal = GUARANTEED_MONTHLY[size] * constructionMonths;
-
-  // Net cash out pre-handover
-  const cashOutPreHandover = downPayment + emiDuringConstruction - asblRentalTotal;
+  // Cash out pre-handover — down payment + construction-phase EMIs.
+  // The ASBL Assured Rental Offer is excluded from this calculator at the
+  // user's request: it runs separately as a direct payment from ASBL and
+  // is not rolled into the investment ROI math. The offer is surfaced in
+  // RentalOfferTile / elsewhere.
+  const cashOutPreHandover = downPayment + emiDuringConstruction;
 
   // Post-possession phase — from 2027 onwards till exit
   const postPossessionYears = yearsHeld - 1; // 2027 onwards
@@ -437,10 +455,10 @@ function compute(input: ModelInput) {
   const exitValue = unitPrice * Math.pow(1 + appreciation / 100, yearsHeld);
 
   // Final returns
-  // Net cash deployed = down + all EMIs - all rental received
+  // Net cash deployed = down + all EMIs - post-possession market rent.
+  // (ASBL Assured Rental Offer deliberately excluded per user direction.)
   const totalEmi = emiDuringConstruction + postEmiTotal;
-  const totalRental = asblRentalTotal + postRentalTotal;
-  const netCashDeployed = downPayment + totalEmi - totalRental;
+  const netCashDeployed = downPayment + totalEmi - postRentalTotal;
 
   // Exit settlement = exit value - outstanding loan
   const exitSettlement = exitValue - loanAtExit;
@@ -459,7 +477,6 @@ function compute(input: ModelInput) {
     downPayment,
     loanAmount,
     cashOutPreHandover,
-    asblRentalTotal,
     postRentalTotal,
     postEmiTotal,
     loanAtExit,
@@ -469,6 +486,7 @@ function compute(input: ModelInput) {
     roiPct,
     annualizedPct,
     yearsHeld,
+    postPossessionYears,
   };
 }
 
