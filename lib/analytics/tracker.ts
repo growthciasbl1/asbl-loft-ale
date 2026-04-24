@@ -92,6 +92,21 @@ const GTM_ALLOWED_EVENTS: ReadonlySet<string> = new Set<string>([
   'affordability_site_visit_nudge',
 ]);
 
+/**
+ * Internal event name -> GTM dataLayer event name override. When an event
+ * appears here, its dataLayer 'event' field uses the mapped name VERBATIM
+ * (no asbl_ prefix). Used to align certain conversion events with GA4 / Ads
+ * recommended event names so they get auto-recognised as conversions without
+ * extra GTM config.
+ *
+ * Reference: GA4 recommended events
+ * https://support.google.com/analytics/answer/9267735
+ */
+const GTM_EVENT_NAME_MAP: Record<string, string> = {
+  // GA4 standard — primary lead-captured conversion.
+  lead_success: 'generate_lead',
+};
+
 declare global {
   interface Window {
     dataLayer?: Array<Record<string, unknown>>;
@@ -101,9 +116,10 @@ declare global {
 function pushToGtmIfAllowed(e: TrackEvent): void {
   if (typeof window === 'undefined') return;
   if (!GTM_ALLOWED_EVENTS.has(e.name)) return;
+  const gtmEventName = GTM_EVENT_NAME_MAP[e.name] ?? `asbl_${e.name}`;
   window.dataLayer = window.dataLayer || [];
   window.dataLayer.push({
-    event: `asbl_${e.name}`,
+    event: gtmEventName,
     asbl_event_type: e.type,
     asbl_session_id: e.sessionId,
     asbl_path: e.path,
