@@ -92,13 +92,18 @@ export function resolveAssets(subject: string | null | undefined): ShareAsset[] 
   const matches = CATALOG.filter((a) => a.keywords.test(s));
   if (matches.length > 0) return matches.slice(0, 4);
 
-  // Catch-all ("send me details", "everything", etc.)
-  if (/detail|everything|all|full\s*info|complete|info\s*pack|whole\s*thing/i.test(s)) {
+  // Explicit bundle intent — only when the user clearly asks for multiple.
+  // Must contain "everything" / "all docs" / "info pack" / etc. Single words
+  // like "details" no longer trigger a bundle, since most users who say
+  // "share details" are just paraphrasing "share the brochure".
+  if (/\b(everything|all\s*(docs|documents|info|details)|info\s*pack|complete\s*(info|details|pack)|whole\s*thing|full\s*pack)\b/i.test(s)) {
     return CATALOG.filter((a) => GENERIC_BUNDLE_IDS.includes(a.id));
   }
 
-  // Fallback: brochure + price sheet (safest pair)
-  return CATALOG.filter((a) => ['brochure', 'price_sheet'].includes(a.id));
+  // Fallback — when nothing matched, send ONLY the brochure (safest single
+  // doc). Previously this sent brochure + price_sheet, which caused users
+  // asking for just the brochure to receive two documents.
+  return CATALOG.filter((a) => a.id === 'brochure');
 }
 
 export function getAssetById(id: string): ShareAsset | null {
