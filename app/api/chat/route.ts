@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { routeQuery, type RouterResult, type ArtifactKind } from '@/lib/utils/queryRouter';
 import { routeWithLLM, routeWithLLMStream, shouldUseLLM, type ChatHistoryMsg } from '@/lib/llm/gemini';
 import { classifyIntentRAG } from '@/lib/llm/freeRag';
+import { callPaidLLM, hasPaidLLM } from '@/lib/llm/paid';
 import { insertSignal } from '@/lib/db/signals';
 import { appendConversationTurn } from '@/lib/db/conversations';
 import { insertUsage } from '@/lib/db/usage';
@@ -136,6 +137,65 @@ export async function POST(req: NextRequest) {
     if (regex.artifact === 'none') {
       ragArtifact = await classifyIntentRAG(query);
       if (ragArtifact === 'none') ragArtifact = null;
+    }
+
+    // 1.6  PAID LLM as primary prose generator (Phase 1 of Gemini migration).
+    //      Groq-backed gpt-oss-20b agent at /api/chat/loft_assistant/. Returns
+    //      a single JSON with HTML-wrapped prose in `message`. No streaming,
+    //      no tool calls — we get artifact from regex/RAG above. If paid
+    //      times out / 500s / network blips, callPaidLLM returns null and
+    //      we fall through to the existing Gemini SSE streaming path
+    //      (untouched). Phase 2 (after 2 weeks of stable paid metrics)
+    //      will disable Gemini entirely; for now it stays as fallback.
+    const phoneForLLM =
+      typeof body?.phone === 'string' && body.phone ? body.phone : undefined;
+
+    if (hasPaidLLM()) {
+      const paid = await callPaidLLM(query, { phone: phoneForLLM });
+      if (paid) {
+        const finalArtifact: ArtifactKind =
+          regex.artifact !== 'none' ? regex.artifact : (ragArtifact ?? 'none');
+
+        const publicResult: Omit<RouterResult, 'signal' | 'usage' | 'model'> = {
+          text: paid.text,
+          artifact: finalArtifact,
+          artifactLabel:
+            regex.artifact !== 'none' ? regex.artifactLabel : undefined,
+          unitId: regex.unitId,
+          salaryLakh: regex.salaryLakh,
+          existingEmi: regex.existingEmi,
+          visitIntro: regex.visitIntro,
+          shareSubject: regex.shareSubject,
+          initialBookingType: regex.initialBookingType,
+          focus: regex.focus,
+          preferredChannel: regex.preferredChannel,
+          originalQuery: regex.originalQuery,
+        };
+
+        // Background persist. Paid endpoint doesn't emit a buyer-signal
+        // tool call (yet — dev may add) so we pass null for signal. Sales
+        // briefing layer is on hold until the dev enables tool support
+        // OR we add a separate Gemini extraction call (TBD with user).
+        persistTurnAsync({
+          conversationId,
+          turnNumber,
+          query,
+          publicResult,
+          signal: null,
+          usage: null,
+          usedModel: paid.model,
+          campaign,
+        });
+
+        return NextResponse.json({
+          ...publicResult,
+          conversationId,
+          source: 'paid',
+          latencyMs: paid.latencyMs,
+          cached: paid.cached,
+        });
+      }
+      console.warn('[api/chat] paid endpoint returned null — falling back to Gemini stream');
     }
 
     const wantLLM = shouldUseLLM(query, regex.artifact === 'none');
