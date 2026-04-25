@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { routeQuery, type RouterResult } from '@/lib/utils/queryRouter';
+import { routeQuery, type RouterResult, type ArtifactKind } from '@/lib/utils/queryRouter';
 import { routeWithLLM, routeWithLLMStream, shouldUseLLM, type ChatHistoryMsg } from '@/lib/llm/gemini';
+import { classifyIntentRAG } from '@/lib/llm/freeRag';
 import { insertSignal } from '@/lib/db/signals';
 import { appendConversationTurn } from '@/lib/db/conversations';
 import { insertUsage } from '@/lib/db/usage';
@@ -124,6 +125,19 @@ export async function POST(req: NextRequest) {
     //    as plain JSON (no need to stream a static text blob).
     const regex = routeQuery(query);
 
+    // 1.5  Free RAG intent classifier — runs ONLY when regex didn't match
+    //      a concrete artifact. Classifies the query into one of the 19
+    //      ArtifactKind tokens via a free local model (qwen2.5:1.5b on
+    //      our internal RAG server). Hard 3s timeout. If the server is
+    //      down (maintenance) or returns "unsure" / off-list, this is
+    //      silently null and we fall through to Gemini doing both
+    //      routing + prose — exact same behaviour as before.
+    let ragArtifact: ArtifactKind | null = null;
+    if (regex.artifact === 'none') {
+      ragArtifact = await classifyIntentRAG(query);
+      if (ragArtifact === 'none') ragArtifact = null;
+    }
+
     const wantLLM = shouldUseLLM(query, regex.artifact === 'none');
     if (!wantLLM) {
       // Persist in background, return immediately.
@@ -154,13 +168,25 @@ export async function POST(req: NextRequest) {
         // LLM's text is still streaming in above. Gives a much smoother
         // "tile + prose both appear together" experience instead of the
         // previous "text streams in, then tile jumps in at the end".
+        // Pre-classified artifact = whichever the regex matched. If the
+        // regex returned 'none', use whatever the free RAG classifier
+        // returned (could still be null if RAG was down or unsure — that
+        // case falls through to Gemini deciding artifact in its final
+        // event). Either source produces the same client meta payload
+        // shape, so the tile renders immediately on stream start.
+        const earlyArtifact: ArtifactKind | null =
+          regex.artifact !== 'none' ? regex.artifact : ragArtifact;
+
         sendEvent('meta', {
           conversationId,
           regexArtifact:
-            regex.artifact !== 'none'
+            earlyArtifact !== null
               ? {
-                  artifact: regex.artifact,
-                  artifactLabel: regex.artifactLabel,
+                  artifact: earlyArtifact,
+                  artifactLabel:
+                    regex.artifact !== 'none'
+                      ? regex.artifactLabel
+                      : undefined,
                   unitId: regex.unitId,
                   salaryLakh: regex.salaryLakh,
                   existingEmi: regex.existingEmi,
@@ -170,6 +196,8 @@ export async function POST(req: NextRequest) {
                   focus: regex.focus,
                   preferredChannel: regex.preferredChannel,
                   originalQuery: regex.originalQuery,
+                  source:
+                    regex.artifact !== 'none' ? 'regex' : 'free_rag',
                 }
               : null,
         });
@@ -201,17 +229,14 @@ export async function POST(req: NextRequest) {
             finalResult = regex;
           }
 
-          // CRITICAL: when regex matched a concrete artifact, ALWAYS use
-          // that artifact — don't let the LLM drop or swap it. Regex is
-          // deterministic: if the user asked for "unit plans", show the
-          // unit plans tile, period. The LLM sometimes skips
-          // render_artifact (thinks prose is enough) or picks a different
-          // kind. Neither is what the user wants on a button-style query.
+          // CRITICAL: when regex OR free RAG identified an artifact, use
+          // it. Regex wins (most deterministic). RAG wins when regex was
+          // 'none'. Don't let the LLM drop or swap to a different kind —
+          // models occasionally skip render_artifact or pick a wrong tile.
           //
           // Text-merging rule: use LLM's richer text when it's genuinely
-          // richer than regex's curated intro. Fall back to regex's text
-          // when LLM returned a known fallback ("Happy to dig deeper",
-          // "Here you go") or something shorter than regex.
+          // richer than the curated intro. Fall back to the regex/RAG
+          // text on known fallbacks ("Happy to dig deeper", "Here you go").
           if (regex.artifact !== 'none') {
             const llmText = (finalResult.text ?? '').trim();
             const stripped = llmText.replace(/<[^>]+>/g, '').trim();
@@ -228,6 +253,15 @@ export async function POST(req: NextRequest) {
               signal: finalResult.signal,
               usage: finalResult.usage,
               model: finalResult.model,
+            };
+          } else if (ragArtifact && finalResult.artifact === 'none') {
+            // RAG classified it but LLM didn't render an artifact. Trust
+            // the RAG label — keep the LLM's prose, attach the RAG-picked
+            // tile so the user sees both.
+            finalResult = {
+              ...finalResult,
+              artifact: ragArtifact,
+              artifactLabel: undefined, // let the tile self-label
             };
           }
 
