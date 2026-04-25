@@ -18,14 +18,25 @@ interface Props {
    *  click. Per user direction: "should not change automatically, users
    *  should be able to change it." */
   autoPlayMs?: number;
+  /** Fired whenever the active slide changes (programmatic OR user-driven).
+   *  Parent uses this to react to facing changes — e.g. UnitPlansTile
+   *  swaps the room-by-room data when user clicks a different facing. */
+  onActiveChange?: (slide: PlanSlide, index: number) => void;
 }
 
 type SlideState = 'active' | 'exiting' | 'entering' | 'idle';
 
-export default function FloorPlanCarousel({ slides, autoPlayMs = 0 }: Props) {
+export default function FloorPlanCarousel({ slides, autoPlayMs = 0, onActiveChange }: Props) {
   const [active, setActive] = useState(0);
   const [prev, setPrev] = useState<number | null>(null);
   const [lightbox, setLightbox] = useState(false);
+
+  // Notify parent on every active-slide change. Wrapped in useEffect so the
+  // callback fires AFTER the render commits — parent setState is safe.
+  useEffect(() => {
+    onActiveChange?.(slides[active], active);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, slides]);
   // `paused` = visitor has interacted (click/arrow/dot). Once true, auto-cycle
   // stops permanently for this mount — user is now driving.
   const [paused, setPaused] = useState(false);

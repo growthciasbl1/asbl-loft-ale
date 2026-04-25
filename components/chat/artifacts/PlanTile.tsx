@@ -9,7 +9,7 @@ type Size = 1695 | 1870;
 
 export default function PlanTile() {
   const [size, setSize] = useState<Size>(1695);
-  const L = UNIT_LAYOUTS[size];
+  const L = UNIT_LAYOUTS[size].east;
 
   return (
     <TileShell

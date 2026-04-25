@@ -1,12 +1,21 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { TileShell, TileIcon } from './common';
 import FloorPlanCarousel, { PlanSlide } from '../FloorPlanCarousel';
-import { UNIT_LAYOUTS } from '@/lib/utils/asblData';
+import { UNIT_LAYOUTS, type Facing } from '@/lib/utils/asblData';
 import { track } from '@/lib/analytics/tracker';
 
 type UnitSize = 1695 | 1870;
+
+/**
+ * Infer facing (east / west) from a slide key like "1695-east" or
+ * "1870-nb-west". Falls back to 'east' if the key has no facing token.
+ */
+function facingFromKey(key: string): Facing {
+  if (key.endsWith('-west')) return 'west';
+  return 'east';
+}
 
 // West first per doc 2.28 — east surfaces via auto-cycle or user click.
 const SLIDES_1695: PlanSlide[] = [
@@ -57,8 +66,23 @@ const SLIDES_1870: PlanSlide[] = [
 
 export default function UnitPlansTile() {
   const [size, setSize] = useState<UnitSize>(1695);
+  // Track facing separately — driven by carousel's active slide via the
+  // onActiveChange callback below. East is the default since the
+  // brochure's "typical floor plan" pages list East variants first.
+  const [facing, setFacing] = useState<Facing>('east');
   const slides = useMemo(() => (size === 1695 ? SLIDES_1695 : SLIDES_1870), [size]);
-  const layout = UNIT_LAYOUTS[size];
+  // Room-by-room data depends on BOTH size and facing. Brochure shows
+  // E and W have different kitchen / master bedroom / toilet sizes.
+  const layout = UNIT_LAYOUTS[size][facing];
+
+  const handleSlideChange = useCallback((slide: PlanSlide) => {
+    const newFacing = facingFromKey(slide.key);
+    setFacing((prev) => {
+      if (prev === newFacing) return prev;
+      track('view', 'unit_facing_select', { size, facing: newFacing });
+      return newFacing;
+    });
+  }, [size]);
 
   return (
     <TileShell
@@ -118,10 +142,11 @@ export default function UnitPlansTile() {
       </div>
 
       <div style={{ margin: '0 -18px' }}>
-        <FloorPlanCarousel slides={slides} />
+        <FloorPlanCarousel slides={slides} onActiveChange={handleSlideChange} />
       </div>
 
-      {/* Room-by-room (reflects selected size) */}
+      {/* Room-by-room (reflects selected size AND facing — swaps when
+          user toggles East/West in the carousel above) */}
       <div style={{ marginTop: 18 }}>
         <div
           style={{
@@ -133,7 +158,7 @@ export default function UnitPlansTile() {
             marginBottom: 10,
           }}
         >
-          Room by room · {size.toLocaleString()} sq.ft
+          Room by room · {size.toLocaleString()} sq.ft · {facing === 'east' ? 'East' : 'West'} facing
         </div>
         <div
           style={{

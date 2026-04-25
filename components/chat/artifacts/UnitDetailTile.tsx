@@ -26,7 +26,7 @@ export default function UnitDetailTile({ unitId }: Props) {
     );
   }
 
-  const layout = UNIT_LAYOUTS[unit.size];
+  const layout = UNIT_LAYOUTS[unit.size][unit.facing === "WEST" ? "west" : "east"];
 
   return (
     <TileShell

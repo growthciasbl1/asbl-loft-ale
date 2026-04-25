@@ -160,54 +160,106 @@ export interface RoomDimension {
 // which existed in the brochure. All replaced.
 //
 // All sqft figures computed: feet-and-inches → decimal feet → product.
-// East variant used as the representative since it's the most commonly
-// listed in slide order. NB plan used for 1,870 (most common variant).
-export const UNIT_LAYOUTS: Record<1695 | 1870, {
+// East and West facings have DIFFERENT internal dimensions (kitchen,
+// master bedroom, toilets are mirrored / re-sized). Brochure shows 4
+// distinct floor plans: 1,695 (E) | 1,695 (W) | 1,870 (E) NB | 1,870 (W)
+// NB. UNIT_LAYOUTS is now keyed by [size][facing] — UI swaps room
+// data when user toggles East/West.
+
+export type Facing = 'east' | 'west';
+
+interface UnitLayout {
   area: string;
   balcony: { sqft: number; label: string; note: string };
   rooms: RoomDimension[];
   bathrooms: number;
   bestFor: string;
-}> = {
+}
+
+export const UNIT_LAYOUTS: Record<1695 | 1870, Record<Facing, UnitLayout>> = {
   1695: {
-    area: '1,050 sqft carpet · 1,695 sqft saleable',
-    balcony: { sqft: 125, label: '125 sqft outdoor living balcony', note: '7\'10" × 10\'10" outdoor living, off the living/dining' },
-    bathrooms: 3,
-    bestFor: 'Family of 4 · couples + parents · occasional guests',
-    rooms: [
-      { name: 'Living', ft: "16'1\" × 11'10\"", sqft: 190, note: 'Largest in its class per brochure; floor-to-ceiling 10\'5"' },
-      { name: 'Dining', ft: "8'6\" × 10'6\"", sqft: 89 },
-      { name: 'Kitchen', ft: "8'6\" × 10'10\"", sqft: 92, note: 'Pre-laid for chimney, hob, fridge, microwave, mixer, water purifier, dishwasher' },
-      { name: 'Utility', ft: "8'6\" × 3'11\"", sqft: 33, note: 'Washing machine + water purifier inlets' },
-      { name: 'Master bedroom (Bed 1)', ft: "13'7\" × 10'10\"", sqft: 147, note: 'En-suite Toilet 1' },
-      { name: 'Master bath (Toilet 1)', ft: "4'11\" × 9'6\"", sqft: 47 },
-      { name: 'Outdoor living', ft: "7'10\" × 10'10\"", sqft: 85, note: 'Faces outward; total balcony area 125 sqft' },
-      { name: 'Bedroom 2', ft: "11'4\" × 11'4\"", sqft: 128 },
-      { name: 'Bath 2 (Toilet 2)', ft: "8'2\" × 4'11\"", sqft: 40 },
-      { name: 'Bedroom 3', ft: "10'10\" × 11'4\"", sqft: 123 },
-      { name: 'Bath 3 (Toilet 3)', ft: "4'11\" × 7'10\"", sqft: 39 },
-    ],
+    east: {
+      area: '1,050 sqft carpet · 1,695 sqft saleable · East-facing',
+      balcony: { sqft: 125, label: '125 sqft outdoor living balcony', note: '7\'10" × 10\'10" outdoor living, off the living/dining' },
+      bathrooms: 3,
+      bestFor: 'Family of 4 · couples + parents · morning sun in living + master',
+      rooms: [
+        { name: 'Living', ft: "16'1\" × 11'10\"", sqft: 190, note: 'Largest in its class per brochure; floor-to-ceiling 10\'5"' },
+        { name: 'Dining', ft: "8'6\" × 10'6\"", sqft: 89 },
+        { name: 'Kitchen', ft: "8'6\" × 10'10\"", sqft: 92, note: 'Pre-laid for chimney, hob, fridge, microwave, mixer, water purifier, dishwasher' },
+        { name: 'Utility', ft: "8'6\" × 3'11\"", sqft: 33 },
+        { name: 'Master bedroom (Bed 1)', ft: "13'7\" × 10'10\"", sqft: 147, note: 'En-suite Toilet 1' },
+        { name: 'Master bath (Toilet 1)', ft: "4'11\" × 9'6\"", sqft: 47 },
+        { name: 'Outdoor living', ft: "7'10\" × 10'10\"", sqft: 85, note: 'Faces outward; total balcony area 125 sqft' },
+        { name: 'Bedroom 2', ft: "11'4\" × 11'4\"", sqft: 128 },
+        { name: 'Bath 2 (Toilet 2)', ft: "8'2\" × 4'11\"", sqft: 40 },
+        { name: 'Bedroom 3', ft: "10'10\" × 11'4\"", sqft: 123 },
+        { name: 'Bath 3 (Toilet 3)', ft: "4'11\" × 7'10\"", sqft: 39 },
+      ],
+    },
+    west: {
+      area: '1,050 sqft carpet · 1,695 sqft saleable · West-facing',
+      balcony: { sqft: 125, label: '125 sqft outdoor living balcony', note: '7\'10" × 10\'10" outdoor living, off the living/dining' },
+      bathrooms: 3,
+      bestFor: 'Family of 4 · prefer evening sun · larger master bedroom',
+      rooms: [
+        { name: 'Living', ft: "16'1\" × 11'10\"", sqft: 190, note: 'Largest in its class per brochure; floor-to-ceiling 10\'5"' },
+        { name: 'Dining', ft: "8'6\" × 10'6\"", sqft: 89 },
+        { name: 'Kitchen', ft: "7'1\" × 10'10\"", sqft: 77, note: 'More compact than East-facing kitchen (77 vs 92 sqft)' },
+        { name: 'Utility', ft: "3'11\" × 8'6\"", sqft: 33 },
+        { name: 'Master bedroom (Bed 1)', ft: "10'10\" × 15'1\"", sqft: 164, note: 'Larger than East variant (164 vs 147 sqft); en-suite Toilet 1' },
+        { name: 'Master bath (Toilet 1)', ft: "4'11\" × 9'2\"", sqft: 45 },
+        { name: 'Outdoor living', ft: "7'10\" × 10'10\"", sqft: 85, note: 'Faces outward; total balcony area 125 sqft' },
+        { name: 'Bedroom 2', ft: "10'10\" × 11'4\"", sqft: 123 },
+        { name: 'Bath 2 (Toilet 2)', ft: "4'11\" × 7'10\"", sqft: 39 },
+        { name: 'Bedroom 3', ft: "11'4\" × 11'4\"", sqft: 128 },
+        { name: 'Bath 3 (Toilet 3)', ft: "8'2\" × 4'11\"", sqft: 40 },
+      ],
+    },
   },
   1870: {
-    area: '1,050 sqft carpet · 1,870 sqft saleable',
-    balcony: { sqft: 260, label: '260 sqft total balcony — MASSIVE outdoor living + 2 side balconies', note: 'Outdoor living 7\'10" × 10\'10" + Balcony 1 + Balcony 2 (NB plan) = 260 sqft total. ~2× the 1,695 balcony area.' },
-    bathrooms: 3,
-    bestFor: 'Family of 4-5 · joint family · larger outdoor space + room to grow',
-    rooms: [
-      { name: 'Living', ft: "16'1\" × 11'10\"", sqft: 190, note: 'Largest in its class per brochure; floor-to-ceiling 10\'5"' },
-      { name: 'Dining', ft: "8'6\" × 10'6\"", sqft: 89 },
-      { name: 'Kitchen', ft: "8'6\" × 10'10\"", sqft: 92, note: 'Pre-laid for chimney, hob, fridge, microwave, mixer, water purifier, dishwasher' },
-      { name: 'Utility', ft: "8'6\" × 3'11\"", sqft: 33, note: 'Washing machine + water purifier inlets' },
-      { name: 'Master bedroom (Bed 1)', ft: "13'7\" × 10'10\"", sqft: 147, note: 'En-suite Toilet 1' },
-      { name: 'Master bath (Toilet 1)', ft: "4'11\" × 9'6\"", sqft: 47 },
-      { name: 'Outdoor living', ft: "7'10\" × 10'10\"", sqft: 85, note: 'Plus extra side balconies; 260 sqft total balcony area' },
-      { name: 'Bedroom 2', ft: "11'4\" × 11'4\"", sqft: 128 },
-      { name: 'Bath 2 (Toilet 2)', ft: "8'2\" × 4'11\"", sqft: 40 },
-      { name: 'Balcony 1', ft: "4'11\" wide", sqft: 0, note: 'Side balcony off Bedroom 2 (NB plan)' },
-      { name: 'Bedroom 3', ft: "10'10\" × 11'4\"", sqft: 123 },
-      { name: 'Bath 3 (Toilet 3)', ft: "4'11\" × 7'10\"", sqft: 39 },
-      { name: 'Balcony 2', ft: "4'11\" wide", sqft: 0, note: 'Additional side balcony (NB plan only)' },
-    ],
+    east: {
+      area: '1,050 sqft carpet · 1,870 sqft saleable · East-facing',
+      balcony: { sqft: 260, label: '260 sqft total balcony — MASSIVE outdoor living + 2 side balconies', note: 'Outdoor living 7\'10" × 10\'10" + Balcony 1 + Balcony 2 (NB plan) = 260 sqft total. ~2× the 1,695 balcony area.' },
+      bathrooms: 3,
+      bestFor: 'Family of 4-5 · joint family · morning sun + larger outdoor space',
+      rooms: [
+        { name: 'Living', ft: "16'1\" × 11'10\"", sqft: 190, note: 'Largest in its class per brochure; floor-to-ceiling 10\'5"' },
+        { name: 'Dining', ft: "8'6\" × 10'6\"", sqft: 89 },
+        { name: 'Kitchen', ft: "8'6\" × 10'10\"", sqft: 92, note: 'Pre-laid for chimney, hob, fridge, microwave, mixer, water purifier, dishwasher' },
+        { name: 'Utility', ft: "8'6\" × 3'11\"", sqft: 33 },
+        { name: 'Master bedroom (Bed 1)', ft: "13'7\" × 10'10\"", sqft: 147, note: 'En-suite Toilet 1' },
+        { name: 'Master bath (Toilet 1)', ft: "4'11\" × 9'6\"", sqft: 47 },
+        { name: 'Outdoor living', ft: "7'10\" × 10'10\"", sqft: 85, note: 'Plus extra side balconies; 260 sqft total balcony area' },
+        { name: 'Bedroom 2', ft: "11'4\" × 11'4\"", sqft: 128 },
+        { name: 'Bath 2 (Toilet 2)', ft: "8'2\" × 4'11\"", sqft: 40 },
+        { name: 'Balcony 1', ft: "4'11\" wide", sqft: 0, note: 'Side balcony off Bedroom 2 (NB plan)' },
+        { name: 'Bedroom 3', ft: "10'10\" × 11'4\"", sqft: 123 },
+        { name: 'Bath 3 (Toilet 3)', ft: "4'11\" × 7'10\"", sqft: 39 },
+        { name: 'Balcony 2', ft: "4'11\" wide", sqft: 0, note: 'Additional side balcony (NB plan only)' },
+      ],
+    },
+    west: {
+      area: '1,050 sqft carpet · 1,870 sqft saleable · West-facing',
+      balcony: { sqft: 260, label: '260 sqft total balcony — MASSIVE outdoor living + 2 side balconies', note: 'Outdoor living 7\'10" × 10\'10" + Balcony 1 + Balcony 2 (NB plan) = 260 sqft total. ~2× the 1,695 balcony area.' },
+      bathrooms: 3,
+      bestFor: 'Family of 4-5 · joint family · evening sun + larger master bedroom',
+      rooms: [
+        { name: 'Living', ft: "16'1\" × 11'10\"", sqft: 190, note: 'Largest in its class per brochure; floor-to-ceiling 10\'5"' },
+        { name: 'Dining', ft: "8'6\" × 10'6\"", sqft: 89 },
+        { name: 'Kitchen', ft: "7'1\" × 10'10\"", sqft: 77, note: 'More compact than East-facing kitchen (77 vs 92 sqft)' },
+        { name: 'Utility', ft: "3'11\" × 8'6\"", sqft: 33 },
+        { name: 'Master bedroom (Bed 1)', ft: "10'10\" × 15'1\"", sqft: 164, note: 'Larger than East variant (164 vs 147 sqft); en-suite Toilet 1' },
+        { name: 'Master bath (Toilet 1)', ft: "4'11\" × 9'2\"", sqft: 45 },
+        { name: 'Outdoor living', ft: "7'10\" × 10'10\"", sqft: 85, note: 'Plus extra side balconies; 260 sqft total balcony area' },
+        { name: 'Bedroom 2', ft: "10'10\" × 11'4\"", sqft: 123 },
+        { name: 'Bath 2 (Toilet 2)', ft: "4'11\" × 7'10\"", sqft: 39 },
+        { name: 'Balcony 1', ft: "4'11\" wide", sqft: 0, note: 'Side balcony off Bedroom 2 (NB plan)' },
+        { name: 'Bedroom 3', ft: "11'4\" × 11'4\"", sqft: 128 },
+        { name: 'Bath 3 (Toilet 3)', ft: "8'2\" × 4'11\"", sqft: 40 },
+        { name: 'Balcony 2', ft: "4'11\" wide", sqft: 0, note: 'Additional side balcony (NB plan only)' },
+      ],
+    },
   },
 };
 
