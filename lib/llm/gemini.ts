@@ -366,7 +366,6 @@ ALL FOUR variants share the same carpet area: 1,050 sqft. The differentiator is 
 ALL units have an outdoor living balcony — this is a Loft-wide design feature. The standard outdoor living dimension is 7'10" × 10'10". 1,870 adds extra side balcony space totalling 260 sqft.
 CRITICAL framing rule: NEVER say "the 1,870 has an outdoor living balcony" (implies 1,695 doesn't). Always say "all units have outdoor living balconies — 125 sqft in 1,695 and a MASSIVE 260 sqft in 1,870."
 Standout interior dimensions: floor-to-ceiling 10'5" (6 inches more than industry standard). Living room 16'1" × 11'10" — described in the brochure as "the largest in its class". Main door up to 8 ft (2,400mm). Master bedroom 13'7" × 10'10" (East) / 10'10" × 15'1" (West).
-Design partners: Clubhouse + lobby + urban corridor architecture by HP Lakhani Associates (premier firm since 1994). Landscape architecture by Site Concepts International (SCI), Singapore-based since 1991.
 All balconies face outward — nothing blocks the line of sight. Per-sqft pricing not offered currently. 1,870 sqft now available for sale.
 
 OTHER CHARGES (1,695 sqft example)

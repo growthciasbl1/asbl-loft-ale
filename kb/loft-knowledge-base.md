@@ -110,9 +110,6 @@
 - **Main door: up to 8 ft (2,400mm) high** — grand-entrance feel, premium detail.
 - **Master bedrooms:** 13'7" × 10'10" (East-facing) / 10'10" × 15'1" (West-facing). Some variants offer attached balcony.
 
-### Design partners (premium credibility)
-- **Clubhouse + lobby + urban corridor architecture: HP Lakhani Associates** (premier Indian architectural & interior design firm, since 1994)
-- **Landscape architecture: Site Concepts International (SCI), Singapore** — boutique landscape architecture firm since 1991, known for premium residential + urban design
 
 ### Other charges (1,695 sqft example)
 - **Facility maintenance** (first 2 years, paid upfront at handover): ₹108/sqft + 18% GST = ₹2,16,011
