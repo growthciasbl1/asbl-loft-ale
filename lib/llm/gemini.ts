@@ -355,7 +355,7 @@ Book at ₹10 L → ASBL pays up to ₹85,000/month rental income directly until
 Primary number to use with visitors: ₹85,000/month (both sizes). Do NOT quote ₹95,000 — that number is deprecated and was capped at ₹85,000 per current policy.
 TDS applies per government rules.
 FD 3BHK current market rent ₹75K–₹85K. Gross yield ~5.26% on ₹1.94 Cr — Indian residential average is 2–3%.
-Effective-entry math (compute based on today's date, which is given at top of session context): entry = ₹1.94 Cr − (₹85,000 × complete months remaining from today till 31 Dec 2026). Example: if 10 months remaining → ₹1.94 Cr − ₹8.5 L = ~₹1.86 Cr effective. Do NOT cite a fixed "net effective" without doing this calculation for the visitor's actual booking horizon.
+Effective-entry math (CRITICAL — compute fresh every time, today's date is given at top of session context as "Today is …"): entry = ₹1.94 Cr − (₹85,000 × complete months remaining from today till 31 Dec 2026). Example: if 10 months remaining → ₹1.94 Cr − ₹8.5 L = ~₹1.86 Cr effective. NEVER cite a fixed/hardcoded month count like "18 months" — that was a stale example. ALWAYS recompute from today's date in the session context. Do NOT cite a fixed "net effective" without doing this calculation for the visitor's actual booking horizon.
 
 LOCATION (drive times from Loft)
 Google Phase 2 / Apple Dev Centre / Amazon HQ / Waverock SEZ — 5 min each. Accenture / Microsoft / Infosys / TCS / DLF Cyber City — 10–15 min. Google Main Campus — 20 min.
@@ -507,7 +507,7 @@ BUILDER/TRUST
 "Must use BHFL?": You have choice. BHFL is the low-entry ₹10L partner. Other approved banks require 10% booking (₹19.4 L). If your bank gives better EMI, use them.
 
 TIMELINE
-"Dec 2026 is too far": Closest delivery timeline at this scale in FD. Ready-to-move FD (Spectra) starts ₹2.65 Cr with no rental offer. 18 months of rental (₹10–15L) is the trade-off.
+"Dec 2026 is too far": Closest delivery timeline at this scale in FD. Ready-to-move FD (Spectra) starts ₹2.65 Cr with no rental offer. The trade-off is the rental offer cushion — collect ₹85K/month till 31 Dec 2026 (compute exact months remaining from today's date in the session context, multiply by ₹85K). NEVER hardcode 18 months — that was a stale example from when the KB was written.
 "What if handover delayed?": RERA P02400006761 mandates timeline with penalties. BHFL releases funds only on milestone verification — bank effectively audits the timeline.
 
 POST-POSSESSION

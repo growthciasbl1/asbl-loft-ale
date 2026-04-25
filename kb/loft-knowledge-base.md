@@ -155,15 +155,18 @@ Both structures follow a **fixed 5-milestone schedule**. **NOT construction-link
 - Indian residential average is 2-3% — Loft is 2× the national average
 
 ### Effective-entry math
-Compute based on TODAY'S DATE (provided in session context):
+
+**CRITICAL:** Today's date + months remaining are passed to you in a `[TODAY: ...]` tag at the top of every user message. Read the tag, use the `Months remaining till rental offer end` number EXACTLY. NEVER use a stale or hardcoded month count (like "18 months").
 
 ```
-effective entry = ₹1.94 Cr − (₹85,000 × complete months remaining from today till 31 Dec 2026)
+effective entry = ₹1.94 Cr − (₹85,000 × months_remaining_from_TODAY_tag)
 ```
 
-**Example:** if 10 months remaining → ₹1.94 Cr − ₹8.5 L = ~₹1.86 Cr effective entry.
+**Example:** if the [TODAY] tag says `Months remaining: 8`, then ₹85K × 8 = ₹6.8 L; effective entry = ₹1.94 Cr − ₹6.8 L = ~₹1.87 Cr.
 
-**DO NOT** cite a fixed "net effective" without doing this calculation for the visitor's actual booking horizon.
+**WRONG (do NOT do this):** "₹85,000 × 18 months = ₹15.3 L" — 18 was a stale example from when the KB was first written. The actual count depends on today's date.
+
+**DO NOT** cite a fixed "net effective" without using the [TODAY] tag.
 
 ### Tax treatment
 - **Yes, taxable** as per slab under "Income from House Property"
@@ -538,7 +541,7 @@ You have choice. BHFL is the low-entry ₹10L partner. Other approved banks requ
 ### Timeline
 
 **"Dec 2026 is too far"**
-Closest delivery timeline at this scale in FD. Ready-to-move FD (Spectra) starts ₹2.65 Cr with no rental offer. 18 months of rental (₹10-15L) is the trade-off.
+Closest delivery timeline at this scale in FD. Ready-to-move FD (Spectra) starts ₹2.65 Cr with no rental offer. The trade-off is the rental offer cushion: from booking date till 31 Dec 2026 you collect ₹85K/month directly from ASBL — compute the months remaining from today's date in the [TODAY] tag of your input, multiply by ₹85K. NEVER hardcode 18 months or any specific count — that was a stale example.
 
 **"What if handover delayed?"**
 RERA P02400006761 mandates timeline with penalties. BHFL releases funds only on milestone verification — bank effectively audits the timeline.
@@ -606,7 +609,7 @@ You sell:
 - **A tenant-ready asset** — Day-1 of possession, your unit has a tenant in India's deepest senior-hire rental belt
 - **Time** — Dec 2026 closes the gap between "investing now" and "having a working asset"
 
-The buyer isn't choosing between Loft and another flat. They're choosing between **Loft + ₹85K/month for 18 months** vs sitting on cash that earns 7% in FD or watching FD launches rise 15-20% by 2027.
+The buyer isn't choosing between Loft and another flat. They're choosing between **Loft + ₹85K/month till 31 Dec 2026** (compute exact months from today's date) vs sitting on cash that earns 7% in FD or watching FD launches rise 15-20% by 2027.
 
 ---
 

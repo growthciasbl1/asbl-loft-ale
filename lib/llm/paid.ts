@@ -77,6 +77,37 @@ export async function callPaidLLM(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
+  // Inject today's date into the message so the agent can compute time-
+  // sensitive math correctly. The paid agent's system prompt is static
+  // and stored server-side — it has NO way to know what today is unless
+  // we tell it. Without this injection, the model hallucinates fixed
+  // month counts (e.g. "18 months remaining till Dec 2026") even when
+  // the actual answer depends on today's date.
+  //
+  // Concrete bug fixed (2026-04-25): user asked "18 month tk paisa
+  // milega?" — bot replied "₹85K × 18 months = ₹15.3 L". Wrong: today
+  // is Apr 2026, only ~8 months remain till 31 Dec 2026 (~₹6.8 L).
+  //
+  // Format: prepend a [TODAY: YYYY-MM-DD] tag so the agent's prompt
+  // can reference the value. Also include the months remaining till
+  // 31 Dec 2026 so the model doesn't have to compute date arithmetic
+  // (which small models are weak at).
+  const now = new Date();
+  const todayIst = now.toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    weekday: 'long',
+    timeZone: 'Asia/Kolkata',
+  });
+  const dec31_2026 = new Date('2026-12-31T23:59:59+05:30');
+  const monthsRemaining = Math.max(
+    0,
+    Math.round((dec31_2026.getTime() - now.getTime()) / (1000 * 60 * 60 * 24 * 30)),
+  );
+  const dateContext = `[TODAY: ${todayIst}. Months remaining till rental offer end (31 Dec 2026): ${monthsRemaining}. ALWAYS use this number for effective-entry math — never hardcode 18 months or any other count.]`;
+  const messageWithContext = `${dateContext}\n\n${query}`;
+
   const t0 = Date.now();
   try {
     const url = `${PAID_BASE_URL}/api/chat/${PAID_AGENT_SLUG}/`;
@@ -88,7 +119,7 @@ export async function callPaidLLM(
       },
       body: JSON.stringify({
         phone,
-        message: query,
+        message: messageWithContext,
       }),
       signal: controller.signal,
     });
