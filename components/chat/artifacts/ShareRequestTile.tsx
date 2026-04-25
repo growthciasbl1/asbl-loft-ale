@@ -129,20 +129,20 @@ export default function ShareRequestTile({
       if (!res.ok || !json.ok) {
         if (json.error === 'invalid phone') {
           setStep('form');
-          setErrorMsg('Phone number sahi nahi lag raha.');
+          setErrorMsg('That phone number doesn\u2019t look right.');
         } else {
           // WhatsApp leg may have delivered even though server reported
           // error (saveOtp flake etc.). Stay on OTP step so user can
           // enter the code they received; verify is source of truth.
           setErrorMsg(
-            'Delivery hiccup — agar WhatsApp pe OTP aa gaya hai to enter kar do, warna Resend dabao.',
+            'Delivery hiccup \u2014 if the OTP arrived on WhatsApp, please enter it. Otherwise tap Resend.',
           );
         }
       } else {
         setInfoMsg(`OTP sent on WhatsApp to ${phone}. Code valid for 5 minutes.`);
       }
     } catch {
-      setErrorMsg('Network hiccup — agar OTP aa gaya hai to enter kar do, warna Resend dabao.');
+      setErrorMsg('Network hiccup \u2014 if the OTP arrived, please enter it. Otherwise tap Resend.');
     } finally {
       setBusy(false);
     }

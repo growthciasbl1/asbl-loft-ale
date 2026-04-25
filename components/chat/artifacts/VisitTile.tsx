@@ -364,10 +364,10 @@ export default function VisitTile({
         // verify returns wrong_code and user taps Resend.
         if (json.error === 'invalid phone') {
           setOtpStep('idle');
-          setOtpError('Ye phone number sahi nahi lag raha — please check.');
+          setOtpError('That phone number doesn\u2019t look right \u2014 please check.');
         } else {
           setOtpError(
-            'Delivery hiccup — agar WhatsApp pe OTP aa gaya hai to enter kar do, warna Resend OTP dabao.',
+            'Delivery hiccup \u2014 if the OTP arrived on WhatsApp, please enter it. Otherwise tap Resend OTP.',
           );
         }
       } else {
@@ -375,7 +375,7 @@ export default function VisitTile({
       }
     } catch {
       // Network error — don't hide the OTP input either; same reasoning.
-      setOtpError('Network hiccup — agar OTP aa gaya hai to enter kar do, ya Resend dabao.');
+      setOtpError('Network hiccup \u2014 if the OTP arrived, please enter it, or tap Resend.');
     } finally {
       setSubmitting(false);
     }

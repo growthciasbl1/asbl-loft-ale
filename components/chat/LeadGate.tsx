@@ -92,11 +92,11 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
         const reasonMap: Record<string, string> = {
           'invalid phone': 'That phone number looks incorrect — please check.',
           rate_limited: `Too many attempts — try again in ${json.retryAfter ?? 30}s.`,
-          all_channels_failed: 'Delivery hiccup — agar WhatsApp pe OTP aa gaya hai to enter kar do, warna Resend dabao.',
-          otp_store_failed: 'Server flake — try entering the OTP you received; if verify fails, tap Resend.',
-          'invalid request': 'Invalid request — please refresh and try again.',
+          all_channels_failed: 'Delivery hiccup \u2014 if the OTP arrived on WhatsApp, please enter it. Otherwise tap Resend.',
+          otp_store_failed: 'Server flake \u2014 try entering the OTP you received; if verify fails, tap Resend.',
+          'invalid request': 'Invalid request \u2014 please refresh and try again.',
         };
-        const friendly = reasonMap[json.error] ?? `Agar OTP aa gaya hai to enter kar do, warna Resend dabao. (${json.error ?? `HTTP ${res.status}`})`;
+        const friendly = reasonMap[json.error] ?? `If the OTP arrived, please enter it. Otherwise tap Resend. (${json.error ?? `HTTP ${res.status}`})`;
         if (json.error === 'invalid phone' || json.error === 'invalid request') {
           setErrorMsg(friendly);
         } else {
