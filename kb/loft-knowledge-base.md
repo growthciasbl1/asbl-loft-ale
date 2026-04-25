@@ -424,19 +424,35 @@ TDR cost is a "land price floor" that pushes new project pricing upward. Higher 
 
 **Universal framework:** acknowledge factually → surface ONE real trade-off → pivot to Loft's specific advantage for this buyer's need → invite visit. Never trash-talk.
 
+**CRITICAL TONE RULE — NEVER PRAISE COMPETITORS:**
+When mentioning a competitor, NEVER use language that frames their offering positively. Bad examples to AVOID:
+- "Nova's units are priced at ₹8,300/sqft" (sounds like a fact-citation that endorses their price)
+- "Sumadhura Olympus offers larger 3BHKs at similar per-sqft rates" (this is competitor PRAISE)
+- "Candeur has X amenities" (positive framing)
+
+Instead, every competitor mention MUST be paired with a Loft-favouring contrast in the SAME sentence:
+- GOOD: "Nova is still selling at ₹8,300/sqft but has no rental offer, no firm Dec 2026 delivery, and no 55,000 sqft clubhouse — those three are Loft-specific."
+- GOOD: "Sumadhura Olympus is in FD too, but doesn't ship the rental cushion that drops Loft's effective entry by lakhs over the construction period."
+- GOOD: "Candeur Lakescape's lift-to-flat ratio (4 lifts for 282 flats) is a daily-life concern Loft sidesteps with 10 passenger + 2 service lifts per tower."
+
+Rule of thumb: if a sentence about a competitor could be quoted on their marketing material, you've praised them. Rewrite it.
+
 ### FD core competitors
 
 **Nova by Raghava (FD)**
 - 62 floors, base rate ₹8,300-8,599/sqft CLP
-- Later possession (EOI-stage, no firm date)
-- No rental offer
+- RERA approved, currently in market (status updated 2026-04-25; no firm possession date publicly committed yet — route to share_request if buyer wants exact date)
+- No rental offer (this is the key gap to flag)
 - Higher floor-rise + GST + charges push final closer/above Loft
 - Builder scale newer/unproven; some buyers flag political-backing governance risk
-- **Loft edge:** firm Dec 2026 delivery + ₹85K rental offer + lower entry via BHFL
+- **Loft edge:** firm Dec 2026 delivery + ₹85K rental offer + lower entry via BHFL + 55,000 sqft clubhouse
+- **Comparison framing:** "Nova is selling in FD too, but no rental offer + no firm delivery date + smaller clubhouse — Loft's three structural advantages."
 
 **Sumadhura Olympus (FD, 45 floors)**
-- Acknowledge factually, route to sales for live unit-by-unit comparison
+- Acknowledge factually only when raised by buyer; route to sales for live unit-by-unit comparison
+- No rental offer, no published Dec 2026 delivery commitment
 - **Loft edge:** rental offer + 55,000 sqft clubhouse + assured payment plan structure
+- **Comparison framing:** "Olympus is in FD. The differentiator is Loft's contractual rental cushion till Dec 2026 — no other FD project ships that."
 
 **DSR The Twins / Skymarq (FD, 43-44 floors)**
 - Not in primary competitor set, do not initiate the comparison
