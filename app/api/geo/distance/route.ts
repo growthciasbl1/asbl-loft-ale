@@ -172,6 +172,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'origin is required' }, { status: 400 });
     }
 
+    // 1. FAST PATH: Check our hand-curated locality table BEFORE ORS.
+    //    If the user typed any of the 24 known Hyderabad areas, return
+    //    instantly — no ORS call needed, no geocode failure possible.
+    //    Earlier this only ran AFTER successful geocoding, which meant
+    //    a typo or odd input ("ASBL Hyderabad") killed the whole flow.
+    const earlyOverride = findLocalityOverride(origin, null, null);
+    if (earlyOverride) {
+      return NextResponse.json({
+        ok: true,
+        origin: { label: origin, lat: null, lng: null, locality: null },
+        toLoftMin: earlyOverride.toLoft,
+        toGachibowliMin: earlyOverride.toGachi,
+        toKokapetMin: earlyOverride.toKokapet,
+        toLoftKm: null,
+        toGachibowliKm: null,
+        toKokapetKm: null,
+        overrideSource: 'locality_table_fast',
+      });
+    }
+
     const apiKey = process.env.ORS_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
@@ -180,13 +200,29 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Geocode origin string → lat/lng
-    const hit = await geocode(apiKey, origin);
+    // 2. Geocode origin string → lat/lng. If first try fails, retry with
+    //    " Hyderabad" suffix (common: users type just "Banjara Hills"
+    //    and ORS sometimes can't disambiguate to the right city).
+    let hit = await geocode(apiKey, origin);
+    if (!hit && !/hyderabad/i.test(origin)) {
+      hit = await geocode(apiKey, `${origin} Hyderabad`);
+    }
     if (!hit) {
       return NextResponse.json(
         {
           error: 'not_found',
-          message: `Could not locate "${origin}" — try a more specific neighbourhood name.`,
+          message: `Could not locate "${origin}". Try a Hyderabad locality name like Kondapur, Madhapur, Banjara Hills, or HITEC City — or pick one of the chips below.`,
+          suggestions: [
+            'HITEC City',
+            'Madhapur',
+            'Kondapur',
+            'Jubilee Hills',
+            'Banjara Hills',
+            'Gachibowli',
+            'Kokapet',
+            'Begumpet',
+            'Airport',
+          ],
         },
         { status: 404 },
       );

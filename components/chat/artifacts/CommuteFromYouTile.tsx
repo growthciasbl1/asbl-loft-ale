@@ -47,9 +47,12 @@ export default function CommuteFromYouTile() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
+        // Server now ships specific locality suggestions when geocoding
+        // fails. Surface them visibly so the user can recover by tapping
+        // a chip instead of guessing what to type.
         setErrorMsg(
           (err as { message?: string; error?: string }).message ??
-            'Could not compute that route. Try a more specific neighbourhood.',
+            'Could not compute that route. Try one of the area chips below — Kondapur, Madhapur, Banjara Hills, etc.',
         );
       } else {
         const payload = (await res.json()) as DistanceResponse;
