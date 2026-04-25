@@ -32,6 +32,101 @@ export function hasPaidLLM(): boolean {
   return !!PAID_API_KEY;
 }
 
+const PRICE_1695 = 1_94_00_000; // ₹1.94 Cr (all-inclusive + GST)
+const PRICE_1870 = 2_15_00_000; // ₹2.15 Cr (all-inclusive + GST)
+const RENT_1695 = 85_000; // monthly from ASBL — rounded for display per user direction
+const RENT_1870 = 93_500; // 1870 × ₹50/sqft, exact
+const OFFER_END = new Date('2026-12-31T23:59:59+05:30');
+
+function fmtCr(n: number): string {
+  return `₹${(n / 1_00_00_000).toFixed(2)} Cr`;
+}
+function fmtL(n: number): string {
+  return `₹${(n / 1_00_000).toFixed(2)} L`;
+}
+function fmtINR(n: number): string {
+  return `₹${n.toLocaleString('en-IN')}`;
+}
+
+/**
+ * Build the [TODAY] + [PRECOMPUTED MATH] header injected before every
+ * user query. Regenerates on every request so values stay current as
+ * the calendar moves toward 31 Dec 2026.
+ *
+ * The math table is the PRIMARY guard against the small-model arithmetic
+ * bugs we've seen (₹1.26 Cr instead of ₹1.87 Cr, ₹51 L instead of ₹5.1 L).
+ * Model is told to substitute these numbers, not compute its own.
+ */
+function buildContextHeader(): string {
+  const now = new Date();
+  const todayIst = now.toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    weekday: 'long',
+    timeZone: 'Asia/Kolkata',
+  });
+  // 30-day months for display alignment with the way KB/copy talks
+  // about "X months left." Floor (not round) — never overpromise.
+  const monthsLeft = Math.max(
+    0,
+    Math.floor((OFFER_END.getTime() - now.getTime()) / (1000 * 60 * 60 * 24 * 30)),
+  );
+
+  // Build delay scenarios. Each row gives a pre-computed effective entry
+  // so the model can substitute, not subtract.
+  const scenarios = [0, 3, 6, 9].map((delay) => {
+    const months = Math.max(0, monthsLeft - delay);
+    const rent1695 = months * RENT_1695;
+    const rent1870 = months * RENT_1870;
+    const eff1695 = PRICE_1695 - rent1695;
+    const eff1870 = PRICE_1870 - rent1870;
+    const label = delay === 0 ? 'Book TODAY' : `${delay}-month delay`;
+    return { delay, months, rent1695, rent1870, eff1695, eff1870, label };
+  });
+
+  const baseRent1695 = scenarios[0].rent1695;
+  const baseRent1870 = scenarios[0].rent1870;
+
+  const rows1695 = scenarios
+    .map((s) => {
+      const cost = s.delay === 0 ? '' : ` (cost of delay: ${fmtL(baseRent1695 - s.rent1695)})`;
+      return `  • ${s.label.padEnd(15)} → ${s.months} mo × ₹85K = ${fmtL(s.rent1695)} rental → effective entry ${fmtCr(s.eff1695)}${cost}`;
+    })
+    .join('\n');
+
+  const rows1870 = scenarios
+    .map((s) => {
+      const cost = s.delay === 0 ? '' : ` (cost of delay: ${fmtL(baseRent1870 - s.rent1870)})`;
+      return `  • ${s.label.padEnd(15)} → ${s.months} mo × ₹93.5K = ${fmtL(s.rent1870)} rental → effective entry ${fmtCr(s.eff1870)}${cost}`;
+    })
+    .join('\n');
+
+  // Per-sqft and gross yield — also pre-computed so model never divides.
+  const psf1695 = Math.round(PRICE_1695 / 1695);
+  const psf1870 = Math.round(PRICE_1870 / 1870);
+  const yield1695 = ((RENT_1695 * 12) / PRICE_1695) * 100;
+  const yield1870 = ((RENT_1870 * 12) / PRICE_1870) * 100;
+
+  return [
+    `[TODAY: ${todayIst}. Months left till rental-offer end (31 Dec 2026): ${monthsLeft}.]`,
+    '',
+    '[PRECOMPUTED MATH — substitute these numbers directly. Do NOT add, subtract, multiply, or convert Cr↔L yourself. The numbers below are pre-verified.]',
+    '',
+    `1695 sq.ft (base ${fmtCr(PRICE_1695)} · ASBL pays ${fmtINR(RENT_1695)}/mo):`,
+    rows1695,
+    '',
+    `1870 sq.ft (base ${fmtCr(PRICE_1870)} · ASBL pays ${fmtINR(RENT_1870)}/mo):`,
+    rows1870,
+    '',
+    `Per-sqft (carpet): 1695 → ${fmtINR(psf1695)}/sqft · 1870 → ${fmtINR(psf1870)}/sqft`,
+    `Gross rental yield: 1695 → ${yield1695.toFixed(2)}% · 1870 → ${yield1870.toFixed(2)}%`,
+    '',
+    'For other delay durations not in the table, interpolate from the rows above (each month = ₹85K for 1695, ₹93.5K for 1870). For "what if I wait X months", use months_left = max(0, ' + monthsLeft + ' − X).',
+    'CRITICAL: Use these numbers verbatim. Past bugs occurred because the model tried to do its own arithmetic and got Cr↔L conversions wrong.',
+  ].join('\n');
+}
+
 export interface PaidLLMResult {
   /** HTML-wrapped prose, ready to render via dangerouslySetInnerHTML */
   text: string;
@@ -77,36 +172,20 @@ export async function callPaidLLM(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  // Inject today's date into the message so the agent can compute time-
-  // sensitive math correctly. The paid agent's system prompt is static
-  // and stored server-side — it has NO way to know what today is unless
-  // we tell it. Without this injection, the model hallucinates fixed
-  // month counts (e.g. "18 months remaining till Dec 2026") even when
-  // the actual answer depends on today's date.
+  // Inject today's date AND pre-computed math into the message. The paid
+  // agent's system prompt is static and stored server-side — it has no
+  // way to know what today is, and gpt-oss-20b is too small to do
+  // multi-step arithmetic reliably anyway.
   //
-  // Concrete bug fixed (2026-04-25): user asked "18 month tk paisa
-  // milega?" — bot replied "₹85K × 18 months = ₹15.3 L". Wrong: today
-  // is Apr 2026, only ~8 months remain till 31 Dec 2026 (~₹6.8 L).
+  // Bugs this prevents:
+  //   1. "₹85K × 18 months = ₹15.3 L" — model hardcoded 18mo when only 8 left
+  //   2. "₹1.94 Cr − ₹6.8 L = ₹1.26 Cr" — model botched Cr↔L subtraction
+  //   3. "difference of ₹51 L" — model dropped a decimal (actual ₹5.1 L)
   //
-  // Format: prepend a [TODAY: YYYY-MM-DD] tag so the agent's prompt
-  // can reference the value. Also include the months remaining till
-  // 31 Dec 2026 so the model doesn't have to compute date arithmetic
-  // (which small models are weak at).
-  const now = new Date();
-  const todayIst = now.toLocaleDateString('en-IN', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    weekday: 'long',
-    timeZone: 'Asia/Kolkata',
-  });
-  const dec31_2026 = new Date('2026-12-31T23:59:59+05:30');
-  const monthsRemaining = Math.max(
-    0,
-    Math.round((dec31_2026.getTime() - now.getTime()) / (1000 * 60 * 60 * 24 * 30)),
-  );
-  const dateContext = `[TODAY: ${todayIst}. Months remaining till rental offer end (31 Dec 2026): ${monthsRemaining}. ALWAYS use this number for effective-entry math — never hardcode 18 months or any other count.]`;
-  const messageWithContext = `${dateContext}\n\n${query}`;
+  // Strategy: pre-compute every value the model would otherwise have to
+  // calculate (rental delay scenarios, effective entry, gross yield,
+  // per-sqft) and inject as a reference table. Model just substitutes.
+  const messageWithContext = `${buildContextHeader()}\n\n${query}`;
 
   const t0 = Date.now();
   try {
