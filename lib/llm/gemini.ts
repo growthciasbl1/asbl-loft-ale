@@ -48,14 +48,31 @@ const COMPARISON_TRIGGERS =
   /\bcompare|\bcompared|\bvs\b|versus|better than|market|insight|analysis|thoughts on|opinion|worth it|good\s*investment|should\s*i|help.*decide|which.*better|perspective|outlook/i;
 
 const INFO_TRIGGERS =
-  /\bwhat\s+(happens|will|should|does|do\s+i|is\s+it|am\s+i|to\s+expect|if\b)|\bhow\s+(does|do|will|long|many|much|often|is|are)|\bwhy\b|\bexplain\b|\btell\s+me\s+about\b|\bwalk\s+me\s+through\b|\bwhat'?s\s+it\s+like\b|\bdescribe\b|\belaborate\b|\bquestion\b|\breason/i;
+  /\bwhat\s+(happens|will|should|does|do\s+i|is\s+it|am\s+i|to\s+expect|if\b|is\s+the|are\s+the|are|is\b|was|were|do|are\s+nearby)|\bhow\s+(does|do|will|long|many|much|often|is|are|has|have|much\s+is)|\bwhy\b|\bexplain\b|\btell\s+me(\s+about|\s+more)?\b|\bwalk\s+me\s+through\b|\bwhat'?s\s+it\s+like\b|\bdescribe\b|\belaborate\b|\bquestion\b|\breason|\bshow\s+me\b|\bgive\s+me\b|\blist\b|\boverview|\bbreakdown\b|\bdetails\b/i;
 
-export function shouldUseLLM(query: string, regexReturnedNone: boolean): boolean {
-  if (!hasLLM()) return false;
-  if (regexReturnedNone) return true;
-  if (COMPARISON_TRIGGERS.test(query)) return true;
-  if (INFO_TRIGGERS.test(query)) return true;
-  return false;
+/**
+ * "Chip-style" queries that look like a user clicked a suggestion button
+ * rather than free-typing — they almost always benefit from LLM-authored
+ * prose even when the regex router already mapped them to an artifact.
+ * Without this, the user sees the canned 1-2 line text from the regex
+ * branch, which feels ghatiya. With this, regex handles routing + LLM
+ * writes a rich 4-7 sentence reply for the same artifact.
+ */
+const CHIP_PHRASING_TRIGGERS =
+  /\b(tell\s+me|show\s+me|give\s+me|what\s+is|what\s+are|what\s+amenities|what\s+schools|how\s+much|how\s+long|how\s+far|how\s+many|how\s+has)\b/i;
+
+/**
+ * As of the rich-response push (2026-04-25), we route EVERY query through
+ * the LLM whenever the API key is present. The regex-only fast-path was
+ * surfacing the canned 1-2 sentence intro text as the user-facing reply,
+ * which felt thin/ghatiya. Now: regex still picks the artifact (instant,
+ * deterministic), but the LLM ALWAYS authors the prose. Streaming keeps
+ * perceived latency low (~1.5s TTFT). The COMPARISON / INFO / CHIP
+ * triggers remain in code only as documentation of intent — every code
+ * path returns true unless we have no LLM key.
+ */
+export function shouldUseLLM(_query: string, _regexReturnedNone: boolean): boolean {
+  return hasLLM();
 }
 
 const SYSTEM_PROMPT = `# IDENTITY
@@ -314,7 +331,7 @@ Name: ASBL Loft | Developer: Ashoka Builders India Pvt. Ltd. | Location: Financi
 UNITS & PRICING
 1,695 sqft East — carpet 1,050 sqft + 125 sqft balcony — ₹1.94 Cr box + 5% GST (~₹9.70 L) = ~₹2.03 Cr all-in.
 1,695 sqft West — same carpet, no east balcony — ₹1.94 Cr box.
-1,870 sqft East/West — carpet ~1,160 sqft + 260 sqft wrap balcony — ₹2.15 Cr box + 5% GST = ~₹2.26 Cr all-in.
+1,870 sqft East/West — carpet ~1,160 sqft + 260 sqft outdoor living balcony — ₹2.15 Cr box + 5% GST = ~₹2.26 Cr all-in.
 All balconies face outward — nothing blocks the line of sight. Per-sqft pricing not offered currently. 1,870 sqft now available for sale.
 
 OTHER CHARGES (1,695 sqft example)
@@ -478,7 +495,7 @@ DESIGN/QUALITY
 "Density too high?": 894 units on ~4.92 acres ~ 182 units/acre — FD average range. Compare: Candeur Lakescape has 1,991 on 9.28 acres with only 4 passenger lifts/tower for 282 flats/tower. Loft: 10 passenger + 2 service lifts/tower for 10 units/floor.
 "Why carpet smaller than saleable?": 1,695 saleable → 1,050 carpet. 645 sqft delta = balcony (125) + walls + common area + UDS. Balconies outward-facing and usable. Carpet-to-saleable ~62%, competitive for FD.
 "Construction quality risk?": RCC shear wall, Zone 2 seismic. Grohe-equivalent plumbing, Duravit-equivalent sanitary, concealed copper wiring. Specs sheet available via share_request.
-"Bedrooms small?": 3BHK functionality, not 4BHK sprawl. 1,870 sqft adds meaningful space + wrap balcony if larger rooms matter.
+"Bedrooms small?": 3BHK functionality, not 4BHK sprawl. 1,870 sqft adds meaningful space + outdoor living balcony if larger rooms matter.
 "Curtain walls usable?": UPVC sliding double-glazed doors — they open. AC + natural ventilation both options.
 
 BUILDER/TRUST
