@@ -24,30 +24,34 @@ const SLIDES_1695: PlanSlide[] = [
   },
 ];
 
+// Per brochure floor plans (pages 41-43): 1,870 is 3 BHK with 3 toilets,
+// NOT "3 BHK + office". The previous "+ office" label was fabricated.
+// Difference between NB and SB plans is the number of side balconies
+// (NB has 2, SB has 1). Both have the standard outdoor living balcony.
 const SLIDES_1870: PlanSlide[] = [
   {
     key: '1870-nb-east',
     img: '/assets/1870_nb_east.webp',
     label: '1,870 sq.ft — NB · East facing',
-    sub: '3 BHK + office · North Block',
+    sub: '3 BHK · North Block (with 2 extra side balconies)',
   },
   {
     key: '1870-nb-west',
     img: '/assets/1870_nb_west.webp',
     label: '1,870 sq.ft — NB · West facing',
-    sub: '3 BHK + office · North Block',
+    sub: '3 BHK · North Block (with 2 extra side balconies)',
   },
   {
     key: '1870-sb-east',
     img: '/assets/1870_sb_east.webp',
     label: '1,870 sq.ft — SB · East facing',
-    sub: '3 BHK + office · South Block',
+    sub: '3 BHK · South Block (with 1 extra side balcony)',
   },
   {
     key: '1870-sb-west',
     img: '/assets/1870_sb_west.webp',
     label: '1,870 sq.ft — SB · West facing',
-    sub: '3 BHK + office · South Block',
+    sub: '3 BHK · South Block (with 1 extra side balcony)',
   },
 ];
 
