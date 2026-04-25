@@ -270,6 +270,17 @@ export default function ChatView() {
     let finalResult: (RouterResult & { conversationId?: string }) | null = null;
     let streamedText = '';
     let streamStarted = false;
+    /**
+     * Stash the regex/RAG-predicted artifact from the server's `meta` SSE
+     * event. We deliberately do NOT render the bot message at this point —
+     * we wait for the FIRST text chunk so tile + prose appear together.
+     * Previously we rendered the tile from meta event (~50ms) which made
+     * it appear ~1s before any text — felt like the tile loaded first
+     * then text "caught up" awkwardly. Now: typing indicator stays until
+     * first text chunk lands, then bot bubble + tile + first words all
+     * appear in the same paint.
+     */
+    let pendingArtifactMeta: Partial<Message> | null = null;
 
     /**
      * Render streamed text. Gemini outputs <p>-wrapped HTML per system
@@ -290,10 +301,17 @@ export default function ChatView() {
         if (!streamStarted) {
           streamStarted = true;
           setPendingCount((c) => Math.max(0, c - 1));
-          return [
-            ...prev,
-            { id: botMsgId, role: 'bot' as const, text: display },
-          ];
+          // First text chunk: create the bot bubble WITH the stashed
+          // artifact (if meta event already ran). This makes tile + prose
+          // appear in the same render — no more "tile pops in 1s before
+          // text starts streaming" feel.
+          const baseMsg: Message = {
+            id: botMsgId,
+            role: 'bot' as const,
+            text: display,
+            ...(pendingArtifactMeta ?? {}),
+          };
+          return [...prev, baseMsg];
         }
         return prev.map((m) => (m.id === botMsgId ? { ...m, text: display } : m));
       });
@@ -352,57 +370,35 @@ export default function ChatView() {
                 if (parsed.conversationId) {
                   useChatStore.getState().setConversationId(parsed.conversationId);
                 }
-                // Early artifact reveal: if the regex router already
-                // matched a concrete artifact for this query, the server
-                // ships it on the first event so the client can render
-                // the tile immediately — no waiting for LLM text to
-                // finish streaming. Text still flows in above the tile
-                // but both appear together from the start.
+                // STASH the predicted artifact — don't render the bot
+                // bubble yet. We render on the first text chunk so tile +
+                // prose appear together. If meta arrives AFTER text has
+                // already started (unusual but possible), patch the
+                // existing message in place.
                 if (parsed.regexArtifact?.artifact) {
                   const ra = parsed.regexArtifact;
-                  setMessages((prev) => {
-                    if (!streamStarted) {
-                      streamStarted = true;
-                      setPendingCount((c) => Math.max(0, c - 1));
-                      return [
-                        ...prev,
-                        {
-                          id: botMsgId,
-                          role: 'bot' as const,
-                          text: '',
-                          artifact: ra.artifact,
-                          artifactLabel: ra.artifactLabel,
-                          unitId: ra.unitId,
-                          salaryLakh: ra.salaryLakh,
-                          existingEmi: ra.existingEmi,
-                          visitIntro: ra.visitIntro,
-                          shareSubject: ra.shareSubject,
-                          originalQuery: ra.originalQuery,
-                          preferredChannel: ra.preferredChannel,
-                          initialBookingType: ra.initialBookingType,
-                          focus: ra.focus,
-                        } as Message,
-                      ];
-                    }
-                    return prev.map((m) =>
-                      m.id === botMsgId
-                        ? {
-                            ...m,
-                            artifact: ra.artifact,
-                            artifactLabel: ra.artifactLabel,
-                            unitId: ra.unitId,
-                            salaryLakh: ra.salaryLakh,
-                            existingEmi: ra.existingEmi,
-                            visitIntro: ra.visitIntro,
-                            shareSubject: ra.shareSubject,
-                            originalQuery: ra.originalQuery,
-                            preferredChannel: ra.preferredChannel,
-                            initialBookingType: ra.initialBookingType,
-                            focus: ra.focus,
-                          }
-                        : m,
+                  pendingArtifactMeta = {
+                    artifact: ra.artifact,
+                    artifactLabel: ra.artifactLabel,
+                    unitId: ra.unitId,
+                    salaryLakh: ra.salaryLakh,
+                    existingEmi: ra.existingEmi,
+                    visitIntro: ra.visitIntro,
+                    shareSubject: ra.shareSubject,
+                    originalQuery: ra.originalQuery,
+                    preferredChannel: ra.preferredChannel,
+                    initialBookingType: ra.initialBookingType,
+                    focus: ra.focus,
+                  };
+                  if (streamStarted) {
+                    // Edge case: text started before meta (shouldn't
+                    // happen but be defensive). Patch in place.
+                    setMessages((prev) =>
+                      prev.map((m) =>
+                        m.id === botMsgId ? { ...m, ...(pendingArtifactMeta ?? {}) } : m,
+                      ),
                     );
-                  });
+                  }
                 }
               } else if (evName === 'error') {
                 // Stream errored mid-flight — keep whatever text we have,
