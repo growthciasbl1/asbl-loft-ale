@@ -1,4 +1,4 @@
-import { pickNextSender } from './numbers';
+import { pickNextSender, getAllActiveSenders } from './numbers';
 
 const BASE = process.env.PERISKOPE_API_BASE || 'https://api.periskope.app/v1';
 const TOKEN = process.env.PERISKOPE_API_TOKEN || '';
@@ -129,27 +129,74 @@ export async function sendWhatsAppDocument(input: {
 }
 
 /**
- * Send a WhatsApp message, using round-robin across connected business numbers.
- * On failure, retries up to 2 more numbers (redundancy) before giving up.
+ * Send a WhatsApp message, walking ALL active sender numbers until one
+ * succeeds. No more "give up after 3" — if 7 numbers are dead and the
+ * 8th works, we deliver via the 8th. The cost is at most a few extra
+ * fetch calls in the worst case, paid only on outright failure.
+ *
+ * Pinned-sender behaviour (input.fromE164):
+ *   The caller pins a sender (e.g. ShareRequestTile pins Anandita for thread
+ *   continuity). We try that number FIRST. If it succeeds, return — visitor
+ *   sees the intended sender. If it FAILS (Periskope phone instance switched
+ *   off, sender disconnected, etc.), we fall back to walking every other
+ *   active number. Thread continuity is a nice-to-have; OTP delivery is
+ *   the contract.
+ *
+ * Returns the LAST attempted result on full failure so the caller can see
+ * the most recent Periskope error (e.g. UNAUTHORIZED_ERROR / phone off).
  */
 export async function sendWhatsApp(input: SendMessageInput): Promise<SendMessageResult> {
   const attempted = new Set<string>();
-  for (let i = 0; i < 3; i++) {
-    const from = input.fromE164 ?? (await pickNextSender());
-    if (!from || attempted.has(from)) {
-      // Nothing picked or already tried — stop
-      if (!from) return { ok: false, fromE164: null, status: 0, error: 'no active sender numbers' };
-      break;
-    }
+  let lastResult: SendMessageResult | null = null;
+
+  // Try pinned sender first (if any).
+  if (input.fromE164) {
+    attempted.add(input.fromE164);
+    const pinned = await sendViaNumber(input.fromE164, input.toE164, input.message);
+    if (pinned.ok) return pinned;
+    lastResult = pinned;
+    console.warn(
+      '[periskope/sendWhatsApp] pinned sender failed, falling back to all active senders:',
+      input.fromE164,
+      pinned.status,
+      pinned.error,
+    );
+  }
+
+  // Walk EVERY active sender. Order: least-recently-used first (round-robin
+  // courtesy) but we don't stop until either one works or we've tried them all.
+  const pool = await getAllActiveSenders();
+  if (pool.length === 0) {
+    return lastResult ?? { ok: false, fromE164: null, status: 0, error: 'no active sender numbers' };
+  }
+  for (const from of pool) {
+    if (attempted.has(from)) continue;
     attempted.add(from);
     const result = await sendViaNumber(from, input.toE164, input.message);
     if (result.ok) return result;
-    console.warn('[periskope/sendWhatsApp] attempt failed, retrying:', from, result.status, result.error);
-    // If user explicitly passed fromE164, don't retry
-    if (input.fromE164) return result;
+    lastResult = result;
+    console.warn(
+      '[periskope/sendWhatsApp] sender failed, trying next:',
+      from,
+      result.status,
+      result.error,
+    );
   }
-  return { ok: false, fromE164: null, status: 0, error: 'all sender numbers failed' };
+
+  // All numbers exhausted. Return the last specific failure (so the caller
+  // logs an actionable error like "phone instance switched off") rather
+  // than a generic "all sender numbers failed".
+  return (
+    lastResult ?? { ok: false, fromE164: null, status: 0, error: 'all sender numbers failed' }
+  );
 }
+
+/**
+ * Re-export for callers that just want the round-robin pick (e.g. document
+ * sends that don't need to walk every number on failure). The full-pool
+ * walk is reserved for OTP sends where delivery is critical.
+ */
+export { pickNextSender };
 
 /**
  * Build the OTP WhatsApp message. Professional, English-only, no em-dashes.

@@ -94,3 +94,34 @@ export async function pickNextSender(): Promise<string | null> {
     return fallbackSender();
   }
 }
+
+/**
+ * Return every active sender number, ordered by least-recently-used first.
+ * Used as the sender pool for `sendWhatsApp` retries — when one number is
+ * dead (e.g. Periskope phone instance switched off), we walk the rest of
+ * the pool until something delivers, instead of bailing after 3 attempts.
+ *
+ * Mongo-down safe: returns the seed list shuffled randomly when Mongo is
+ * unreachable so OTP delivery doesn't depend on a healthy DB.
+ */
+export async function getAllActiveSenders(): Promise<string[]> {
+  const seeds = SEED_NUMBERS.map((n) => n.phoneE164);
+  if (!hasMongo()) {
+    return seeds.sort(() => Math.random() - 0.5);
+  }
+  try {
+    await ensureNumbersSeeded();
+    const db = await getDb();
+    const col = db.collection<WaNumberDoc>('wa_numbers');
+    const docs = await col
+      .find({ active: true })
+      .sort({ lastUsedAt: 1, usageCount: 1 })
+      .toArray();
+    const fromMongo = docs.map((d) => d.phoneE164).filter(Boolean);
+    if (fromMongo.length > 0) return fromMongo;
+    return seeds.sort(() => Math.random() - 0.5);
+  } catch (err) {
+    console.warn('[wa/numbers] getAllActiveSenders Mongo failed, using seeds:', (err as Error).message);
+    return seeds.sort(() => Math.random() - 0.5);
+  }
+}
