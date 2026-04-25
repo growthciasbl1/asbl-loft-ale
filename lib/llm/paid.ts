@@ -34,8 +34,12 @@ export function hasPaidLLM(): boolean {
 
 const PRICE_1695 = 1_94_00_000; // ₹1.94 Cr (all-inclusive + GST)
 const PRICE_1870 = 2_15_00_000; // ₹2.15 Cr (all-inclusive + GST)
-const RENT_1695 = 85_000; // monthly from ASBL — rounded for display per user direction
-const RENT_1870 = 93_500; // 1870 × ₹50/sqft, exact
+// Rental cap is FLAT ₹85,000/month for BOTH unit sizes — not per-sqft.
+// KB line 156: "Same ₹85,000/month cap applies for both 1,695 and 1,870 sqft".
+// Earlier (b46093a) I had ₹93,500 for 1870 assuming ₹50/sqft — that was wrong
+// and caused the bot to claim "1870 gets ₹93.5K, 1695 gets ₹85K" which broke
+// trust on a basic fact.
+const RENT = 85_000;
 const OFFER_END = new Date('2026-12-31T23:59:59+05:30');
 
 function fmtCr(n: number): string {
@@ -73,57 +77,51 @@ function buildContextHeader(): string {
     Math.floor((OFFER_END.getTime() - now.getTime()) / (1000 * 60 * 60 * 24 * 30)),
   );
 
-  // Build delay scenarios. Each row gives a pre-computed effective entry
-  // so the model can substitute, not subtract.
+  // Build delay scenarios. Rental cap is flat ₹85K/mo for BOTH sizes,
+  // so total rental and cost-of-delay are IDENTICAL across 1695/1870 —
+  // only the effective entry differs (because base price differs).
   const scenarios = [0, 3, 6, 9].map((delay) => {
     const months = Math.max(0, monthsLeft - delay);
-    const rent1695 = months * RENT_1695;
-    const rent1870 = months * RENT_1870;
-    const eff1695 = PRICE_1695 - rent1695;
-    const eff1870 = PRICE_1870 - rent1870;
+    const rental = months * RENT;
+    const eff1695 = PRICE_1695 - rental;
+    const eff1870 = PRICE_1870 - rental;
     const label = delay === 0 ? 'Book TODAY' : `${delay}-month delay`;
-    return { delay, months, rent1695, rent1870, eff1695, eff1870, label };
+    return { delay, months, rental, eff1695, eff1870, label };
   });
 
-  const baseRent1695 = scenarios[0].rent1695;
-  const baseRent1870 = scenarios[0].rent1870;
+  const baseRental = scenarios[0].rental;
 
-  const rows1695 = scenarios
+  const rows = scenarios
     .map((s) => {
-      const cost = s.delay === 0 ? '' : ` (cost of delay: ${fmtL(baseRent1695 - s.rent1695)})`;
-      return `  • ${s.label.padEnd(15)} → ${s.months} mo × ₹85K = ${fmtL(s.rent1695)} rental → effective entry ${fmtCr(s.eff1695)}${cost}`;
+      const cost = s.delay === 0 ? '' : ` (cost of delay: ${fmtL(baseRental - s.rental)})`;
+      return `  • ${s.label.padEnd(15)} → ${s.months} mo × ₹85K = ${fmtL(s.rental)} rental → 1695 effective ${fmtCr(s.eff1695)} · 1870 effective ${fmtCr(s.eff1870)}${cost}`;
     })
     .join('\n');
 
-  const rows1870 = scenarios
-    .map((s) => {
-      const cost = s.delay === 0 ? '' : ` (cost of delay: ${fmtL(baseRent1870 - s.rent1870)})`;
-      return `  • ${s.label.padEnd(15)} → ${s.months} mo × ₹93.5K = ${fmtL(s.rent1870)} rental → effective entry ${fmtCr(s.eff1870)}${cost}`;
-    })
-    .join('\n');
-
-  // Per-sqft and gross yield — also pre-computed so model never divides.
+  // Per-sqft and gross yield — pre-computed so model never divides.
+  // Yield differs because rental cap is flat but price differs:
+  // larger unit has LOWER gross yield, not similar.
   const psf1695 = Math.round(PRICE_1695 / 1695);
   const psf1870 = Math.round(PRICE_1870 / 1870);
-  const yield1695 = ((RENT_1695 * 12) / PRICE_1695) * 100;
-  const yield1870 = ((RENT_1870 * 12) / PRICE_1870) * 100;
+  const yield1695 = ((RENT * 12) / PRICE_1695) * 100;
+  const yield1870 = ((RENT * 12) / PRICE_1870) * 100;
 
   return [
     `[TODAY: ${todayIst}. Months left till rental-offer end (31 Dec 2026): ${monthsLeft}.]`,
     '',
     '[PRECOMPUTED MATH — substitute these numbers directly. Do NOT add, subtract, multiply, or convert Cr↔L yourself. The numbers below are pre-verified.]',
     '',
-    `1695 sq.ft (base ${fmtCr(PRICE_1695)} · ASBL pays ${fmtINR(RENT_1695)}/mo):`,
-    rows1695,
+    `Rental offer is a FLAT ₹85,000/month cap for BOTH 1,695 and 1,870 sq.ft (not per-sqft). So total rental and cost-of-delay are IDENTICAL across both sizes — only the effective entry differs because base price differs.`,
     '',
-    `1870 sq.ft (base ${fmtCr(PRICE_1870)} · ASBL pays ${fmtINR(RENT_1870)}/mo):`,
-    rows1870,
+    `Base prices: 1695 = ${fmtCr(PRICE_1695)} · 1870 = ${fmtCr(PRICE_1870)}`,
+    '',
+    rows,
     '',
     `Per-sqft (carpet): 1695 → ${fmtINR(psf1695)}/sqft · 1870 → ${fmtINR(psf1870)}/sqft`,
-    `Gross rental yield: 1695 → ${yield1695.toFixed(2)}% · 1870 → ${yield1870.toFixed(2)}%`,
+    `Gross rental yield: 1695 → ${yield1695.toFixed(2)}% · 1870 → ${yield1870.toFixed(2)}% (1870 yield is lower because price is higher but rental cap is the same)`,
     '',
-    'For other delay durations not in the table, interpolate from the rows above (each month = ₹85K for 1695, ₹93.5K for 1870). For "what if I wait X months", use months_left = max(0, ' + monthsLeft + ' − X).',
-    'CRITICAL: Use these numbers verbatim. Past bugs occurred because the model tried to do its own arithmetic and got Cr↔L conversions wrong.',
+    `For other delay durations not in the table, interpolate: each month = ₹85K rental (both sizes). For "what if I wait X months", use months_left = max(0, ${monthsLeft} − X).`,
+    'CRITICAL: Use these numbers verbatim. NEVER claim 1870 gets a different monthly rental than 1695 — the cap is flat ₹85K for both.',
   ].join('\n');
 }
 
