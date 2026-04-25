@@ -83,9 +83,51 @@ async function sendViaNumber(
 }
 
 /**
- * Send a WhatsApp document (PDF/image) via Periskope. The `url` must be a
- * publicly reachable HTTPS URL (Periskope fetches it on their side).
- * Returns success once Periskope acknowledges the queue entry.
+ * Internal: single-attempt document send via a specific sender number.
+ * The fallback walking lives in `sendWhatsAppDocument` below.
+ */
+async function sendDocumentViaNumber(
+  fromE164: string,
+  input: { toE164: string; url: string; filename: string; caption?: string; timeoutMs?: number },
+): Promise<SendMessageResult> {
+  if (!hasPeriskope()) {
+    return { ok: false, fromE164, status: 0, error: 'PERISKOPE_API_TOKEN missing' };
+  }
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), input.timeoutMs ?? 20000);
+  try {
+    const res = await fetch(`${BASE}/message/send`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${TOKEN}`,
+        'Content-Type': 'application/json',
+        'x-phone': fromE164,
+      },
+      body: JSON.stringify({
+        chat_id: `${input.toE164}@c.us`,
+        message: input.caption ?? '',
+        media: { type: 'document', url: input.url, filename: input.filename },
+      }),
+      signal: ctrl.signal,
+    });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, fromE164, status: res.status, data };
+  } catch (err) {
+    return { ok: false, fromE164, status: 0, error: (err as Error).message };
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+/**
+ * Send a WhatsApp document (PDF/image) via Periskope, with the SAME pinned-
+ * sender + full-pool fallback chain as `sendWhatsApp` for text. Earlier this
+ * function had no fallback at all — when the pinned sender (Anandita)
+ * returned 401 ("phone server instance switched off"), the document silently
+ * vanished while the intro text still went out via sendWhatsApp's fallback.
+ * Visitor saw "sharing the doc you requested" with no actual doc attached.
+ *
+ * `url` must be publicly reachable HTTPS — Periskope fetches it on their side.
  */
 export async function sendWhatsAppDocument(input: {
   toE164: string;
@@ -98,34 +140,37 @@ export async function sendWhatsAppDocument(input: {
   if (!hasPeriskope()) {
     return { ok: false, fromE164: input.fromE164, status: 0, error: 'PERISKOPE_API_TOKEN missing' };
   }
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), input.timeoutMs ?? 20000);
-  try {
-    const res = await fetch(`${BASE}/message/send`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${TOKEN}`,
-        'Content-Type': 'application/json',
-        'x-phone': input.fromE164,
-      },
-      body: JSON.stringify({
-        chat_id: `${input.toE164}@c.us`,
-        message: input.caption ?? '',
-        media: {
-          type: 'document',
-          url: input.url,
-          filename: input.filename,
-        },
-      }),
-      signal: ctrl.signal,
-    });
-    const data = await res.json().catch(() => ({}));
-    return { ok: res.ok, fromE164: input.fromE164, status: res.status, data };
-  } catch (err) {
-    return { ok: false, fromE164: input.fromE164, status: 0, error: (err as Error).message };
-  } finally {
-    clearTimeout(t);
+  const attempted = new Set<string>();
+  let lastResult: SendMessageResult | null = null;
+
+  // 1) Pinned sender first (e.g. Anandita for thread continuity).
+  attempted.add(input.fromE164);
+  const pinned = await sendDocumentViaNumber(input.fromE164, input);
+  if (pinned.ok) return pinned;
+  lastResult = pinned;
+  console.warn(
+    '[periskope/sendWhatsAppDocument] pinned sender failed, falling back to all active senders:',
+    input.fromE164,
+    pinned.status,
+    pinned.error,
+  );
+
+  // 2) Walk every active sender — same logic as sendWhatsApp.
+  const pool = await getAllActiveSenders();
+  for (const from of pool) {
+    if (attempted.has(from)) continue;
+    attempted.add(from);
+    const result = await sendDocumentViaNumber(from, input);
+    if (result.ok) return result;
+    lastResult = result;
+    console.warn(
+      '[periskope/sendWhatsAppDocument] sender failed, trying next:',
+      from,
+      result.status,
+      result.error,
+    );
   }
+  return lastResult ?? { ok: false, fromE164: input.fromE164, status: 0, error: 'all sender numbers failed' };
 }
 
 /**
