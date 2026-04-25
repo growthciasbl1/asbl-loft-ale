@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useChatStore } from '@/lib/store/chatStore';
 import ChannelToggle, { Channel } from './ChannelToggle';
-import { track } from '@/lib/analytics/tracker';
+import { track, sessionId } from '@/lib/analytics/tracker';
 import { readWebTracker } from '@/lib/analytics/leadTracking';
 import { getOrCreateVisitorId } from '@/lib/analytics/visitorId';
 import { isValidIndiaPhone, phoneValidationHint } from '@/lib/utils/phone';
@@ -79,7 +79,13 @@ export default function LeadGate({ children, reason, preview, preferredChannel =
       const res = await fetch('/api/otp/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), phone: phone.trim() }),
+        body: JSON.stringify({
+          name: name.trim(),
+          phone: phone.trim(),
+          sessionId: sessionId(),
+          form: 'lead_gate',
+          reason,
+        }),
       });
       const json = await res.json();
       if (!res.ok || !json.ok) {

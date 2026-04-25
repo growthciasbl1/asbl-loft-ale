@@ -3,6 +3,30 @@ import { normalisePhone, sendWhatsApp, buildOtpMessage } from '@/lib/wa/periskop
 import { generateOtp, saveOtp } from '@/lib/otp/store';
 import { sendMsg91Otp, hasMsg91 } from '@/lib/sms/msg91';
 import { checkRateLimit, getClientKey, rateLimitHeaders } from '@/lib/rateLimit';
+import { hasMongo, getDb } from '@/lib/db/mongo';
+import { COLLECTIONS } from '@/lib/db/schemas';
+
+/**
+ * Persist a server-side OTP send failure as an event row so we can
+ * forensically trace why visitors saw "delivery hiccup" without grepping
+ * Vercel logs (which roll over fast). Best-effort — never throws.
+ */
+async function logOtpFailure(payload: Record<string, unknown>): Promise<void> {
+  if (!hasMongo()) return;
+  try {
+    const db = await getDb();
+    await db.collection(COLLECTIONS.events).insertOne({
+      sessionId: typeof payload.sessionId === 'string' ? payload.sessionId : 'server',
+      type: 'system',
+      name: 'otp_send_failed',
+      props: payload,
+      serverAt: new Date(),
+      clientAt: new Date(),
+    } as never);
+  } catch (err) {
+    console.warn('[api/otp/send] failed to log otp_send_failed event:', (err as Error).message);
+  }
+}
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -27,8 +51,10 @@ export async function POST(req: NextRequest) {
       { status: 429, headers: rateLimitHeaders(rl) },
     );
   }
+  let bodyForCatch: Record<string, unknown> = {};
   try {
     const body = await req.json();
+    bodyForCatch = body || {};
     const phoneRaw = typeof body?.phone === 'string' ? body.phone : '';
     const name = typeof body?.name === 'string' ? body.name : null;
 
@@ -39,6 +65,7 @@ export async function POST(req: NextRequest) {
     const visitorId = typeof body?.visitorId === 'string' ? body.visitorId : undefined;
     const campaign = typeof body?.campaign === 'string' ? body.campaign : undefined;
     const artifactKind = typeof body?.artifactKind === 'string' ? body.artifactKind : undefined;
+    const sessionId = typeof body?.sessionId === 'string' ? body.sessionId : undefined;
 
     // Optional explicit sender override — used by share_request flow so the
     // visitor sees one continuous WhatsApp thread with Anandita (not a
@@ -50,6 +77,11 @@ export async function POST(req: NextRequest) {
 
     const phoneE164 = normalisePhone(phoneRaw);
     if (!phoneE164) {
+      await logOtpFailure({
+        sessionId, visitorId, reason, form, phoneRaw,
+        failure: 'invalid_phone',
+        digitsCount: phoneRaw.replace(/\D/g, '').length,
+      });
       return NextResponse.json({ ok: false, error: 'invalid phone' }, { status: 400 });
     }
 
@@ -70,11 +102,9 @@ export async function POST(req: NextRequest) {
     if (smsResult.ok) sentVia.push('sms');
 
     if (sentVia.length === 0) {
-      // Loud log — this is the most common silent failure (Periskope token
-      // expired, Mongo down so pickNextSender returns null, etc.). Without
-      // this log we end up guessing in production.
-      console.error('[api/otp/send] ALL CHANNELS FAILED', {
-        phoneE164,
+      const failurePayload = {
+        sessionId, visitorId, reason, form, phoneE164, forceSenderE164,
+        failure: 'all_channels_failed',
         whatsapp: {
           ok: waResult.ok,
           status: waResult.status,
@@ -91,7 +121,11 @@ export async function POST(req: NextRequest) {
           MONGODB_URI_set: !!process.env.MONGODB_URI,
           MSG91_TEMPLATE_ID_set: !!process.env.MSG91_TEMPLATE_ID,
         },
-      });
+      };
+      console.error('[api/otp/send] ALL CHANNELS FAILED', failurePayload);
+      // Persist as event so we can forensically trace specific failures
+      // without grepping Vercel logs (which expire fast).
+      await logOtpFailure(failurePayload);
       return NextResponse.json(
         {
           ok: false,
@@ -145,6 +179,13 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error('[api/otp/send] error:', err);
+    await logOtpFailure({
+      sessionId: typeof bodyForCatch.sessionId === 'string' ? bodyForCatch.sessionId : undefined,
+      visitorId: typeof bodyForCatch.visitorId === 'string' ? bodyForCatch.visitorId : undefined,
+      failure: 'thrown',
+      message: (err as Error).message,
+      stack: ((err as Error).stack ?? '').slice(0, 600),
+    });
     return NextResponse.json({ ok: false, error: 'invalid request' }, { status: 400 });
   }
 }

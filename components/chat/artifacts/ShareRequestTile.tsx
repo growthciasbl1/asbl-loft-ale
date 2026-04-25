@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { TileShell, TileIcon } from './common';
 import { useChatStore } from '@/lib/store/chatStore';
 import ChannelToggle, { Channel } from '../ChannelToggle';
-import { track } from '@/lib/analytics/tracker';
+import { track, sessionId } from '@/lib/analytics/tracker';
 import { readWebTracker } from '@/lib/analytics/leadTracking';
 import { getOrCreateVisitorId } from '@/lib/analytics/visitorId';
 import { isValidIndiaPhone, phoneValidationHint } from '@/lib/utils/phone';
@@ -121,6 +121,7 @@ export default function ShareRequestTile({
           form: 'share_request_tile',
           artifactKind: 'share_request',
           visitorId,
+          sessionId: sessionId(),
           // Pin to Anandita's number so she's the one thread the user has.
           senderE164: ANANDITA_SENDER,
         }),

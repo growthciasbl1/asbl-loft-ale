@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { TileShell, TileIcon } from './common';
 import { useChatStore, type BookingData } from '@/lib/store/chatStore';
-import { track } from '@/lib/analytics/tracker';
+import { track, sessionId } from '@/lib/analytics/tracker';
 import { readWebTracker } from '@/lib/analytics/leadTracking';
 import {
   generate7DaySlots,
@@ -352,6 +352,7 @@ export default function VisitTile({
           form: 'visit_tile',
           artifactKind: 'visit',
           visitorId,
+          sessionId: sessionId(),
         }),
       });
       const json = await res.json();
