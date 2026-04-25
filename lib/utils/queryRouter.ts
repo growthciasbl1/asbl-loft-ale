@@ -347,9 +347,10 @@ export function routeQuery(q: string): RouterResult {
   }
 
   // Commute / connectivity / nearby / location queries. Covers the city-
-  // wide IT-corridor map + distances. (The BRANDED "Urban Corridor" tile
-  // is separate — handled above — and shows tower ground-floor amenities.)
-  if (/commute|hitec|hitech|drive|metro|distance|airport|how\s*far|tenant\s*demograph|location\s*map|where\s*is|which\s*area|neighbour|neighborhood|micro[-\s]?market|nearby|area\s*around|connectivity|connected|what\s*is\s*nearby|what('|&apos;)?s\s*nearby/.test(ql)) {
+  // wide IT-corridor map + distances + Hindi/Hinglish location asks.
+  // (The BRANDED "Urban Corridor" tile is separate — handled above —
+  // and shows tower ground-floor amenities.)
+  if (/commute|hitec|hitech|drive|metro|distance|airport|how\s*far|tenant\s*demograph|location\s*map|where\s*is|which\s*area|neighbour|neighborhood|micro[-\s]?market|nearby|area\s*around|connectivity|connected|what\s*is\s*nearby|what('|&apos;)?s\s*nearby|kahan|kahaan|kaha\s|kaha$|kidhar|jagah|kis\s*jagah|address|location\b/.test(ql)) {
     return {
       text: `<p>Typical drive times from Loft. Nanakramguda ORR is 4 minutes away.</p>`,
       artifact: 'commute',
