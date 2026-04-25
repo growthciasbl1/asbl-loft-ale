@@ -32,7 +32,10 @@ const CATALOG: ShareAsset[] = [
     filename: 'Loft Price Sheet.pdf',
     title: 'Price Sheet',
     url: '/share/Loft-Price-Sheet.pdf',
-    keywords: /price\s*sheet|pricing|cost\s*breakup|cost\s*sheet|rate|quote|ticket|per\s*sqft|₹|inr|crore|lakh/i,
+    // Lenient: plain "price" / "cost" / "ticket" should also match.
+    // Earlier the regex required "price sheet" / "pricing" so a visitor
+    // who asked "send me the price" got the full brochure as a fallback.
+    keywords: /\bprice\b|\bcost\b|\bticket\b|price\s*sheet|pricing|cost\s*breakup|cost\s*sheet|rate|quote|per\s*sqft|₹|inr|crore|lakh/i,
     caption: 'ASBL Loft - unit-wise price breakup.',
   },
   {
@@ -83,9 +86,19 @@ export function resolveAssets(subject: string | null | undefined): ShareAsset[] 
     return CATALOG.filter((a) => GENERIC_BUNDLE_IDS.includes(a.id));
   }
 
-  // Payment plan — send BOTH so visitor can compare
-  if (/payment\s*plan|payment\s*structure|payment\s*schedule|instal[lm]ent|first\s*che?que|how.*pay|how\s*payment|emi\s*plan/i.test(s)) {
+  // Payment plan — send BOTH so visitor can compare. Lenient: plain
+  // "payment" matches now too (earlier required "payment plan" / "payment
+  // structure" — "payment" alone fell through to brochure).
+  if (/\bpayment\b|instal[lm]ent|first\s*che?que|how.*pay|emi\s*plan|milestone|down\s*payment/i.test(s)) {
     return CATALOG.filter((a) => PAYMENT_BOTH_IDS.includes(a.id));
+  }
+
+  // Unit plan / floor plan — these live INSIDE the brochure (pages 41-43)
+  // not as a standalone PDF. Send the brochure with a hint so the visitor
+  // knows where to look. Earlier this fell through silently to the same
+  // brochure but with no signal that this was intentional.
+  if (/\b(unit|floor|apartment|flat|room|home)\s*plan\b|layout|carpet\s*area|3\s*bhk\s*plan/i.test(s)) {
+    return CATALOG.filter((a) => a.id === 'brochure');
   }
 
   // Match by keyword
