@@ -40,7 +40,7 @@
 
 ### Master plan
 - Linear layout, north-south alignment on 4.92 acres
-- 26 numbered landscape zones, grouped by activity:
+- 25 numbered landscape zones (per official site plan), grouped by activity:
   - **Active:** basketball court, outdoor fitness, jogging loop, cycling loop
   - **Social:** 55,000 sqft clubhouse (largest in FD), amphitheatre, multi-purpose plaza, party spill-out
   - **Wellness:** senior reflexology walk, themed garden, open lawn, seating alcoves, reflective pond
@@ -89,15 +89,30 @@
 
 ### Units & base prices
 
-| Configuration | Carpet area | Balcony | Box price | + 5% GST | All-in |
+| Configuration | Carpet area | Balcony area | Box price | + 5% GST | All-in |
 |---|---|---|---|---|---|
-| 1,695 sqft East | 1,050 sqft | 125 sqft | ₹1.94 Cr | ~₹9.70 L | ~₹2.03 Cr |
-| 1,695 sqft West | 1,050 sqft | (no east balcony) | ₹1.94 Cr | ~₹9.70 L | ~₹2.03 Cr |
-| 1,870 sqft East/West | ~1,160 sqft | 260 sqft outdoor living balcony | ₹2.15 Cr | ~₹10.75 L | ~₹2.26 Cr |
+| 1,695 sqft East | **1,050 sqft** | **125 sqft outdoor living balcony** | ₹1.94 Cr | ~₹9.70 L | ~₹2.03 Cr |
+| 1,695 sqft West | **1,050 sqft** | **125 sqft outdoor living balcony** | ₹1.94 Cr | ~₹9.70 L | ~₹2.03 Cr |
+| 1,870 sqft East | **1,050 sqft** | **260 sqft — MASSIVE outdoor living balcony** + extra side balconies | ₹2.15 Cr | ~₹10.75 L | ~₹2.26 Cr |
+| 1,870 sqft West | **1,050 sqft** | **260 sqft — MASSIVE outdoor living balcony** + extra side balconies | ₹2.15 Cr | ~₹10.75 L | ~₹2.26 Cr |
 
+**Carpet area is 1,050 sqft for ALL FOUR variants** — same internal carpet across 1,695 and 1,870. The difference is the BALCONY space: 1,695 gets 125 sqft, 1,870 gets a **MASSIVE 260 sqft outdoor living balcony** (more than 2× the size) — this is the headline upgrade for 1,870.
+
+- **All units have an outdoor living balcony** — this is a Loft-wide design feature. The standard outdoor living balcony is 7'10" × 10'10" (~85 sqft). 1,870 sqft units add additional side balconies, totalling 260 sqft of balcony space.
+- **CRITICAL — when describing balconies in prose:** Do NOT say "the 1,870 sqft units feature an outdoor living balcony" (implies 1,695 doesn't). ALWAYS frame as: "Both configurations have outdoor living balconies — 125 sqft in the 1,695 sqft units and a MASSIVE 260 sqft in the 1,870 sqft units." OR: "The 1,870 sqft units have a much bigger outdoor living balcony at 260 sqft, vs 125 sqft in the 1,695 sqft units."
 - All balconies face outward — nothing blocks the line of sight; no unit looks into another Loft unit
 - Per-sqft pricing not offered currently
 - 1,870 sqft now available for sale
+
+### Standout interior dimensions (cite-able)
+- **Floor-to-ceiling height: 10'5"** — 6 inches more than industry standard. Cite this when discussing space/airiness.
+- **Living room: 16'1" × 11'10"** — described in the brochure as "the largest in its class". Strong differentiator vs other FD 3BHKs.
+- **Main door: up to 8 ft (2,400mm) high** — grand-entrance feel, premium detail.
+- **Master bedrooms:** 13'7" × 10'10" (East-facing) / 10'10" × 15'1" (West-facing). Some variants offer attached balcony.
+
+### Design partners (premium credibility)
+- **Clubhouse + lobby + urban corridor architecture: HP Lakhani Associates** (premier Indian architectural & interior design firm, since 1994)
+- **Landscape architecture: Site Concepts International (SCI), Singapore** — boutique landscape architecture firm since 1991, known for premium residential + urban design
 
 ### Other charges (1,695 sqft example)
 - **Facility maintenance** (first 2 years, paid upfront at handover): ₹108/sqft + 18% GST = ₹2,16,011
@@ -216,26 +231,37 @@ The rental offer is a **separate contractual obligation** between you and ASBL �
 - Multi-purpose plaza (events + gatherings)
 
 ### Tower A — Urban Corridor (ground-floor amenity spine, "Professional utility")
-The **Urban Corridor** is ASBL Loft's branded ground-floor amenity zone — a double-height retail + work + wellness spine you walk through every morning. Tower A's:
+The **Urban Corridor** is ASBL Loft's branded ground-floor amenity zone — a double-height retail + work + wellness spine you walk through every morning. Tower A's spine is tuned for the workday:
 
-- Grand double-height entrance (ceremonial arrival)
-- Reflection pools (calm-down buffer)
-- Zen garden (contemplative pause)
-- 2 co-working spaces (4 conference rooms shared)
-- Breakout lounges (casual meetings)
-- **Ratnadeep Supermarket** (double-entry convenience)
+- Grand lobby entrance (ceremonial arrival, double-height)
+- Reflection pond (calm-down buffer)
+- Lobby & lounging area
+- Lift lobby
+- **Business centre + conference room** (5,500 sqft co-working space with cubicles + meeting rooms — "work from home without being home")
+- **Ratnadeep Supermarket** (on-campus convenience)
 - Pharmacy
-- ATM + locker
 - Fire command centre
+- Zen garden (contemplative pause)
+- Dry scape / janitor / services / storage
 
 ### Tower B — Urban Corridor ("Family & learning")
-- 3 creche play areas (padded floors, age-zoned)
-- Tuition centre (2 classrooms)
-- Hobby / art space (kids + adults)
-- Conference rooms (bookable for residents)
-- Business pods (phone-booth style)
-- Pantry (coffee + snacks)
-- ATM
+Tower B's spine is built around kids, learning, and pause:
+
+- Lobby & lounging area
+- Lift lobby
+- **Crèche play area + crèche** (padded floors, ~5,000 sqft total spread)
+- **Toddler's nap area**
+- **Hobby centre**
+- **Tuition centre**
+- **ATM & bank locker facility** (ICICI Bank or equivalent)
+- Fire command centre
+- Foyer / ramp / dry scape / janitor / services
+
+**Important — do NOT mix up which tower has what:**
+- ATM & locker = **Tower B only** (NOT Tower A)
+- Supermarket + Pharmacy = **Tower A only** (NOT Tower B)
+- Crèche + Tuition + Hobby + Toddler's nap = **Tower B only**
+- Business centre + Conference room = **Tower A only**
 
 ### Utility & security
 - 24/7 security & CCTV (gated community)
